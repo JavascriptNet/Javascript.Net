@@ -47,7 +47,17 @@ JavascriptException::JavascriptException(TryCatch& iTryCatch): System::Exception
 	{
 		mSource = gcnew System::String((wchar_t*) *String::Value(message->GetScriptResourceName()));
 		mLine = message->GetLineNumber();
+		mStartColumn = message->GetStartColumn();
+		mEndColumn = message->GetEndColumn();
 	}
+}
+
+JavascriptException::JavascriptException(wchar_t const *complaint): System::Exception(gcnew System::String(complaint))
+{
+	mSource = System::String::Empty;
+	mLine = -1;
+	mStartColumn = -1;
+	mEndColumn = -1;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -66,24 +76,39 @@ JavascriptException::Line::get()
 	return mLine;
 }
 
+int
+JavascriptException::StartColumn::get()
+{
+	return mStartColumn;
+}
+
+int
+JavascriptException::EndColumn::get()
+{
+	return mEndColumn;
+}
+
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
 System::String^
 JavascriptException::GetExceptionMessage(TryCatch& iTryCatch)
 {
-	System::String^ location;
-
-	v8::Local<v8::Message> message = iTryCatch.Message();
-	if (!message.IsEmpty())
-		location = gcnew System::String((wchar_t*) *String::Value(message->GetScriptResourceName())) + ", line " + message->GetLineNumber();
-	else
-		location = gcnew System::String("Unknown location");
+	// Adding this location information is unhelpful because the library user can
+	// get the information from Line/StartColumn/EndColumn, and may not want it
+	// entangled with the message, or may want to localise it, or whatever.
+	//System::String^ location;
+    //
+	//v8::Local<v8::Message> message = iTryCatch.Message();
+	//if (!message.IsEmpty())
+	//	location = gcnew System::String((wchar_t*) *String::Value(message->GetScriptResourceName())) + ", line " + message->GetLineNumber();
+	//else
+	//	location = gcnew System::String("Unknown location");
 	
 	System::Exception^ exception = GetSystemException(iTryCatch);
 	if (exception != nullptr)
-		return gcnew System::String("Exception in managed code invocation (" + location + ").");
+		return gcnew System::String(exception->Message /*+ " (" + location + ")."*/);
 	else
-		return gcnew System::String((wchar_t*) *String::Value(iTryCatch.Exception())) + "(" + location + ")";
+		return gcnew System::String((wchar_t*) *String::Value(iTryCatch.Exception())) /*+ " (" + location + ")"*/;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////

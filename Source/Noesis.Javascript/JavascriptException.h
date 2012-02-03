@@ -51,6 +51,7 @@ public ref class JavascriptException: System::Exception
 internal:
 
 	JavascriptException(TryCatch& iTryCatch);
+	JavascriptException(wchar_t const *complaint);
 
 	////////////////////////////////////////////////////////////
 	// Public Methods
@@ -63,6 +64,14 @@ public:
 	virtual property int Line
 	{ int get(); }
 
+	virtual property int StartColumn
+	{ int get(); }
+
+	virtual property int EndColumn
+	{ int get(); }
+
+	static System::Exception^ GetSystemException(TryCatch& iTryCatch);
+
 
 	////////////////////////////////////////////////////////////
 	// Private Methods
@@ -70,8 +79,6 @@ public:
 private:
 
 	static System::String^ GetExceptionMessage(TryCatch& iTryCatch);
-
-	static System::Exception^ GetSystemException(TryCatch& iTryCatch);
 
 
 	////////////////////////////////////////////////////////////
@@ -81,7 +88,7 @@ private:
 	
 	System::String^ mSource;
 	int mLine;
-	
+	int mStartColumn, mEndColumn;  // on mLine
 };
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
