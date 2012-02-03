@@ -71,6 +71,8 @@ public:
 
 	static v8::Handle<v8::Value> DelegateInvoker(const v8::Arguments& info);
 
+	static bool IsSystemObject(Handle<Value> iValue);
+
 	static Handle<Object> WrapObject(System::Object^ iObject);
 
 	static System::Object^ UnwrapObject(Handle<Value> iValue);

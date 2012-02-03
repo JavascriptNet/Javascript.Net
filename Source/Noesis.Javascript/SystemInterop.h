@@ -62,11 +62,13 @@ public:
 
 	static System::Object^ ConvertToType(System::Object^ iValue, System::Type^ iType);
 
-	static std::string ConvertFromSystemString(System::String^ iString);
+	static uint16_t* ConvertFromSystemString(System::String^ iString);
 
 	static System::String^ ConvertToSystemString(std::string iString);
 
 	static double ConvertFromSystemDateTime(System::DateTime^ iDateTime);
+
+	static System::Object^ ConvertArray(System::Object^ iValue, System::Type^ iType);
 
 };
 

@@ -28,41 +28,35 @@
 
 switch (myCurrentTest) {
     case 1:
-        // Test #1: Handle the invalid arguments exception in SetProperty(iName,iValue) of the v8 engine
-        JavascriptTest.PrintTestName("Handle the invalid arguments exception in SetProperty(iName,iValue) of the v8 engine");
-        JavascriptTest.Value = 999999;
-        break;
-
-    case 2:
-        // Test #2: Handle the invalid arguments exception in SetProperty(iIndex,iValue) of the v8 engine
+        // Test #1: Handle the invalid arguments exception in SetProperty(iIndex,iValue) of the v8 engine
         JavascriptTest.PrintTestName("Handle the invalid arguments exception in SetProperty(iIndex,iValue) of the v8 engine");
         JavascriptTest[666] = 5555;
         break;
 
-    case 3:
-        // Test #3: Handle the not existing properties exception in GetProperty(iIndex,iValue) of the v8 engine
+    case 2:
+        // Test #2: Handle the not existing properties exception in GetProperty(iIndex,iValue) of the v8 engine
         JavascriptTest.PrintTestName("Handle the not existing properties exception in GetProperty(iIndex,iValue) of the v8 engine");
         var object = myObject["Should have been an integer in here"];
         if (object == null)
             throw "Property doesn't exist";
         break;
 
-    case 4:
-        // Test #4: Handle an exception from the invoker of v8
+    case 3:
+        // Test #3: Handle an exception from the invoker of v8
         JavascriptTest.PrintTestName("Handle an exception from the invoker of v8");
         JavascriptTest.ThrowException();
         break;
 
-    case 5:
-        // Test #5: Handle an exception with a class with no indexer
+    case 4:
+        // Test #4: Handle an exception with a class with no indexer
         JavascriptTest.PrintTestName("Handle a class without indexer");
         var object = myObjectNoIndexer[20];
         if (object == null)
             throw "Indexer doesn't exist";
         break;
 
-    case 6:
-        // Test #6: Handle the not existing properties exception in GetProperty(iName,iValue) of the v8 engine
+    case 5:
+        // Test #5: Handle the not existing properties exception in GetProperty(iName,iValue) of the v8 engine
         JavascriptTest.PrintTestName("Handle the not existing properties exception in GetProperty(iName,iValue) of the v8 engine");
         var object = JavascriptTest.NotExist;
         if (object == null)

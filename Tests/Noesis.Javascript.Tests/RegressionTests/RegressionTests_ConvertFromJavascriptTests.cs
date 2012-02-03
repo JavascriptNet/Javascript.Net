@@ -6,7 +6,7 @@ using System.IO;
 
 namespace Noesis.Javascript.Tests
 {
-    public partial class JavascriptTest
+    public partial class RegressionTests
     {
         public static bool RunConvertFromJavascriptTests()
         {
@@ -25,6 +25,7 @@ namespace Noesis.Javascript.Tests
                     Console.WriteLine("===== Starting ConvertFromJavascript's tests =====");
                     Console.ResetColor();
                     context.SetParameter("JavascriptTest", new JavascriptTest());
+                    context.SetParameter("UniString", "呵呵呵呵呵");
 
                     // Run context
                     context.Run(code);
@@ -73,6 +74,11 @@ namespace Noesis.Javascript.Tests
                     javascriptTest.PrintTestName("Create new property for Javascript's object");
                     Dictionary<string, object> jsObject2 = (Dictionary<string, object>)context.GetParameter("myJSObject");
                     javascriptTest.Assert(123 == (int)jsObject2["newproperty"]);
+
+                    // Test #10: Conversion of a double-byte character
+                    javascriptTest.PrintTestName("Conversion of a double-byte character");
+                    String uniString = (String)context.GetParameter("UniString");
+                    javascriptTest.Assert("呵呵呵呵呵" == uniString);
 
                     // End tests
                     Console.ForegroundColor = ConsoleColor.White;

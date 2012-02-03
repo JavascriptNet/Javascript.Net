@@ -26,6 +26,8 @@
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
+#include <vcclr.h>
+
 #include "JavascriptInterop.h"
 
 #include "SystemInterop.h"
@@ -81,8 +83,10 @@ JavascriptInterop::ConvertFromV8(Handle<Value> iValue)
 		return gcnew System::Int32(iValue->Int32Value());
 	if (iValue->IsNumber())
 		return gcnew System::Double(iValue->NumberValue());
-	if (iValue->IsString())
+	if (iValue->IsString()){
+		System::String^ test = gcnew System::String((wchar_t*)*String::Value(iValue->ToString()));
 		return gcnew System::String((wchar_t*)*String::Value(iValue->ToString()));
+	}
 	if (iValue->IsArray())
 		return ConvertArrayFromV8(iValue);
 	if (iValue->IsDate())
@@ -120,7 +124,11 @@ JavascriptInterop::ConvertToV8(System::Object^ iObject)
 		if (type == System::Double::typeid)
 			return v8::Number::New(safe_cast<double>(iObject));
 		if (type == System::String::typeid)
-			return v8::String::New(SystemInterop::ConvertFromSystemString(safe_cast<System::String^>(iObject)).c_str());
+		{
+			pin_ptr<const wchar_t> valuePtr = PtrToStringChars(safe_cast<System::String^>(iObject));
+			wchar_t* value = (wchar_t*) valuePtr;
+			return v8::String::New((uint16_t*)value);
+		}
 		if (type == System::DateTime::typeid)
 			return v8::Date::New(SystemInterop::ConvertFromSystemDateTime(safe_cast<System::DateTime^>(iObject)));
 		if (type->IsArray)
@@ -138,11 +146,10 @@ JavascriptInterop::ConvertToV8(System::Object^ iObject)
 				return ConvertFromSystemList(iObject);
 		}
 
-
 		return WrapObject(iObject);
 	}
 
-	return Handle<Value>();
+	return Null();
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -311,7 +318,8 @@ JavascriptInterop::ConvertFromSystemDelegate(System::Delegate^ iDelegate)
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
 v8::Handle<v8::Value> 
-JavascriptInterop::DelegateInvoker(const v8::Arguments& info) {
+JavascriptInterop::DelegateInvoker(const v8::Arguments& info)
+{
 	JavascriptExternal* wrapper = (JavascriptExternal*)v8::Handle<v8::External>::Cast(info.Data())->Value();
 	System::Object^ object = wrapper->GetObject();
 
@@ -331,23 +339,46 @@ JavascriptInterop::DelegateInvoker(const v8::Arguments& info) {
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
+bool
+JavascriptInterop::IsSystemObject(Handle<Value> iValue)
+{
+	if (iValue->IsObject())
+	{
+		Local<Object> object = iValue->ToObject();
+		return (object->InternalFieldCount() > 0);
+	}
+
+	return false;
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+
 Handle<Value>
 JavascriptInterop::Getter(Local<String> iName, const AccessorInfo &iInfo)
 {
+	wstring name = (wchar_t*) *String::Value(iName);
 	Handle<External> external = Handle<External>::Cast(iInfo.Holder()->GetInternalField(0));
 	JavascriptExternal* wrapper = (JavascriptExternal*) external->Value();
 	Handle<Function> function;
 	Handle<Value> value;
 
 	// get method
-	function = wrapper->GetMethod(iName);
+	function = wrapper->GetMethod(name);
 	if (!function.IsEmpty())
 		return function;
 
 	// get property
-	value = wrapper->GetProperty(iName);
+	value = wrapper->GetProperty(name);
 	if (!value.IsEmpty())
 		return value;
+
+	// map toString with ToString
+	if (wstring((wchar_t*) *String::Value(iName)) == L"toString")
+	{
+		function = wrapper->GetMethod(L"ToString");
+		if (!function.IsEmpty())
+			return function;
+	}
 
 	// member not found
 	return Handle<Value>();
@@ -358,13 +389,14 @@ JavascriptInterop::Getter(Local<String> iName, const AccessorInfo &iInfo)
 Handle<Value>
 JavascriptInterop::Setter(Local<String> iName, Local<Value> iValue, const AccessorInfo& iInfo)
 {
+	wstring name = (wchar_t*) *String::Value(iName);
 	Handle<External> external = Handle<External>::Cast(iInfo.Holder()->GetInternalField(0));
 	JavascriptExternal* wrapper = (JavascriptExternal*) external->Value();
 	Handle<Function> function;
 	Handle<Value> value;
 	
 	// set property
-	value = wrapper->SetProperty(iName, iValue);
+	value = wrapper->SetProperty(name, iValue);
 
 	if (!value.IsEmpty())
 		return value;
@@ -457,22 +489,26 @@ JavascriptInterop::Invoker(const v8::Arguments& iArgs)
 				arguments = gcnew cli::array<System::Object^>(iArgs.Length());
 				for (int p = 0; p < suppliedArguments->Length; p++)
 				{
-					System::Type^ type = parametersInfo[p]->ParameterType;
-					System::Object^ arg;
+					System::Type^ paramType = parametersInfo[p]->ParameterType;
 
 					if (suppliedArguments[p] != nullptr)
 					{
-						if (suppliedArguments[p]->GetType() == type)
-							match++;
+						System::Type^ suppliedType = suppliedArguments[p]->GetType();
 
-						arg = SystemInterop::ConvertToType(suppliedArguments[p], type);
-						if (arg == nullptr)
+						if (suppliedType == paramType)
 						{
-							failed++;
-							break;
+							arguments[p] = suppliedArguments[p];
+							match++;
 						}
-
-						arguments[p] = arg;
+						else
+						{
+							arguments[p] = SystemInterop::ConvertToType(suppliedArguments[p], paramType);
+							if (arguments[p] == nullptr)
+							{
+								failed++;
+								break;
+							}
+						}
 					}
 				}
 
@@ -495,16 +531,25 @@ JavascriptInterop::Invoker(const v8::Arguments& iArgs)
 		}
 	}
 
-	try
+	if (bestMethod != nullptr)
 	{
-		// invoke
-		ret = bestMethod->Invoke(self, bestMethodArguments);
+		try
+		{
+			// invoke
+			ret = bestMethod->Invoke(self, bestMethodArguments);
+		}
+		catch(System::Reflection::TargetInvocationException^ exception)
+		{
+			v8::ThrowException(JavascriptInterop::ConvertToV8(exception->InnerException));
+		}
+		catch(System::Exception^ exception)
+		{
+			v8::ThrowException(JavascriptInterop::ConvertToV8(exception));
+		}
 	}
-	catch(System::Exception^ Exception)
-	{
-		v8::ThrowException(JavascriptInterop::ConvertToV8(Exception));
-	}
-
+	else
+		v8::ThrowException(JavascriptInterop::ConvertToV8(gcnew System::Exception("Argument mismatch for method \"" + memberName + "\".")));
+	
 	// return value
 	return ConvertToV8(ret);
 }

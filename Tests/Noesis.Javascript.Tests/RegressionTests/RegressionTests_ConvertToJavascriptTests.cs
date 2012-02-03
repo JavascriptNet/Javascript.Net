@@ -6,7 +6,7 @@ using System.IO;
 
 namespace Noesis.Javascript.Tests
 {
-    public partial class JavascriptTest
+    public partial class RegressionTests
     {
         class ConvertToJavascriptTests
         {

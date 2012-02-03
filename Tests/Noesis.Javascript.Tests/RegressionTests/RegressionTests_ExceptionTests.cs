@@ -6,7 +6,7 @@ using System.IO;
 
 namespace Noesis.Javascript.Tests
 {
-    public partial class JavascriptTest
+    public partial class RegressionTests
     {
         class ExceptionTests
         {
@@ -57,7 +57,7 @@ namespace Noesis.Javascript.Tests
                     context.SetParameter("myObjectNoIndexer", new JavascriptTestNoIndexer());
 
                     // Run the Exceptions's tests
-                    for (int i = 1; i < 7; i++)
+                    for (int i = 1; i <= 5; i++)
                     {
                         if (!ExceptionTests.RunException(context, code, i))
                             return false;

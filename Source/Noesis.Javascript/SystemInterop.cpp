@@ -44,8 +44,11 @@ SystemInterop::ConvertToType(System::Object^ iValue, System::Type^ iType)
 	{
 		System::Type^ type = iValue->GetType();
 
-		if (type == iType || iType == System::Object::typeid)
+		if (type == iType || iType->IsAssignableFrom(type) || iType == System::Object::typeid)
 			return iValue;
+
+		if (iType->IsArray)
+			return ConvertArray(iValue, iType);
 
 		if (iType == System::Boolean::typeid)
 			return ConvertToBoolean(iValue);		
@@ -229,16 +232,16 @@ SystemInterop::ConvertToString(System::Object^ iValue)
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
-std::string
+uint16_t*
 SystemInterop::ConvertFromSystemString(System::String^ iString)
 {
-	System::IntPtr ptr = System::Runtime::InteropServices::Marshal::StringToHGlobalAnsi(iString);
-	std::string ret;
+	System::IntPtr ptr = System::Runtime::InteropServices::Marshal::StringToHGlobalUni(iString);
+	uint16_t* ret;
 
 	if (ptr != System::IntPtr::Zero)
 	{
-		ret = (char*)ptr.ToPointer();
-		System::Runtime::InteropServices::Marshal::FreeHGlobal(ptr);
+		ret = (uint16_t*)ptr.ToPointer();
+	//	System::Runtime::InteropServices::Marshal::FreeHGlobal(ptr);
 	}
 
 	return ret;
@@ -261,6 +264,31 @@ SystemInterop::ConvertFromSystemDateTime(System::DateTime^ iDateTime)
 	System::TimeSpan^ timespan = System::TimeSpan::FromTicks(iDateTime->Ticks - startDate->Ticks);
 
 	return timespan->TotalMilliseconds;
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+
+System::Object^
+SystemInterop::ConvertArray(System::Object^ iValue, System::Type^ iType)
+{
+	if (!iValue->GetType()->IsArray || !iType->IsArray)
+		return nullptr;
+
+	System::Type^ itemType = iType->GetElementType();
+	System::Array^ source = (System::Array^) iValue;
+	System::Array^ result = System::Array::CreateInstance(itemType, source->Length);
+	
+	for (int i = 0; i < source->Length; i++)
+	{
+		System::Object^ item = source->GetValue(i);
+
+		if (itemType->IsAssignableFrom(item->GetType()))
+			result->SetValue(item, i);
+		else
+			return nullptr;
+	}
+
+	return result;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////

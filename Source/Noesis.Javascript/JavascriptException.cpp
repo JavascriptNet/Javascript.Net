@@ -28,6 +28,8 @@
 
 #include "JavascriptException.h"
 
+#include "JavascriptInterop.h"
+
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
 using namespace v8;
@@ -38,25 +40,14 @@ namespace Noesis { namespace Javascript {
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
-JavascriptException::JavascriptException(TryCatch& iTryCatch): System::Exception()
+JavascriptException::JavascriptException(TryCatch& iTryCatch): System::Exception(GetExceptionMessage(iTryCatch), GetSystemException(iTryCatch))
 {
-	v8::Handle<v8::Message> message = iTryCatch.Message();
-
-	mMessage = gcnew System::String(*String::Utf8Value(iTryCatch.Exception()));
-
+	v8::Local<v8::Message> message = iTryCatch.Message();
 	if (!message.IsEmpty())
 	{
-		mSource = gcnew System::String(*String::Utf8Value(message->GetScriptResourceName()));
+		mSource = gcnew System::String((wchar_t*) *String::Value(message->GetScriptResourceName()));
 		mLine = message->GetLineNumber();
 	}
-}
-
-////////////////////////////////////////////////////////////////////////////////////////////////////
-
-System::String^
-JavascriptException::Message::get()
-{
-	return mMessage;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -73,6 +64,42 @@ int
 JavascriptException::Line::get()
 {
 	return mLine;
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+
+System::String^
+JavascriptException::GetExceptionMessage(TryCatch& iTryCatch)
+{
+	System::String^ location;
+
+	v8::Local<v8::Message> message = iTryCatch.Message();
+	if (!message.IsEmpty())
+		location = gcnew System::String((wchar_t*) *String::Value(message->GetScriptResourceName())) + ", line " + message->GetLineNumber();
+	else
+		location = gcnew System::String("Unknown location");
+	
+	System::Exception^ exception = GetSystemException(iTryCatch);
+	if (exception != nullptr)
+		return gcnew System::String("Exception in managed code invocation (" + location + ").");
+	else
+		return gcnew System::String((wchar_t*) *String::Value(iTryCatch.Exception())) + "(" + location + ")";
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+
+System::Exception^
+JavascriptException::GetSystemException(TryCatch& iTryCatch)
+{
+	v8::Local<v8::Value> v8exception = iTryCatch.Exception();
+
+	if (JavascriptInterop::IsSystemObject(v8exception))
+	{
+		System::Object^ object = JavascriptInterop::UnwrapObject(v8exception);
+		return dynamic_cast<System::Exception^>(object);
+	}
+
+	return nullptr;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////

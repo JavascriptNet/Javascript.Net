@@ -66,7 +66,7 @@ JavascriptExternal::~JavascriptExternal()
 void
 JavascriptExternal::Clear()
 {
-	map<string, Persistent<Function> >::iterator methodIterator;
+	map<wstring, Persistent<Function> >::iterator methodIterator;
 
 	// clear methods
 	for (methodIterator = mMethods.begin(); methodIterator != mMethods.end(); methodIterator++)
@@ -87,19 +87,18 @@ JavascriptExternal::GetObject()
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
 Handle<Function>
-JavascriptExternal::GetMethod(Handle<String> iName)
+JavascriptExternal::GetMethod(wstring iName)
 {
-	string name = *String::Utf8Value(iName);
-	map<string, Persistent<Function> >::iterator it;
+	map<wstring, Persistent<Function> >::iterator it;
 
-	it = mMethods.find(name); 
+	it = mMethods.find(iName); 
 	if (it != mMethods.end())
 		return it->second;
 	else
 	{
 		System::Object^ self = mObjectHandle.Target;
 		System::Type^ type = self->GetType();
-		System::String^ memberName = gcnew System::String(name.c_str());
+		System::String^ memberName = gcnew System::String(iName.c_str());
 		cli::array<System::Object^>^ objectInfo = gcnew cli::array<System::Object^>(2);
 		objectInfo->SetValue(self,0);
 		objectInfo->SetValue(memberName,1);
@@ -113,9 +112,9 @@ JavascriptExternal::GetMethod(Handle<String> iName)
 			Handle<FunctionTemplate> functionTemplate = FunctionTemplate::New(JavascriptInterop::Invoker, external);
 			Handle<Function> function = functionTemplate->GetFunction();
 
-			mMethods[name] = Persistent<Function>::New(function);
+			mMethods[iName] = Persistent<Function>::New(function);
 
-				return function;
+			return function;
 		}
 	}
 	
@@ -125,13 +124,20 @@ JavascriptExternal::GetMethod(Handle<String> iName)
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
-Handle<Value>
-JavascriptExternal::GetProperty(Handle<String> iName)
+Handle<Function>
+JavascriptExternal::GetMethod(Handle<String> iName)
 {
-	string name = *String::Utf8Value(iName);
+	return GetMethod((wchar_t*) *String::Value(iName));
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+
+Handle<Value>
+JavascriptExternal::GetProperty(wstring iName)
+{
 	System::Object^ self = mObjectHandle.Target;
 	System::Type^ type = self->GetType();
-	PropertyInfo^ propertyInfo = type->GetProperty(gcnew System::String(name.c_str()));
+	PropertyInfo^ propertyInfo = type->GetProperty(gcnew System::String(iName.c_str()));
 
 	if (propertyInfo != nullptr)
 	{
@@ -146,6 +152,14 @@ JavascriptExternal::GetProperty(Handle<String> iName)
 	}
 
 	return Handle<Value>();
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+
+Handle<Value>
+JavascriptExternal::GetProperty(Handle<String> iName)
+{
+	return GetProperty((wchar_t*) *String::Value(iName));
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -188,17 +202,25 @@ JavascriptExternal::GetProperty(uint32_t iIndex)
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
 Handle<Value>
-JavascriptExternal::SetProperty(Handle<String> iName, Handle<Value> iValue)
+JavascriptExternal::SetProperty(wstring iName, Handle<Value> iValue)
 {
-	string name = *String::Utf8Value(iName);
 	System::Object^ self = mObjectHandle.Target;
 	System::Type^ type = self->GetType();
-	PropertyInfo^ propertyInfo = type->GetProperty(gcnew System::String(name.c_str()));
+	PropertyInfo^ propertyInfo = type->GetProperty(gcnew System::String(iName.c_str()));
 
-	if (propertyInfo != nullptr){
+	if (propertyInfo != nullptr)
+	{
 		try
 		{
-			propertyInfo->SetValue(self, JavascriptInterop::ConvertFromV8(iValue), nullptr);
+			System::Object^ value = JavascriptInterop::ConvertFromV8(iValue);
+			System::Type^ valueType = value->GetType();			
+			System::Type^ propertyType = propertyInfo->PropertyType;
+			
+			// attempt conversion if assigned value is of wrong type
+			if (propertyType != valueType && !propertyType->IsAssignableFrom(valueType))
+				value = SystemInterop::ConvertToType(value, propertyType);
+
+			propertyInfo->SetValue(self, value, nullptr);
 			return JavascriptInterop::ConvertToV8(propertyInfo->GetValue(self, nullptr));
 		}
 		catch(System::Exception^ Exception)
@@ -208,6 +230,14 @@ JavascriptExternal::SetProperty(Handle<String> iName, Handle<Value> iValue)
 	}
 
 	return Handle<Value>();
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+
+Handle<Value>
+JavascriptExternal::SetProperty(Handle<String> iName, Handle<Value> iValue)
+{
+	return SetProperty((wchar_t*) *String::Value(iName), iValue);
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////

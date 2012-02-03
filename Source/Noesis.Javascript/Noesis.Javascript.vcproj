@@ -146,6 +146,7 @@
 				OptimizeReferences="2"
 				EnableCOMDATFolding="2"
 				TargetMachine="1"
+				KeyFile="key.snk"
 			/>
 			<Tool
 				Name="VCALinkTool"
@@ -183,7 +184,7 @@
 	<Files>
 		<Filter
 			Name="Source Files"
-			Filter="cpp;c;cc;cxx;def;odl;idl;hpj;bat;asm;asmx"
+			Filter="h;c;cpp;"
 			UniqueIdentifier="{4FC737F1-C7A5-4376-A066-2A32D752A2FF}"
 			>
 			<File
@@ -191,27 +192,11 @@
 				>
 			</File>
 			<File
-				RelativePath=".\JavascriptException.cpp"
-				>
-			</File>
-			<File
-				RelativePath=".\JavascriptExternal.cpp"
-				>
-			</File>
-			<File
-				RelativePath=".\JavascriptInterop.cpp"
-				>
-			</File>
-			<File
-				RelativePath=".\SystemInterop.cpp"
-				>
-			</File>
-		</Filter>
-		<Filter
-			Name="Header Files"
-			>
-			<File
 				RelativePath=".\JavascriptContext.h"
+				>
+			</File>
+			<File
+				RelativePath=".\JavascriptException.cpp"
 				>
 			</File>
 			<File
@@ -219,7 +204,15 @@
 				>
 			</File>
 			<File
+				RelativePath=".\JavascriptExternal.cpp"
+				>
+			</File>
+			<File
 				RelativePath=".\JavascriptExternal.h"
+				>
+			</File>
+			<File
+				RelativePath=".\JavascriptInterop.cpp"
 				>
 			</File>
 			<File
@@ -227,10 +220,18 @@
 				>
 			</File>
 			<File
+				RelativePath=".\SystemInterop.cpp"
+				>
+			</File>
+			<File
 				RelativePath=".\SystemInterop.h"
 				>
 			</File>
 		</Filter>
+		<File
+			RelativePath=".\key.snk"
+			>
+		</File>
 	</Files>
 	<Globals>
 	</Globals>

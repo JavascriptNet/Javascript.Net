@@ -73,6 +73,8 @@ public:
 
 	System::Object^ Run(System::String^ iSourceCode);
 
+	System::Object^ Run(System::String^ iScript, System::String^ iScriptResourceName);
+
 	////////////////////////////////////////////////////////////
 	// Internal methods
 	////////////////////////////////////////////////////////////
@@ -87,8 +89,6 @@ internal:
 	void Clear();
 
 	JavascriptExternal* WrapObject(System::Object^ iObject);
-
-	Persistent<Script> Compile(System::String^ iJSScriptCode);
 
 	////////////////////////////////////////////////////////////
 	// Data members

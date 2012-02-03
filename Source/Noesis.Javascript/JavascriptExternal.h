@@ -67,11 +67,17 @@ public:
 
 	System::Object^ GetObject();
 
+	Handle<Function> GetMethod(wstring iName);
+
 	Handle<Function> GetMethod(Handle<String> iName);
+
+	Handle<Value> GetProperty(wstring iName);
 
 	Handle<Value> GetProperty(Handle<String> iName);
 
 	Handle<Value> GetProperty(uint32_t iIndex);
+
+	Handle<Value> SetProperty(wstring iName, Handle<Value> iValue);
 
 	Handle<Value> SetProperty(Handle<String> iName, Handle<Value> iValue);
 
@@ -83,7 +89,7 @@ public:
 private:
 	
 	System::Runtime::InteropServices::GCHandle mObjectHandle;
-	map<string, Persistent<Function> > mMethods;
+	map<wstring, Persistent<Function> > mMethods;
 
 };
 

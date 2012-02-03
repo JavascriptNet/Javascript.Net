@@ -1,11 +1,6 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.IO;
 using System.Reflection;
-using System.Runtime.InteropServices;
-using System.Reflection;
+
 
 namespace Noesis.Javascript.Tests
 {
@@ -69,13 +64,15 @@ namespace Noesis.Javascript.Tests
 
         public void RunRegressionTests()
         {
+            MethodInfo[] memberInfos = typeof(RegressionTests).GetMethods(BindingFlags.Public | BindingFlags.Static);
+            
             Console.ForegroundColor = ConsoleColor.Magenta;
             Console.WriteLine("\nRegression Tests \n");
             Console.ResetColor();
-            Type type = Type.GetType("Noesis.Javascript.Tests.JavascriptTest");
-            MethodInfo[] memberInfos = type.GetMethods(BindingFlags.Public | BindingFlags.Static);
+            
             for (int i = 0; i < memberInfos.Length; i++)
                 memberInfos[i].Invoke(null, null);
+            
             Console.WriteLine("\n");
         }
 

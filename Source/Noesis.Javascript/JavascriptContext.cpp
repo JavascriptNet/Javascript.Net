@@ -27,6 +27,7 @@
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
 #include <msclr\lock.h>
+#include <vcclr.h>
 
 #include "JavascriptContext.h"
 
@@ -64,15 +65,16 @@ JavascriptContext::~JavascriptContext()
 void
 JavascriptContext::SetParameter(System::String^ iName, System::Object^ iObject)
 {
+	pin_ptr<const wchar_t> namePtr = PtrToStringChars(iName);
+	wchar_t* name = (wchar_t*) namePtr;
 	HandleScope handleScope;
 	Handle<Value> value;
-	string key;
 	
 	{
 		JavascriptScope scope(this);
-		key = SystemInterop::ConvertFromSystemString(iName);
+
 		value = JavascriptInterop::ConvertToV8(iObject);
-		(*mContext)->Global()->Set(String::New(key.c_str()), value);
+		(*mContext)->Global()->Set(String::New((uint16_t*)name), value);
 	}
 }
 
@@ -81,15 +83,16 @@ JavascriptContext::SetParameter(System::String^ iName, System::Object^ iObject)
 System::Object^
 JavascriptContext::GetParameter(System::String^ iName)
 {
+	pin_ptr<const wchar_t> namePtr = PtrToStringChars(iName);
+	wchar_t* name = (wchar_t*) namePtr;
 	HandleScope handleScope;
 	Handle<Value> value;
-	string key;
 	System::Object^ object;
 	
 	{
 		JavascriptScope scope(this);
-		key = SystemInterop::ConvertFromSystemString(iName);
-		value = (*mContext)->Global()->Get(String::New(key.c_str()));
+
+		value = (*mContext)->Global()->Get(String::New((uint16_t*)name));
 		object = JavascriptInterop::ConvertFromV8(value);
 	}
 
@@ -98,62 +101,72 @@ JavascriptContext::GetParameter(System::String^ iName)
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
-Persistent<Script>
-JavascriptContext::Compile(System::String^ iSourceCode)
-{
-	Persistent<Script> script;
-	Handle<String> source;
-
-	// convert source
-	source = String::New(SystemInterop::ConvertFromSystemString(iSourceCode).c_str());
-
-	// compile
-	{
-		JavascriptScope scope(this);
-		TryCatch tryCatch;
-
-		script = Persistent<Script>::New(Script::Compile(source));
-
-		if (script.IsEmpty())
-			throw gcnew JavascriptException(tryCatch);		
-		else
-			return script;
-	}
-}
-
-////////////////////////////////////////////////////////////////////////////////////////////////////
-
 System::Object^
-JavascriptContext::Run(System::String^ iSourceCode)
+JavascriptContext::Run(System::String^ iScript)
 {
+	pin_ptr<const wchar_t> scriptPtr = PtrToStringChars(iScript);
+	wchar_t* script = (wchar_t*)scriptPtr;
 	HandleScope handleScope;
 	JavascriptScope scope(this);
-
+	Local<Script> compiledScript;
 	Local<Value> ret;
-	Local<Script> script;
 
 	{
 		lock l(mLock);
-		// Compile
-		Handle<String> source;
-
-		// convert source
-		source = String::New(SystemInterop::ConvertFromSystemString(iSourceCode).c_str());
 
 		// compile
 		{
 			TryCatch tryCatch;
 
-			script = Script::Compile(source);
+			compiledScript = Script::Compile(String::New((uint16_t*)scriptPtr));
 
-			if (script.IsEmpty())
+			if (compiledScript.IsEmpty())
 				throw gcnew JavascriptException(tryCatch);		
 		}
 	}
 	
 	{
 		TryCatch tryCatch;
-		ret = (*script)->Run();
+		ret = (*compiledScript)->Run();
+
+		if (ret.IsEmpty())
+			throw gcnew JavascriptException(tryCatch);
+	}
+	
+	return JavascriptInterop::ConvertFromV8(ret);
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+
+System::Object^
+JavascriptContext::Run(System::String^ iScript, System::String^ iScriptResourceName)
+{
+	pin_ptr<const wchar_t> scriptPtr = PtrToStringChars(iScript);
+	wchar_t* script = (wchar_t*)scriptPtr;
+	pin_ptr<const wchar_t> scriptResourceNamePtr = PtrToStringChars(iScriptResourceName);
+	wchar_t* scriptResourceName = (wchar_t*)scriptResourceNamePtr;
+	HandleScope handleScope;
+	JavascriptScope scope(this);
+	Local<Script> compiledScript;
+	Local<Value> ret;	
+
+	{
+		lock l(mLock);
+
+		// compile
+		{
+			TryCatch tryCatch;
+
+			compiledScript = Script::Compile(String::New((uint16_t*)scriptPtr), String::New((uint16_t*)scriptResourceName));
+
+			if (compiledScript.IsEmpty())
+				throw gcnew JavascriptException(tryCatch);		
+		}
+	}
+	
+	{
+		TryCatch tryCatch;
+		ret = (*compiledScript)->Run();
 
 		if (ret.IsEmpty())
 			throw gcnew JavascriptException(tryCatch);
