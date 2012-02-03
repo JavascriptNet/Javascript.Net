@@ -71,15 +71,11 @@ public:
 
 	Handle<Function> GetMethod(Handle<String> iName);
 
-	Handle<Value> GetProperty(wstring iName);
-
-	Handle<Value> GetProperty(Handle<String> iName);
+	bool GetProperty(wstring iName, Handle<Value> &result);
 
 	Handle<Value> GetProperty(uint32_t iIndex);
 
 	Handle<Value> SetProperty(wstring iName, Handle<Value> iValue);
-
-	Handle<Value> SetProperty(Handle<String> iName, Handle<Value> iValue);
 
 	Handle<Value> SetProperty(uint32_t iIndex, Handle<Value> iValue);
 

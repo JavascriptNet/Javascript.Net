@@ -132,34 +132,32 @@ JavascriptExternal::GetMethod(Handle<String> iName)
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
-Handle<Value>
-JavascriptExternal::GetProperty(wstring iName)
+// Returns false is no such property exists, otherwise check 'result'
+// for an empty value (exception) or the value (including null)
+bool
+JavascriptExternal::GetProperty(wstring iName, Handle<Value> &result)
 {
 	System::Object^ self = mObjectHandle.Target;
 	System::Type^ type = self->GetType();
 	PropertyInfo^ propertyInfo = type->GetProperty(gcnew System::String(iName.c_str()));
 
-	if (propertyInfo != nullptr)
-	{
+	if (propertyInfo == nullptr)
+		return false;
+	else {
 		try
 		{
-			return JavascriptInterop::ConvertToV8(propertyInfo->GetValue(self, nullptr));
+			result = JavascriptInterop::ConvertToV8(propertyInfo->GetValue(self, nullptr));
 		}
-		catch(System::Exception^ Exception)
+		catch(System::Reflection::TargetInvocationException^ exception)
 		{
-			v8::ThrowException(JavascriptInterop::ConvertToV8(Exception->ToString()));
+			result = v8::ThrowException(JavascriptInterop::ConvertToV8(exception->InnerException));
 		}
+		catch(System::Exception^ exception)
+		{
+			result = v8::ThrowException(JavascriptInterop::ConvertToV8(exception));
+		}
+		return true;
 	}
-
-	return Handle<Value>();
-}
-
-////////////////////////////////////////////////////////////////////////////////////////////////////
-
-Handle<Value>
-JavascriptExternal::GetProperty(Handle<String> iName)
-{
-	return GetProperty((wchar_t*) *String::Value(iName));
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -213,31 +211,29 @@ JavascriptExternal::SetProperty(wstring iName, Handle<Value> iValue)
 		try
 		{
 			System::Object^ value = JavascriptInterop::ConvertFromV8(iValue);
-			System::Type^ valueType = value->GetType();			
-			System::Type^ propertyType = propertyInfo->PropertyType;
-			
-			// attempt conversion if assigned value is of wrong type
-			if (propertyType != valueType && !propertyType->IsAssignableFrom(valueType))
-				value = SystemInterop::ConvertToType(value, propertyType);
+			if (value != nullptr) {
+				System::Type^ valueType = value->GetType();			
+				System::Type^ propertyType = propertyInfo->PropertyType;
+				
+				// attempt conversion if assigned value is of wrong type
+				if (propertyType != valueType && !propertyType->IsAssignableFrom(valueType))
+					value = SystemInterop::ConvertToType(value, propertyType);
+			}
 
 			propertyInfo->SetValue(self, value, nullptr);
 			return JavascriptInterop::ConvertToV8(propertyInfo->GetValue(self, nullptr));
 		}
-		catch(System::Exception^ Exception)
+		catch(System::Reflection::TargetInvocationException^ exception)
 		{
-			v8::ThrowException(JavascriptInterop::ConvertToV8(Exception->ToString()));
+			v8::ThrowException(JavascriptInterop::ConvertToV8(exception->InnerException));
+		}
+		catch(System::Exception^ exception)
+		{
+			v8::ThrowException(JavascriptInterop::ConvertToV8(exception));
 		}
 	}
 
 	return Handle<Value>();
-}
-
-////////////////////////////////////////////////////////////////////////////////////////////////////
-
-Handle<Value>
-JavascriptExternal::SetProperty(Handle<String> iName, Handle<Value> iValue)
-{
-	return SetProperty((wchar_t*) *String::Value(iName), iValue);
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -268,9 +264,13 @@ JavascriptExternal::SetProperty(uint32_t iIndex, Handle<Value> iValue)
 			System::Object^ result = type->InvokeMember("Item", System::Reflection::BindingFlags::SetProperty, nullptr, self, args,  nullptr);
 			return JavascriptInterop::ConvertToV8(result);
 		}
-		catch(System::Exception^ Exception)
+		catch(System::Reflection::TargetInvocationException^ exception)
 		{
-			v8::ThrowException(JavascriptInterop::ConvertToV8(Exception->ToString()));
+			v8::ThrowException(JavascriptInterop::ConvertToV8(exception->InnerException));
+		}
+		catch(System::Exception^ exception)
+		{
+			v8::ThrowException(JavascriptInterop::ConvertToV8(exception));
 		}
 	}
 
