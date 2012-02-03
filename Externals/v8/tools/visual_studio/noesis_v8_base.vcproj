@@ -90,6 +90,8 @@
 			/>
 			<Tool
 				Name="VCCLCompilerTool"
+				StringPooling="false"
+				RuntimeLibrary="3"
 			/>
 			<Tool
 				Name="VCManagedResourceCompilerTool"
