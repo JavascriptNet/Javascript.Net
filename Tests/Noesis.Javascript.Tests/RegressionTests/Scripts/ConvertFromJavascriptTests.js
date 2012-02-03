@@ -52,4 +52,6 @@ myObject.bar = 123456;
 // Test #8: .NET's object (External)
 var myExternal = JavascriptTest;
 
-
+// Test #9: Create new property for Javascript's object
+var myJSObject = {};
+myJSObject.newproperty = 123;

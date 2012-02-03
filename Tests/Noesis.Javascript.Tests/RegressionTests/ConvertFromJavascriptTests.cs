@@ -69,6 +69,11 @@ namespace Noesis.Javascript.Tests
                     JavascriptTest jsTest = (JavascriptTest)context.GetParameter("myExternal");
                     javascriptTest.Assert("Noesis.Javascript.Tests.JavascriptTest" == jsTest.ToString());
 
+                    // Test #9: Create new property for Javascript's object
+                    javascriptTest.PrintTestName("Create new property for Javascript's object");
+                    Dictionary<string, object> jsObject2 = (Dictionary<string, object>)context.GetParameter("myJSObject");
+                    javascriptTest.Assert(123 == (int)jsObject2["newproperty"]);
+
                     // End tests
                     Console.ForegroundColor = ConsoleColor.White;
                     Console.WriteLine("\n\n===== End ConvertFromJavascript's tests =====");

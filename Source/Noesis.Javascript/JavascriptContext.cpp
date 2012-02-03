@@ -127,6 +127,8 @@ System::Object^
 JavascriptContext::Run(System::String^ iSourceCode)
 {
 	HandleScope handleScope;
+	JavascriptScope scope(this);
+
 	Local<Value> ret;
 	Local<Script> script;
 
@@ -140,7 +142,6 @@ JavascriptContext::Run(System::String^ iSourceCode)
 
 		// compile
 		{
-			JavascriptScope scope(this);
 			TryCatch tryCatch;
 
 			script = Script::Compile(source);
@@ -151,7 +152,6 @@ JavascriptContext::Run(System::String^ iSourceCode)
 	}
 	
 	{
-		JavascriptScope scope(this);
 		TryCatch tryCatch;
 		ret = (*script)->Run();
 

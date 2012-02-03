@@ -26,6 +26,7 @@ namespace Noesis.Javascript.Tests
         {
             // Initialize the context
             JavascriptContext context = new JavascriptContext();
+            context.Run("");
 
             // Setting the externals parameters of the context
             context.SetParameter("console", new SystemConsole());

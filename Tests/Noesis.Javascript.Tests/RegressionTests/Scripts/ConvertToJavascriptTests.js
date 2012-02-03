@@ -72,7 +72,7 @@ JavascriptTest.Assert((myDictionaryByKeyString["A"] == 12) &&
                       (myDictionaryByKeyString["E"] == 56));
 
 // Test #10: .NET's Dictionary (Integer as keys)
-JavascriptTest.PrintTestName(".NET's Dictionary (8888855 as keys)");
+JavascriptTest.PrintTestName(".NET's Dictionary (Integer as keys)");
 JavascriptTest.Assert((myDictionaryByKeyInteger["2"] == 8888855) &&
                       (myDictionaryByKeyInteger["200"] == 9191955) &&
                       (myDictionaryByKeyInteger["40000"] == 1236555));
