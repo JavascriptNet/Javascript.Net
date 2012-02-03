@@ -281,11 +281,7 @@ SystemInterop::ConvertArray(System::Object^ iValue, System::Type^ iType)
 	for (int i = 0; i < source->Length; i++)
 	{
 		System::Object^ item = source->GetValue(i);
-
-		if (itemType->IsAssignableFrom(item->GetType()))
-			result->SetValue(item, i);
-		else
-			return nullptr;
+		result->SetValue(ConvertToType(item, itemType), i);
 	}
 
 	return result;
