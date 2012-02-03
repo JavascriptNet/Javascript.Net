@@ -69,7 +69,7 @@ JavascriptContext::SetParameter(System::String^ iName, System::Object^ iObject)
 	string key;
 	
 	{
-		JSScope scope(this);
+		JavascriptScope scope(this);
 		key = SystemInterop::ConvertFromSystemString(iName);
 		value = JavascriptInterop::ConvertToV8(iObject);
 		(*mContext)->Global()->Set(String::New(key.c_str()), value);
@@ -84,14 +84,16 @@ JavascriptContext::GetParameter(System::String^ iName)
 	HandleScope handleScope;
 	Handle<Value> value;
 	string key;
+	System::Object^ object;
 	
 	{
-		JSScope scope(this);
+		JavascriptScope scope(this);
 		key = SystemInterop::ConvertFromSystemString(iName);
 		value = (*mContext)->Global()->Get(String::New(key.c_str()));
+		object = JavascriptInterop::ConvertFromV8(value);
 	}
 
-	return JavascriptInterop::ConvertFromV8(value);
+	return object;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -107,7 +109,7 @@ JavascriptContext::Compile(System::String^ iSourceCode)
 
 	// compile
 	{
-		JSScope scope(this);
+		JavascriptScope scope(this);
 		TryCatch tryCatch;
 
 		script = Persistent<Script>::New(Script::Compile(source));
@@ -138,7 +140,7 @@ JavascriptContext::Run(System::String^ iSourceCode)
 
 		// compile
 		{
-			JSScope scope(this);
+			JavascriptScope scope(this);
 			TryCatch tryCatch;
 
 			script = Script::Compile(source);
@@ -149,7 +151,7 @@ JavascriptContext::Run(System::String^ iSourceCode)
 	}
 	
 	{
-		JSScope scope(this);
+		JavascriptScope scope(this);
 		TryCatch tryCatch;
 		ret = (*script)->Run();
 
@@ -159,8 +161,6 @@ JavascriptContext::Run(System::String^ iSourceCode)
 	
 	return JavascriptInterop::ConvertFromV8(ret);
 }
-
-////////////////////////////////////////////////////////////////////////////////////////////////////
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 

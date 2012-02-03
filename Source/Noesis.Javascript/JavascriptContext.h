@@ -1,5 +1,5 @@
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-// File: JSContext.h
+// File: JavascriptContext.h
 // 
 // Copyright 2010 Noesis Innovation Inc. All rights reserved.
 // Redistribution and use in source and binary forms, with or without
@@ -30,8 +30,6 @@
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
-#include "JavascriptObject.h"
-
 #include <v8.h>
 #include <string>
 #include <vector>
@@ -48,7 +46,6 @@ using namespace std;
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
 class JavascriptExternal;
-ref class JSScript;
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 // JSContext
@@ -100,7 +97,6 @@ internal:
 
 	Persistent<Context>* mContext;
 	vector<JavascriptExternal*>* mExternals;
-	// Persistent<Script>* mJSScript;
 
 	[System::ThreadStaticAttribute]
 	static JavascriptContext^ sCurrentContext;
@@ -109,15 +105,15 @@ internal:
 };
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-// JSScope
+// JavascriptScope
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-class JSScope
+class JavascriptScope
 {
 public:
-	JSScope(JavascriptContext^ iContext)
+	JavascriptScope(JavascriptContext^ iContext)
 	{ iContext->Enter(); }
 	
-	~JSScope()
+	~JavascriptScope()
 	{ JavascriptContext::GetCurrent()->Exit(); }
 };
 

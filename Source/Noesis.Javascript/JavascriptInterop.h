@@ -39,6 +39,7 @@ namespace Noesis { namespace Javascript {
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
 using namespace v8;
+using namespace System::Collections::Generic;
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 // JavascriptInterop
@@ -50,15 +51,31 @@ class JavascriptInterop
 	////////////////////////////////////////////////////////////
 public:
 
-	static Persistent<ObjectTemplate> GetObjectWrapperTemplate();
+	static Handle<ObjectTemplate> GetObjectWrapperTemplate();
 
 	static System::Object^ ConvertFromV8(Handle<Value> iValue);
 
 	static Handle<Value> ConvertToV8(System::Object^ iObject);
 
+	static System::Object^ ConvertObjectFromV8(Handle<Object> iObject);
+
+	static System::DateTime^ ConvertDateFromV8(Handle<Value> iValue);
+
+	static v8::Handle<v8::Value> ConvertFromSystemArray(System::Array^ iArray);
+
+	static v8::Handle<v8::Value> ConvertFromSystemDictionary(System::Object^ iObject);
+
+	static v8::Handle<v8::Value> ConvertFromSystemList(System::Object^ iObject);
+
+	static v8::Handle<v8::Value> ConvertFromSystemDelegate(System::Delegate^ iDelegate);
+
+	static v8::Handle<v8::Value> DelegateInvoker(const v8::Arguments& info);
+
 	static Handle<Object> WrapObject(System::Object^ iObject);
 
 	static System::Object^ UnwrapObject(Handle<Value> iValue);
+
+	static System::Object^ ConvertArrayFromV8(Handle<Value> iValue);
 
 	static Handle<Object> WrapFunction(System::Object^ iObject, System::String^ iName);
 
@@ -71,7 +88,6 @@ public:
 	static Handle<Value> IndexSetter(uint32_t iIndex, Local<Value> iValue, const AccessorInfo &iInfo);
 
 	static Handle<Value> Invoker(const v8::Arguments& iArgs);
-	
 
 	////////////////////////////////////////////////////////////
 	// Data members

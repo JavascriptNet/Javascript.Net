@@ -1,5 +1,5 @@
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-// File: SystemInterop.h
+// File: ConvertFromJavascriptTests.js
 // 
 // Copyright 2010 Noesis Innovation Inc. All rights reserved.
 // Redistribution and use in source and binary forms, with or without
@@ -26,52 +26,30 @@
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
-#pragma once
+// Test #1: Javscript's float
+var myFloat = 10.0125;
 
-////////////////////////////////////////////////////////////////////////////////////////////////////
+// Test #2: Javascript's integer
+var myInteger = 1000;
 
-#include <string>
-#include "v8.h"
+// Test #3: Javascript's string
+var myString = "This is the string from Javascript";
 
-////////////////////////////////////////////////////////////////////////////////////////////////////
+// Test #4: Javascript's array
+var myArray = new Array(123,55,666);
 
-namespace Noesis {
+// Test #5: Javascript's bool
+var myBool = false;
 
-////////////////////////////////////////////////////////////////////////////////////////////////////
-// SystemInterop
-////////////////////////////////////////////////////////////////////////////////////////////////////
+// Test #6: Javascript's date
+var myDate = new Date(2010, 9, 9); // Days and Months are zero based.
 
-class SystemInterop
-{
-	////////////////////////////////////////////////////////////
-	// Methods
-	////////////////////////////////////////////////////////////
-public:
+// Test #7: Javascript's object
+var myObject = new Object();
+myObject.foo = "new property";
+myObject.bar = 123456;
 
-	static bool ConvertToBoolean(System::Object^ iValue);
+// Test #8: .NET's object (External)
+var myExternal = JavascriptTest;
 
-	static short ConvertToInt16(System::Object^ iValue);
 
-	static int ConvertToInt32(System::Object^ iValue);
-
-	static float ConvertToSingle(System::Object^ iValue);
-
-	static double ConvertToDouble(System::Object^ iValue);
-
-	static System::String^ ConvertToString(System::Object^ iValue);
-
-	static System::Object^ ConvertToType(System::Object^ iValue, System::Type^ iType);
-
-	static std::string ConvertFromSystemString(System::String^ iString);
-
-	static System::String^ ConvertToSystemString(std::string iString);
-
-	static double ConvertFromSystemDateTime(System::DateTime^ iDateTime);
-
-};
-
-////////////////////////////////////////////////////////////////////////////////////////////////////
-
-} // Namespace Noesis
-
-////////////////////////////////////////////////////////////////////////////////////////////////////

@@ -1,5 +1,5 @@
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-// File: SystemInterop.h
+// File: AccessorsInterceptorsTests.js
 // 
 // Copyright 2010 Noesis Innovation Inc. All rights reserved.
 // Redistribution and use in source and binary forms, with or without
@@ -26,52 +26,32 @@
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
-#pragma once
+// Test #1: Accessing an element in a .NET Array
+JavascriptTest.PrintTestName("Accessing an element in a .NET's Array");
+JavascriptTest.Assert(myArray[2] == 2555);
 
-////////////////////////////////////////////////////////////////////////////////////////////////////
+// Test #2: Accessing by index an property in a .NET Object
+JavascriptTest.PrintTestName("Accessing by index an property in a .NET Object");
+var jsInteger = 1000;
+JavascriptTest.Assert(myObject[jsInteger] == (jsInteger + "===You just pass in the string indexer of JavascriptTest"));
 
-#include <string>
-#include "v8.h"
+// Test #3: Accessing by name an property in a .NET Object
+JavascriptTest.PrintTestName("Accessing by name an property in a .NET Object");
+JavascriptTest.Assert(myObject.MyProperty == "This is the string return by \"My Property\"");
 
-////////////////////////////////////////////////////////////////////////////////////////////////////
+// Test #4: Setting by index an value in a .NET Array
+JavascriptTest.PrintTestName("Setting by index an value in a .NET Array");
+myArray[2] = 123456789;
+JavascriptTest.Assert(myArray[2] == 123456789);
 
-namespace Noesis {
+// Test #5: Setting by index an value in a .NET Object
+JavascriptTest.PrintTestName("Setting by index an value in a .NET Object");
+myObject[20] = "The Value is now set";
+JavascriptTest.Assert(myObject.Value == "20-----The Value is now set");
 
-////////////////////////////////////////////////////////////////////////////////////////////////////
-// SystemInterop
-////////////////////////////////////////////////////////////////////////////////////////////////////
+// Test #6: Setting by name an property in a .NET Object
+JavascriptTest.PrintTestName("Setting by name an property in a .NET Object");
+JavascriptTest.Value = "I just changed the property";
+JavascriptTest.Assert(JavascriptTest.Value == "I just changed the property -- indeed you do");
 
-class SystemInterop
-{
-	////////////////////////////////////////////////////////////
-	// Methods
-	////////////////////////////////////////////////////////////
-public:
-
-	static bool ConvertToBoolean(System::Object^ iValue);
-
-	static short ConvertToInt16(System::Object^ iValue);
-
-	static int ConvertToInt32(System::Object^ iValue);
-
-	static float ConvertToSingle(System::Object^ iValue);
-
-	static double ConvertToDouble(System::Object^ iValue);
-
-	static System::String^ ConvertToString(System::Object^ iValue);
-
-	static System::Object^ ConvertToType(System::Object^ iValue, System::Type^ iType);
-
-	static std::string ConvertFromSystemString(System::String^ iString);
-
-	static System::String^ ConvertToSystemString(std::string iString);
-
-	static double ConvertFromSystemDateTime(System::DateTime^ iDateTime);
-
-};
-
-////////////////////////////////////////////////////////////////////////////////////////////////////
-
-} // Namespace Noesis
-
-////////////////////////////////////////////////////////////////////////////////////////////////////
+// Test #7: Chain of functions call on the same .NET object

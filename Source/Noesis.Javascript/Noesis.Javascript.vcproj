@@ -191,15 +191,7 @@
 				>
 			</File>
 			<File
-				RelativePath=".\JavascriptContext.h"
-				>
-			</File>
-			<File
 				RelativePath=".\JavascriptException.cpp"
-				>
-			</File>
-			<File
-				RelativePath=".\JavascriptException.h"
 				>
 			</File>
 			<File
@@ -207,27 +199,31 @@
 				>
 			</File>
 			<File
-				RelativePath=".\JavascriptExternal.h"
-				>
-			</File>
-			<File
 				RelativePath=".\JavascriptInterop.cpp"
 				>
 			</File>
 			<File
-				RelativePath=".\JavascriptInterop.h"
-				>
-			</File>
-			<File
-				RelativePath=".\JavascriptObject.cpp"
-				>
-			</File>
-			<File
-				RelativePath=".\JavascriptObject.h"
-				>
-			</File>
-			<File
 				RelativePath=".\SystemInterop.cpp"
+				>
+			</File>
+		</Filter>
+		<Filter
+			Name="Header Files"
+			>
+			<File
+				RelativePath=".\JavascriptContext.h"
+				>
+			</File>
+			<File
+				RelativePath=".\JavascriptException.h"
+				>
+			</File>
+			<File
+				RelativePath=".\JavascriptExternal.h"
+				>
+			</File>
+			<File
+				RelativePath=".\JavascriptInterop.h"
 				>
 			</File>
 			<File

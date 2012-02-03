@@ -73,7 +73,7 @@ JavascriptExternal::Clear()
 		methodIterator->second.Dispose();
 	mMethods.clear();
 
-	// clear properties
+	// TODO: clear properties
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -100,22 +100,27 @@ JavascriptExternal::GetMethod(Handle<String> iName)
 		System::Object^ self = mObjectHandle.Target;
 		System::Type^ type = self->GetType();
 		System::String^ memberName = gcnew System::String(name.c_str());
-		cli::array<MemberInfo^>^ members = type->GetMember(memberName);
+		cli::array<System::Object^>^ objectInfo = gcnew cli::array<System::Object^>(2);
+		objectInfo->SetValue(self,0);
+		objectInfo->SetValue(memberName,1);
 
+		// Verification if it a method
+		cli::array<MemberInfo^>^ members = type->GetMember(memberName);
 		if (members->Length > 0 && members[0]->MemberType == MemberTypes::Method)
 		{
 			JavascriptContext^ context = JavascriptContext::GetCurrent();
-			Handle<External> external = External::New(context->WrapObject(members));
+			Handle<External> external = External::New(context->WrapObject(objectInfo));
 			Handle<FunctionTemplate> functionTemplate = FunctionTemplate::New(JavascriptInterop::Invoker, external);
 			Handle<Function> function = functionTemplate->GetFunction();
 
 			mMethods[name] = Persistent<Function>::New(function);
 
-			return function;
+				return function;
 		}
 	}
-
-	return Handle<Function>();
+	
+	// Wasn't an method
+	return  Handle<Function>();
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -226,14 +231,12 @@ JavascriptExternal::SetProperty(uint32_t iIndex, Handle<Value> iValue)
 	{
 		try
 		{
-			cli::array<int^>^ args = gcnew cli::array<int^>(2);
-			args[0] = index;
-			args[1] = (int)JavascriptInterop::ConvertFromV8(iValue);
+			cli::array<System::Object^>^ args = gcnew cli::array<System::Object^>(2);
+			args[0] = (int)index;
+			args[1] = JavascriptInterop::ConvertFromV8(iValue);
 			
-			System::Object^ object = type->InvokeMember("Item", System::Reflection::BindingFlags::SetProperty, nullptr, self, args,  nullptr);
-			System::Int32^ objectInt = (System::Int32^)object;
-			objectInt = (System::Int32^)JavascriptInterop::ConvertFromV8(iValue);
-			return JavascriptInterop::ConvertToV8(objectInt);
+			System::Object^ result = type->InvokeMember("Item", System::Reflection::BindingFlags::SetProperty, nullptr, self, args,  nullptr);
+			return JavascriptInterop::ConvertToV8(result);
 		}
 		catch(System::Exception^ Exception)
 		{

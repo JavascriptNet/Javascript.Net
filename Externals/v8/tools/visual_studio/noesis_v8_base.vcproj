@@ -91,7 +91,7 @@
 			<Tool
 				Name="VCCLCompilerTool"
 				StringPooling="false"
-				RuntimeLibrary="3"
+				RuntimeLibrary="2"
 			/>
 			<Tool
 				Name="VCManagedResourceCompilerTool"

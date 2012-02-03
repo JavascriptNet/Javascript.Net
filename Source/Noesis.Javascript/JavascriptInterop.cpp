@@ -32,7 +32,6 @@
 #include "JavascriptContext.h"
 #include "JavascriptException.h"
 #include "JavascriptExternal.h"
-#include "JavascriptObject.h"
 
 #include <string>
 
@@ -43,6 +42,8 @@ namespace Noesis { namespace Javascript {
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
 using namespace std;
+using namespace System::Collections;
+using namespace System::Collections::Generic;
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -50,7 +51,7 @@ Persistent<ObjectTemplate> JavascriptInterop::sObjectWrapperTemplate;
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
-Persistent<ObjectTemplate>
+Handle<ObjectTemplate>
 JavascriptInterop::GetObjectWrapperTemplate()
 {
 	if (sObjectWrapperTemplate.IsEmpty())
@@ -72,25 +73,28 @@ JavascriptInterop::GetObjectWrapperTemplate()
 System::Object^
 JavascriptInterop::ConvertFromV8(Handle<Value> iValue)
 {
-	if (iValue->IsNull())
+	if (iValue->IsNull() || iValue->IsUndefined())
 		return nullptr;
-	else if (iValue->IsBoolean())
+	if (iValue->IsBoolean())
 		return gcnew System::Boolean(iValue->BooleanValue());
-	else if (iValue->IsInt32())
+	if (iValue->IsInt32())
 		return gcnew System::Int32(iValue->Int32Value());
-	else if (iValue->IsNumber())
+	if (iValue->IsNumber())
 		return gcnew System::Double(iValue->NumberValue());
-	else if (iValue->IsString())
-		return gcnew System::String(*String::Utf8Value(iValue->ToString()));
-	else if (iValue->IsExternal())
-		return UnwrapObject(iValue);
-	else if (iValue->IsObject())
+	if (iValue->IsString())
+		return gcnew System::String((wchar_t*)*String::Value(iValue->ToString()));
+	if (iValue->IsArray())
+		return ConvertArrayFromV8(iValue);
+	if (iValue->IsDate())
+		return ConvertDateFromV8(iValue);
+	if (iValue->IsObject())
 	{
-		System::Object^ object = UnwrapObject(iValue);
-		if (object != nullptr)
-			return object;
+		Handle<Object> object = iValue->ToObject();
+
+		if (object->InternalFieldCount() > 0)
+			return UnwrapObject(iValue);
 		else
-			gcnew JavascriptObject(iValue->ToObject());
+			return ConvertObjectFromV8(object);
 	}
 
 	return nullptr;
@@ -106,24 +110,40 @@ JavascriptInterop::ConvertToV8(System::Object^ iObject)
 		System::Type^ type = iObject->GetType();
 
 		if (type == System::Boolean::typeid)
-			return v8::Boolean::New((bool) iObject);
+			return v8::Boolean::New(safe_cast<bool>(iObject));
 		if (type == System::Int16::typeid)
-			return v8::Int32::New((int) iObject);
+			return v8::Int32::New(safe_cast<int>(iObject));
 		if (type == System::Int32::typeid)
-			return v8::Int32::New((int) iObject);
+			return v8::Int32::New(safe_cast<int>(iObject));
 		if (type == System::Single::typeid)
-			return v8::Number::New((float) iObject);
+			return v8::Number::New(safe_cast<float>(iObject));
 		if (type == System::Double::typeid)
-			return v8::Number::New((double) iObject);
+			return v8::Number::New(safe_cast<double>(iObject));
 		if (type == System::String::typeid)
-			return v8::String::New(SystemInterop::ConvertFromSystemString((System::String^) iObject).c_str());
-		else
-			return WrapObject(iObject);
+			return v8::String::New(SystemInterop::ConvertFromSystemString(safe_cast<System::String^>(iObject)).c_str());
+		if (type == System::DateTime::typeid)
+			return v8::Date::New(SystemInterop::ConvertFromSystemDateTime(safe_cast<System::DateTime^>(iObject)));
+		if (type->IsArray)
+			return ConvertFromSystemArray(safe_cast<System::Array^>(iObject));
+		if (System::Delegate::typeid->IsAssignableFrom(type))
+			return ConvertFromSystemDelegate(safe_cast<System::Delegate^>(iObject));
+		
+		if (type->IsGenericType)
+		{
+			if(type->GetGenericTypeDefinition() == System::Collections::Generic::Dictionary::typeid)
+			{
+				return ConvertFromSystemDictionary(iObject);
+			}
+			if (type->IsGenericType && (type->GetGenericTypeDefinition() == System::Collections::Generic::List::typeid))
+				return ConvertFromSystemList(iObject);
+		}
+
+
+		return WrapObject(iObject);
 	}
 
 	return Handle<Value>();
 }
-
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -138,6 +158,7 @@ JavascriptInterop::WrapObject(System::Object^ iObject)
 		Handle<ObjectTemplate> templ = GetObjectWrapperTemplate();
 		Handle<Object> object = templ->NewInstance();
 		object->SetInternalField(0, External::New(context->WrapObject(iObject)));
+
 		return object;
 	}
 
@@ -169,6 +190,143 @@ JavascriptInterop::UnwrapObject(Handle<Value> iValue)
 	}
 
 	return nullptr;
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+
+System::Object^
+JavascriptInterop::ConvertArrayFromV8(Handle<Value> iValue)
+{
+	v8::Handle<v8::Array> object = v8::Handle<v8::Array>::Cast(iValue->ToObject());
+	int length = object->Length();
+	cli::array<System::Object^>^ results = gcnew cli::array<System::Object^>(length);
+
+	// Populate the .NET Array with the v8 Array
+	for(int i = 0; i < length; i++)
+	{
+		results->SetValue(ConvertFromV8(object->Get(i)), i);
+	}
+
+	return results;
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+
+System::Object^
+JavascriptInterop::ConvertObjectFromV8(Handle<Object> iObject)
+{
+	v8::Local<v8::Array> names = iObject->GetPropertyNames();
+	
+	unsigned int length = names->Length();
+	Dictionary<System::String^, System::Object^>^ results = gcnew Dictionary<System::String^, System::Object^>(length);
+	for (unsigned int i = 0; i < length; i++) {
+		v8::Handle<v8::Value> nameKey = v8::Uint32::New(i);
+		v8::Handle<v8::Value> propName = names->Get(nameKey);
+		v8::Handle<v8::Value> propValue = iObject->Get(propName);
+
+		System::String^ key = safe_cast<System::String^>(ConvertFromV8(propName));
+		results[key] = ConvertFromV8(propValue);
+	}
+
+	return results;
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+
+System::DateTime^
+JavascriptInterop::ConvertDateFromV8(Handle<Value> iValue)
+{
+	System::DateTime^ startDate = gcnew System::DateTime(1970, 1, 2);
+	double milliseconds = iValue->NumberValue();
+	System::TimeSpan^ timespan = System::TimeSpan::FromMilliseconds(milliseconds);
+	return System::DateTime(timespan->Ticks + startDate->Ticks).ToLocalTime();
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+
+v8::Handle<v8::Value>
+JavascriptInterop::ConvertFromSystemArray(System::Array^ iArray) 
+{
+	int lenght = iArray->Length;
+	v8::Handle<v8::Array> result = v8::Array::New();
+	
+	// Transform the .NET array into a Javascript array 
+	for (int i = 0; i < lenght; i++) 
+	{
+		v8::Handle<v8::Value> key = v8::Int32::New(i);
+		result->Set(key, ConvertToV8(iArray->GetValue(i)));
+	}
+
+	return result;
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+
+v8::Handle<v8::Value>
+JavascriptInterop::ConvertFromSystemDictionary(System::Object^ iObject) 
+{
+	v8::Handle<v8::Object> object = v8::Object::New();
+	System::Collections::IDictionary^ dictionary =  safe_cast<System::Collections::IDictionary^>(iObject);
+
+	for each(System::Object^ keyValue in dictionary->Keys) 
+	{
+		v8::Handle<v8::Value> key = ConvertToV8(keyValue);
+		v8::Handle<v8::Value> val = ConvertToV8(dictionary[keyValue]);
+		object->Set(key, val);
+	} 
+
+	return object;
+}	
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+
+v8::Handle<v8::Value>
+JavascriptInterop::ConvertFromSystemList(System::Object^ iObject) 
+{
+	v8::Handle<v8::Array> object = v8::Array::New();
+	System::Collections::IList^ list =  safe_cast<System::Collections::IList^>(iObject);
+
+	for(int i = 0; i < list->Count; i++) 
+	{
+		v8::Handle<v8::Value> key = v8::Int32::New(i);
+		v8::Handle<v8::Value> val = ConvertToV8(list[i]);
+		object->Set(key, val);
+	} 
+
+	return object;
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+
+v8::Handle<v8::Value>
+JavascriptInterop::ConvertFromSystemDelegate(System::Delegate^ iDelegate) 
+{
+	JavascriptContext^ context = JavascriptContext::GetCurrent();
+	v8::Handle<v8::External> external = v8::External::New(context->WrapObject(iDelegate));
+
+	v8::Handle<v8::FunctionTemplate> method = v8::FunctionTemplate::New(DelegateInvoker, external);
+	return method->GetFunction();
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+
+v8::Handle<v8::Value> 
+JavascriptInterop::DelegateInvoker(const v8::Arguments& info) {
+	JavascriptExternal* wrapper = (JavascriptExternal*)v8::Handle<v8::External>::Cast(info.Data())->Value();
+	System::Object^ object = wrapper->GetObject();
+
+	int length = info.Length();
+	cli::array<System::Object^>^ args = gcnew cli::array<System::Object^>(length);
+	cli::array<System::Type^>^ argTypes = gcnew cli::array<System::Type^>(length);
+	
+	for (int i = 0; i < length; i++) 
+	{
+		System::Object^ arg = ConvertFromV8(info[i]);
+		args[i] = arg;
+	}
+
+	System::Object^ value = static_cast<System::Delegate^>(object)->DynamicInvoke(args);
+	return ConvertToV8(value);
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -248,7 +406,6 @@ JavascriptInterop::IndexSetter(uint32_t iIndex, Local<Value> iValue, const Acces
 		return value;
 
 	// member not found
-	//throw gcnew JavascriptException(tryCatch);
 	return Handle<Value>();
 }
 
@@ -257,86 +414,95 @@ JavascriptInterop::IndexSetter(uint32_t iIndex, Local<Value> iValue, const Acces
 Handle<Value>
 JavascriptInterop::Invoker(const v8::Arguments& iArgs)
 {
-	System::Object^ holder = UnwrapObject(iArgs.Holder());
-	System::Type^ holderType = holder->GetType();
 	System::Object^ data = UnwrapObject(Handle<External>::Cast(iArgs.Data()));
-	cli::array<System::Reflection::MemberInfo^>^ members;
 	System::Reflection::MethodInfo^ bestMethod;
 	cli::array<System::Object^>^ suppliedArguments;
 	cli::array<System::Object^>^ bestMethodArguments;
+	cli::array<System::Object^>^ objectInfo;
 	int bestMethodMatchedArgs = -1;
 	System::Object^ ret;
 
-	// get members list
-	members = (cli::array<System::Reflection::MemberInfo^>^) data;
-
-	// parameters
-	suppliedArguments = gcnew cli::array<System::Object^>(iArgs.Length());
-	for (int i = 0; i < iArgs.Length(); i++)
-		suppliedArguments[i] = ConvertFromV8(iArgs[i]);
+	// get target and member's name
+	objectInfo = safe_cast<cli::array<System::Object^>^>(data);
+	System::Object^ self = objectInfo[0];
+	// System::Object^ holder = UnwrapObject(iArgs.Holder());
+	System::Type^ holderType = self->GetType(); 
 	
-	// look for best matching method
-	for (int i = 0; i < members->Length; i++)
+	// get members
+	System::Type^ type = self->GetType();
+	System::String^ memberName = (System::String^)objectInfo[1];
+	cli::array<System::Reflection::MemberInfo^>^ members = type->GetMember(memberName);
+
+	if (members->Length > 0 && members[0]->MemberType == System::Reflection::MemberTypes::Method)
 	{
-		System::Reflection::MethodInfo^ method = (System::Reflection::MethodInfo^) members[i];
-		cli::array<System::Reflection::ParameterInfo^>^ parametersInfo = method->GetParameters();
-		cli::array<System::Object^>^ arguments;
-
-		// match arguments & parameters counts
-		if (iArgs.Length() == parametersInfo->Length)
+		// parameters
+		suppliedArguments = gcnew cli::array<System::Object^>(iArgs.Length());
+		for (int i = 0; i < iArgs.Length(); i++)
+			suppliedArguments[i] = ConvertFromV8(iArgs[i]);
+		
+		// look for best matching method
+		for (int i = 0; i < members->Length; i++)
 		{
-			int match = 0;
-			int failed = 0;
+			System::Reflection::MethodInfo^ method = (System::Reflection::MethodInfo^) members[i];
+			cli::array<System::Reflection::ParameterInfo^>^ parametersInfo = method->GetParameters();
+			cli::array<System::Object^>^ arguments;
 
-			// match parameters
-			arguments = gcnew cli::array<System::Object^>(iArgs.Length());
-			for (int p = 0; p < suppliedArguments->Length; p++)
+			// match arguments & parameters counts
+			if (iArgs.Length() == parametersInfo->Length)
 			{
-				System::Type^ type = parametersInfo[p]->ParameterType;
-				System::Object^ arg;
+				int match = 0;
+				int failed = 0;
 
-				if (suppliedArguments[p] != nullptr)
+				// match parameters
+				arguments = gcnew cli::array<System::Object^>(iArgs.Length());
+				for (int p = 0; p < suppliedArguments->Length; p++)
 				{
-					if (suppliedArguments[p]->GetType() == type)
-						match++;
+					System::Type^ type = parametersInfo[p]->ParameterType;
+					System::Object^ arg;
 
-					arg = SystemInterop::ConvertToType(suppliedArguments[p], type);
-					if (arg == nullptr)
+					if (suppliedArguments[p] != nullptr)
 					{
-						failed++;
-						break;
+						if (suppliedArguments[p]->GetType() == type)
+							match++;
+
+						arg = SystemInterop::ConvertToType(suppliedArguments[p], type);
+						if (arg == nullptr)
+						{
+							failed++;
+							break;
+						}
+
+						arguments[p] = arg;
 					}
-
-					arguments[p] = arg;
 				}
+
+				// skip if a conversion failed
+				if (failed > 0)
+					continue;
+
+				// remember best match
+				if (match > bestMethodMatchedArgs)
+				{
+					bestMethod = method;
+					bestMethodArguments = arguments;
+					bestMethodMatchedArgs = match;
+				}
+
+				// skip lookup if all args matched
+				if (match == arguments->Length)
+					break;
 			}
-
-			// skip if a conversion failed
-			if (failed > 0)
-				continue;
-
-			// remember best match
-			if (match > bestMethodMatchedArgs)
-			{
-				bestMethod = method;
-				bestMethodArguments = arguments;
-				bestMethodMatchedArgs = match;
-			}
-
-			// skip lookup if all args matched
-			if (match == arguments->Length)
-				break;
 		}
 	}
 
 	try
 	{
 		// invoke
-		ret = bestMethod->Invoke(holder, bestMethodArguments);
+		ret = bestMethod->Invoke(self, bestMethodArguments);
 	}
 	catch(System::Exception^ Exception)
 	{
-		v8::ThrowException(JavascriptInterop::ConvertToV8(Exception->ToString()));
+		v8::ThrowException(JavascriptInterop::ConvertToV8(Exception));
 	}
 
 	// return value
