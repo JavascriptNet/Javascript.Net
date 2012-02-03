@@ -323,18 +323,37 @@ JavascriptInterop::DelegateInvoker(const v8::Arguments& info)
 	JavascriptExternal* wrapper = (JavascriptExternal*)v8::Handle<v8::External>::Cast(info.Data())->Value();
 	System::Object^ object = wrapper->GetObject();
 
-	int length = info.Length();
-	cli::array<System::Object^>^ args = gcnew cli::array<System::Object^>(length);
-	cli::array<System::Type^>^ argTypes = gcnew cli::array<System::Type^>(length);
-	
-	for (int i = 0; i < length; i++) 
+	System::Delegate^ delegat = static_cast<System::Delegate^>(object);
+	int nparams = delegat->GetType()->GetMethods()[0]->GetParameters()->Length;
+
+	// As is normal in JavaScript, we ignore excess input parameters, and pad
+	// with null if insufficient are supplied.
+	int nsupplied = info.Length();
+	cli::array<System::Object^>^ args = gcnew cli::array<System::Object^>(nparams);
+	for (int i = 0; i < nparams; i++) 
 	{
-		System::Object^ arg = ConvertFromV8(info[i]);
-		args[i] = arg;
+		if (i < nsupplied)
+			args[i] = ConvertFromV8(info[i]);
+		else
+			args[i] = nullptr;
 	}
 
-	System::Object^ value = static_cast<System::Delegate^>(object)->DynamicInvoke(args);
-	return ConvertToV8(value);
+	System::Object^ ret;
+	try
+	{
+		// invoke
+		ret = delegat->DynamicInvoke(args);
+	}
+	catch(System::Reflection::TargetInvocationException^ exception)
+	{
+		v8::ThrowException(JavascriptInterop::ConvertToV8(exception->InnerException));
+	}
+	catch(System::Exception^ exception)
+	{
+		v8::ThrowException(JavascriptInterop::ConvertToV8(exception));
+	}
+
+	return ConvertToV8(ret);
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -365,12 +384,11 @@ JavascriptInterop::Getter(Local<String> iName, const AccessorInfo &iInfo)
 	// get method
 	function = wrapper->GetMethod(name);
 	if (!function.IsEmpty())
-		return function;
+		return function;  // good value or exception
 
-	// get property
-	value = wrapper->GetProperty(name);
-	if (!value.IsEmpty())
-		return value;
+	// As for GetMethod().
+	if (wrapper->GetProperty(name, value))
+		return value;  // good value or exception
 
 	// map toString with ToString
 	if (wstring((wchar_t*) *String::Value(iName)) == L"toString")
@@ -381,7 +399,7 @@ JavascriptInterop::Getter(Local<String> iName, const AccessorInfo &iInfo)
 	}
 
 	// member not found
-	return Handle<Value>();
+	return v8::ThrowException(JavascriptInterop::ConvertToV8("Unknown member: " + gcnew System::String((wchar_t*) *String::Value(iName))));
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -402,7 +420,7 @@ JavascriptInterop::Setter(Local<String> iName, Local<Value> iValue, const Access
 		return value;
 
 	// member not found
-	return Handle<Value>();
+	return v8::ThrowException(JavascriptInterop::ConvertToV8("Unknown member: " + gcnew System::String((wchar_t*) *String::Value(iName))));
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -548,7 +566,7 @@ JavascriptInterop::Invoker(const v8::Arguments& iArgs)
 		}
 	}
 	else
-		v8::ThrowException(JavascriptInterop::ConvertToV8(gcnew System::Exception("Argument mismatch for method \"" + memberName + "\".")));
+		v8::ThrowException(JavascriptInterop::ConvertToV8("Argument mismatch for method \"" + memberName + "\"."));
 	
 	// return value
 	return ConvertToV8(ret);
