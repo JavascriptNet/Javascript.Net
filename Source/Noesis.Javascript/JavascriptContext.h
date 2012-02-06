@@ -47,8 +47,31 @@ using namespace std;
 
 class JavascriptExternal;
 
+
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-// JSContext
+// CliV8Locker
+//
+// This is a separate class to ensure that the lock is always disposed.
+// If we included the pointer in JavascriptContext then an exception in
+// its constructor would stop the lock being released.
+////////////////////////////////////////////////////////////////////////////////////////////////////
+public ref class CliV8Locker
+{
+internal:
+	CliV8Locker() { locker = new v8::Locker(); }
+	~CliV8Locker() { delete locker; }
+
+private:
+	v8::Locker *locker;
+};
+
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+// JavascriptContext
+//
+// This is the interface provided to our C# code.
+//
+// Being a CLR data structure, this cannot be seen by x86 code.
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 public ref class JavascriptContext: public System::IDisposable
 {
@@ -71,15 +94,14 @@ public:
 
 	System::Object^ GetParameter(System::String^ iName);
 
-	System::Object^ Run(System::String^ iSourceCode);
+	virtual System::Object^ Run(System::String^ iSourceCode);
 
-	System::Object^ Run(System::String^ iScript, System::String^ iScriptResourceName);
+	virtual System::Object^ Run(System::String^ iScript, System::String^ iScriptResourceName);
 
 	////////////////////////////////////////////////////////////
 	// Internal methods
 	////////////////////////////////////////////////////////////
 internal:
-
 	static JavascriptContext^ GetCurrent();
 
 	void Enter();
@@ -94,14 +116,19 @@ internal:
 	// Data members
 	////////////////////////////////////////////////////////////
 internal:
-
+	// v8 context required to be active for all v8 operations.
 	Persistent<Context>* mContext;
+
+	// v8 objects we hang onto for the duration.
 	vector<JavascriptExternal*>* mExternals;
 
-	[System::ThreadStaticAttribute]
-	static JavascriptContext^ sCurrentContext;
-	static Object^ mLock = gcnew Object();
+	// v8 can be used on multiple threads, but not at the same time.  This is
+	// ensures it is not.  It is OK to nest v8::Lockers in one thread.
+	CliV8Locker v8ThreadLock;
 
+	// Keeping track of recursion.
+	[System::ThreadStaticAttribute] static JavascriptContext ^sCurrentContext;
+	JavascriptContext^ oldContext;
 };
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -116,6 +143,12 @@ public:
 	~JavascriptScope()
 	{ JavascriptContext::GetCurrent()->Exit(); }
 };
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+// Standalone functions - can be called from unmanaged code too
+////////////////////////////////////////////////////////////////////////////////////////////////////
+
+Local<Script> CompileScript(wchar_t const *source_code);
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 

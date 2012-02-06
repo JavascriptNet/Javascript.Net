@@ -28,6 +28,7 @@
 
 #include <msclr\lock.h>
 #include <vcclr.h>
+#include <msclr\marshal.h>
 
 #include "JavascriptContext.h"
 
@@ -44,8 +45,20 @@ namespace Noesis { namespace Javascript {
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
+static DWORD curThreadId;
+
 JavascriptContext::JavascriptContext()
 {
+	// v8 Needs to have its stack limit set separately in each thread.
+	DWORD dw = GetCurrentThreadId();
+	if (dw != curThreadId) {
+		v8::ResourceConstraints rc;
+		int limit = (int)&rc - 500000;
+		rc.set_stack_limit((uint32_t *)(limit));
+		v8::SetResourceConstraints(&rc);
+		curThreadId = dw;
+	}
+
 	mExternals = new vector<JavascriptExternal*>();
 	mContext = new Persistent<Context>(Context::New());
 }
@@ -108,23 +121,10 @@ JavascriptContext::Run(System::String^ iScript)
 	wchar_t* script = (wchar_t*)scriptPtr;
 	HandleScope handleScope;
 	JavascriptScope scope(this);
-	Local<Script> compiledScript;
 	Local<Value> ret;
-
-	{
-		lock l(mLock);
-
-		// compile
-		{
-			TryCatch tryCatch;
-
-			compiledScript = Script::Compile(String::New((uint16_t*)scriptPtr));
-
-			if (compiledScript.IsEmpty())
-				throw gcnew JavascriptException(tryCatch);		
-		}
-	}
 	
+	Local<Script> compiledScript = CompileScript(script);
+
 	{
 		TryCatch tryCatch;
 		ret = (*compiledScript)->Run();
@@ -147,22 +147,9 @@ JavascriptContext::Run(System::String^ iScript, System::String^ iScriptResourceN
 	wchar_t* scriptResourceName = (wchar_t*)scriptResourceNamePtr;
 	HandleScope handleScope;
 	JavascriptScope scope(this);
-	Local<Script> compiledScript;
 	Local<Value> ret;	
 
-	{
-		lock l(mLock);
-
-		// compile
-		{
-			TryCatch tryCatch;
-
-			compiledScript = Script::Compile(String::New((uint16_t*)scriptPtr), String::New((uint16_t*)scriptResourceName));
-
-			if (compiledScript.IsEmpty())
-				throw gcnew JavascriptException(tryCatch);		
-		}
-	}
+	Local<Script> compiledScript = CompileScript(script);
 	
 	{
 		TryCatch tryCatch;
@@ -188,8 +175,11 @@ JavascriptContext::GetCurrent()
 void
 JavascriptContext::Enter()
 {
-	(*mContext)->Enter();
+	// We store the old context so that JavascriptContexts can be created and run
+	// recursively.
+	oldContext = sCurrentContext;
 	sCurrentContext = this;
+	(*mContext)->Enter();
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -197,8 +187,8 @@ JavascriptContext::Enter()
 void
 JavascriptContext::Exit()
 {
-	sCurrentContext = nullptr;
 	(*mContext)->Exit();
+	sCurrentContext = oldContext;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -221,6 +211,29 @@ JavascriptContext::WrapObject(System::Object^ iObject)
 	JavascriptExternal* external = new JavascriptExternal(iObject);
 	mExternals->push_back(external);
 	return external;
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+
+Local<Script>
+CompileScript(wchar_t const *source_code)
+{
+	Handle<String> source;
+
+	// convert source
+	source = String::New((uint16_t const *)source_code);
+
+	// compile
+	{
+		TryCatch tryCatch;
+
+		Local<Script> script = Script::Compile(source);
+
+		if (script.IsEmpty())
+			throw gcnew JavascriptException(tryCatch);
+
+		return script;
+	}
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
