@@ -205,6 +205,15 @@ JavascriptContext::Clear()
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
+// Exposed for the benefit of a regression test.
+void
+JavascriptContext::Collect()
+{
+    while(!v8::V8::IdleNotification()) {}; 
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+
 JavascriptExternal*
 JavascriptContext::WrapObject(System::Object^ iObject)
 {
@@ -218,10 +227,8 @@ JavascriptContext::WrapObject(System::Object^ iObject)
 Local<Script>
 CompileScript(wchar_t const *source_code)
 {
-	Handle<String> source;
-
 	// convert source
-	source = String::New((uint16_t const *)source_code);
+	Local<String> source = String::New((uint16_t const *)source_code);
 
 	// compile
 	{

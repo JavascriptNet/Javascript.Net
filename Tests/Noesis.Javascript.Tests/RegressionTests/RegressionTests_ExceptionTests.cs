@@ -38,64 +38,28 @@ namespace Noesis.Javascript.Tests
             }
         }
 
-        public static bool RunExceptionTests()
+        public static string RunExceptionTests()
         {
-            try
+            // Initialization
+            StreamReader fileReader = new StreamReader("../../RegressionTests/Scripts/ExceptionTests.js");
+            String code = fileReader.ReadToEnd();
+
+            using (JavascriptContext context = new JavascriptContext())
             {
-                // Initialization
-                StreamReader fileReader = new StreamReader("../../RegressionTests/Scripts/ExceptionTests.js");
-                String code = fileReader.ReadToEnd();
+                // Initialize
+                context.SetParameter("JavascriptTest", new JavascriptTest());
+                context.SetParameter("myObject", new JavascriptTest());
+                context.SetParameter("myObjectNoIndexer", new JavascriptTestNoIndexer());
 
-                using (JavascriptContext context = new JavascriptContext())
+                // Run the Exceptions's tests
+                for (int i = 1; i <= 5; i++)
                 {
-                    // Initialize
-                    Console.ForegroundColor = ConsoleColor.White;
-                    Console.WriteLine("\n\n===== Starting Exceptions's tests =====");
-                    Console.ResetColor();
-                    context.SetParameter("JavascriptTest", new JavascriptTest());
-                    context.SetParameter("myObject", new JavascriptTest());
-                    context.SetParameter("myObjectNoIndexer", new JavascriptTestNoIndexer());
-
-                    // Run the Exceptions's tests
-                    for (int i = 1; i <= 5; i++)
-                    {
-                        if (!ExceptionTests.RunException(context, code, i))
-                            return false;
-                    }
+                    if (!ExceptionTests.RunException(context, code, i))
+                        return "Exception not generated";
                 }
             }
-            catch (JavascriptException exception) // Javascript's exception
-            {
-                Console.ForegroundColor = ConsoleColor.White;
-                Console.Write("\n=== Javascript's exception ===\n");
-                Console.ForegroundColor = ConsoleColor.Red;
-                Console.Write(
-                    "{0}, line {1}: {2}",
-                    exception.Source,
-                    exception.Line,
-                    exception.Message
-                );
-                Console.ResetColor();
-                
-                return false;
-            }
-            catch(Exception exception) // .NET's exception
-            {
-                Console.ForegroundColor = ConsoleColor.White;
-                Console.WriteLine("=== .NET's exception ===\n");
-                Console.ForegroundColor = ConsoleColor.Red;
-                Console.WriteLine(exception.ToString());
-                Console.ResetColor();
 
-                return false;
-            }
-
-            // End tests
-            Console.ForegroundColor = ConsoleColor.White;
-            Console.WriteLine("\n\n===== End Exceptions's tests =====");
-            Console.ResetColor();
-
-            return true;
+            return null;
         }
     }
 }
