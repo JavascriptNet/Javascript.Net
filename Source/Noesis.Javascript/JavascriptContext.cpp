@@ -49,16 +49,7 @@ static DWORD curThreadId;
 
 JavascriptContext::JavascriptContext()
 {
-	// v8 Needs to have its stack limit set separately in each thread.
-	DWORD dw = GetCurrentThreadId();
-	if (dw != curThreadId) {
-		v8::ResourceConstraints rc;
-		int limit = (int)&rc - 500000;
-		rc.set_stack_limit((uint32_t *)(limit));
-		v8::SetResourceConstraints(&rc);
-		curThreadId = dw;
-	}
-
+	v8::Locker v8ThreadLock;
 	mExternals = new vector<JavascriptExternal*>();
 	mContext = new Persistent<Context>(Context::New());
 }
@@ -67,6 +58,7 @@ JavascriptContext::JavascriptContext()
 
 JavascriptContext::~JavascriptContext()
 {
+	v8::Locker v8ThreadLock;
 	mContext->Dispose();
 	Clear();
 	delete mContext;
@@ -80,15 +72,11 @@ JavascriptContext::SetParameter(System::String^ iName, System::Object^ iObject)
 {
 	pin_ptr<const wchar_t> namePtr = PtrToStringChars(iName);
 	wchar_t* name = (wchar_t*) namePtr;
+	JavascriptScope scope(this);
 	HandleScope handleScope;
-	Handle<Value> value;
 	
-	{
-		JavascriptScope scope(this);
-
-		value = JavascriptInterop::ConvertToV8(iObject);
-		(*mContext)->Global()->Set(String::New((uint16_t*)name), value);
-	}
+	Handle<Value> value = JavascriptInterop::ConvertToV8(iObject);
+	(*mContext)->Global()->Set(String::New((uint16_t*)name), value);
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -98,18 +86,11 @@ JavascriptContext::GetParameter(System::String^ iName)
 {
 	pin_ptr<const wchar_t> namePtr = PtrToStringChars(iName);
 	wchar_t* name = (wchar_t*) namePtr;
+	JavascriptScope scope(this);
 	HandleScope handleScope;
-	Handle<Value> value;
-	System::Object^ object;
 	
-	{
-		JavascriptScope scope(this);
-
-		value = (*mContext)->Global()->Get(String::New((uint16_t*)name));
-		object = JavascriptInterop::ConvertFromV8(value);
-	}
-
-	return object;
+	Local<Value> value = (*mContext)->Global()->Get(String::New((uint16_t*)name));
+	return JavascriptInterop::ConvertFromV8(value);
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -119,8 +100,9 @@ JavascriptContext::Run(System::String^ iScript)
 {
 	pin_ptr<const wchar_t> scriptPtr = PtrToStringChars(iScript);
 	wchar_t* script = (wchar_t*)scriptPtr;
-	HandleScope handleScope;
 	JavascriptScope scope(this);
+	SetStackLimit();
+	HandleScope handleScope;
 	Local<Value> ret;
 	
 	Local<Script> compiledScript = CompileScript(script);
@@ -145,8 +127,9 @@ JavascriptContext::Run(System::String^ iScript, System::String^ iScriptResourceN
 	wchar_t* script = (wchar_t*)scriptPtr;
 	pin_ptr<const wchar_t> scriptResourceNamePtr = PtrToStringChars(iScriptResourceName);
 	wchar_t* scriptResourceName = (wchar_t*)scriptResourceNamePtr;
-	HandleScope handleScope;
 	JavascriptScope scope(this);
+	SetStackLimit();
+	HandleScope handleScope;
 	Local<Value> ret;	
 
 	Local<Script> compiledScript = CompileScript(script);
@@ -160,6 +143,25 @@ JavascriptContext::Run(System::String^ iScript, System::String^ iScriptResourceN
 	}
 	
 	return JavascriptInterop::ConvertFromV8(ret);
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+
+void
+JavascriptContext::SetStackLimit()
+{
+    // v8 Needs to have its stack limit set separately in each thread because
+	// it detects stack overflows by reference to a stack pointer that it
+	// calculates when it is first invoked.  We recalculate the stack pointer
+	// for each thread.
+	DWORD dw = GetCurrentThreadId();
+	if (dw != curThreadId) {
+		v8::ResourceConstraints rc;
+		int limit = (int)&rc - 500000;
+		rc.set_stack_limit((uint32_t *)(limit));
+		v8::SetResourceConstraints(&rc);
+		curThreadId = dw;
+	}
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////

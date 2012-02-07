@@ -49,24 +49,6 @@ class JavascriptExternal;
 
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-// CliV8Locker
-//
-// This is a separate class to ensure that the lock is always disposed.
-// If we included the pointer in JavascriptContext then an exception in
-// its constructor would stop the lock being released.
-////////////////////////////////////////////////////////////////////////////////////////////////////
-public ref class CliV8Locker
-{
-internal:
-	CliV8Locker() { locker = new v8::Locker(); }
-	~CliV8Locker() { delete locker; }
-
-private:
-	v8::Locker *locker;
-};
-
-
-////////////////////////////////////////////////////////////////////////////////////////////////////
 // JavascriptContext
 //
 // This is the interface provided to our C# code.
@@ -104,6 +86,8 @@ public:
 	// Internal methods
 	////////////////////////////////////////////////////////////
 internal:
+	void SetStackLimit();
+
 	static JavascriptContext^ GetCurrent();
 
 	void Enter();
@@ -124,10 +108,6 @@ internal:
 	// v8 objects we hang onto for the duration.
 	vector<JavascriptExternal*>* mExternals;
 
-	// v8 can be used on multiple threads, but not at the same time.  This is
-	// ensures it is not.  It is OK to nest v8::Lockers in one thread.
-	CliV8Locker v8ThreadLock;
-
 	// Keeping track of recursion.
 	[System::ThreadStaticAttribute] static JavascriptContext ^sCurrentContext;
 	JavascriptContext^ oldContext;
@@ -135,9 +115,15 @@ internal:
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 // JavascriptScope
+//
+// This must be constructed before any use of handles or calling of v8 
+// functions.  It protects against simultaneous multithreaded use of v8.
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 class JavascriptScope
 {
+	// It is OK to nest v8::Lockers in one thread.
+	v8::Locker v8ThreadLock;
+
 public:
 	JavascriptScope(JavascriptContext^ iContext)
 	{ iContext->Enter(); }
