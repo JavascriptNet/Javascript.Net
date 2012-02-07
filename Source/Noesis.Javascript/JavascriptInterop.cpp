@@ -231,7 +231,10 @@ JavascriptInterop::ConvertObjectFromV8(Handle<Object> iObject)
 		v8::Handle<v8::Value> propName = names->Get(nameKey);
 		v8::Handle<v8::Value> propValue = iObject->Get(propName);
 
-		System::String^ key = safe_cast<System::String^>(ConvertFromV8(propName));
+		// Property "names" may be integers or other types.  However they will
+		// generally be strings so continuing to key this dictionary that way is 
+		// probably OK.
+		System::String^ key = safe_cast<System::String^>(ConvertFromV8(propName)->ToString());
 		results[key] = ConvertFromV8(propValue);
 	}
 
