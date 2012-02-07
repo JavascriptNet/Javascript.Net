@@ -1,11 +1,25 @@
 @echo off
-:: See release instructions in README.txt.
+:: Release Procedure
+:: -----------------
+::  1. Checkout a fresh copy of the source.
+::  2. Delete its .svn directory.
+::  3. Rename directory to Noesis.Javascript-vX.X-Source
+::  4. Zip up this directory to Noesis.Javascript-vX.X-Source.zip
+::  5. Using Visual Studio 2008, build both Win32/x86 and x64 in Release mode.
+::  6. Run Release.bat X.X 3.5
+::  7. Zip up the created directory to Noesis.Javascript vX.X - Binaries for .NET4.0.zip
+::  8. Upgrade to Visual Studio 2010 (see README.txt) and repeat
+::  9. REbuild Win32/x86 in Release mode.
+:: 10. Run Release.bat X.X 4.0
+:: 11. Zip up the created directory to Noesis.Javascript vX.X - Binaries for .NET3.5.zip
 ::
+:: We do not tag releases because svnbridge is too dumb for that.
+
 :: Copies built binaries and C Runtime Library to a directory ready for
 :: ZIPping.
 if "%1"=="" goto usage
 if "%2"=="" goto usage
-set reldir="Noesis.Javascript %1 - Binaries for .NET%2"
+set reldir="Noesis.Javascript v%1 - Binaries for .NET%2"
 
 :: Delete any existing files and create directory structure.
 if exist %reldir% del /s /q %reldir%
@@ -20,7 +34,7 @@ if not "%2"=="4.0" (
 copy Release\Noesis.Javascript.dll %reldir%\x86
 if errorlevel 1 goto error
 if not "%2"=="4.0" (
-    copy x64\Release\Noesis.Javascript.dll %reldir\x64
+    copy x64\Release\Noesis.Javascript.dll %reldir%\x64
     if errorlevel 1 goto error
 )
 if "%2"=="4.0" (
@@ -36,6 +50,7 @@ goto end
 echo Build aborted
 goto end
 :usage
+echo See instructions at the top of this file.
 echo usage: release relnum .NetVer
 echo e.g. release 0.5 3.5
 echo e.g. release 0.5 4.0
