@@ -8,12 +8,12 @@ namespace Noesis.Javascript.Tests
 {
     public partial class RegressionTests
     {
-        public static string RunConvertFromJavascriptTests()
+        public static string RunConvertFromJavascriptTests(string js_dir)
         {
             using (JavascriptContext context = new JavascriptContext())
             {
                 // Initialization
-                StreamReader fileReader = new StreamReader("../../RegressionTests/Scripts/ConvertFromJavascriptTests.js");
+                StreamReader fileReader = new StreamReader(Path.Combine(js_dir, "ConvertFromJavascriptTests.js"));
                 String code = fileReader.ReadToEnd();
                 JavascriptTest javascriptTest = new JavascriptTest();
 

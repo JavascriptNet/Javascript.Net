@@ -18,7 +18,7 @@ namespace Noesis.Javascript.Tests
             }
         }
 
-        public static string RunMemoryLeakTest()
+        public static string RunMemoryLeakTest(string js_dir)
         {
             MemoryUsageLoadInstance();
             long mem = Process.GetCurrentProcess().PrivateMemorySize64;

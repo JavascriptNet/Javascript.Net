@@ -18,12 +18,12 @@ namespace Noesis.Javascript.Tests
             }
         }
 
-        public static string RunConvertToJavascriptTests()
+        public static string RunConvertToJavascriptTests(string js_dir)
         {
             using(JavascriptContext context = new JavascriptContext())
             {
                 // Initialization
-                StreamReader fileReader = new StreamReader("../../RegressionTests/Scripts/ConvertToJavascriptTests.js");
+                StreamReader fileReader = new StreamReader(Path.Combine(js_dir, "ConvertToJavascriptTests.js"));
                 String code = fileReader.ReadToEnd();
 
                 // Initialize

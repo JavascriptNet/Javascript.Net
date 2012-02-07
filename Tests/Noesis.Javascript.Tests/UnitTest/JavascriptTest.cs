@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Reflection;
 using System.Threading;
+using System.IO;
 
 
 namespace Noesis.Javascript.Tests
@@ -67,6 +68,10 @@ namespace Noesis.Javascript.Tests
         {
             MethodInfo[] memberInfos = typeof(RegressionTests).GetMethods(BindingFlags.Public | BindingFlags.Static);
 
+            string js_dir = "../../RegressionTests/Scripts/";
+            if (Path.GetFileName(Path.GetDirectoryName(Environment.CurrentDirectory)) != "bin")
+                js_dir = "../" + js_dir;
+
             for (int i = 0; i < memberInfos.Length; i++) {
                 Console.ForegroundColor = ConsoleColor.White;
                 Console.WriteLine(String.Format("\n\n===== Starting {0} =====", memberInfos[i].Name));
@@ -74,7 +79,7 @@ namespace Noesis.Javascript.Tests
 
                 try {
                     // Run the test.
-                    string failure = (string)memberInfos[i].Invoke(null, null);
+                    string failure = (string)memberInfos[i].Invoke(null, new object[] { js_dir });
 
                     if (failure == null) {
                         // End tests

@@ -38,10 +38,10 @@ namespace Noesis.Javascript.Tests
             }
         }
 
-        public static string RunExceptionTests()
+        public static string RunExceptionTests(string js_dir)
         {
             // Initialization
-            StreamReader fileReader = new StreamReader("../../RegressionTests/Scripts/ExceptionTests.js");
+            StreamReader fileReader = new StreamReader(Path.Combine(js_dir, "ExceptionTests.js"));
             String code = fileReader.ReadToEnd();
 
             using (JavascriptContext context = new JavascriptContext())
