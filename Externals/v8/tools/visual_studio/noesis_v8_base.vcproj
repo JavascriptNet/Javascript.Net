@@ -41,6 +41,7 @@
 			/>
 			<Tool
 				Name="VCCLCompilerTool"
+				PreprocessorDefinitions="_BIND_TO_CURRENT_CRT_VERSION"
 				RuntimeLibrary="3"
 			/>
 			<Tool
@@ -97,6 +98,7 @@
 			/>
 			<Tool
 				Name="VCCLCompilerTool"
+				PreprocessorDefinitions="_BIND_TO_CURRENT_CRT_VERSION"
 				RuntimeLibrary="3"
 			/>
 			<Tool
@@ -150,6 +152,7 @@
 			/>
 			<Tool
 				Name="VCCLCompilerTool"
+				PreprocessorDefinitions="_BIND_TO_CURRENT_CRT_VERSION"
 				StringPooling="false"
 				RuntimeLibrary="2"
 			/>
@@ -207,6 +210,7 @@
 			/>
 			<Tool
 				Name="VCCLCompilerTool"
+				PreprocessorDefinitions="_BIND_TO_CURRENT_CRT_VERSION"
 				StringPooling="false"
 				RuntimeLibrary="2"
 			/>
