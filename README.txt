@@ -1,3 +1,8 @@
+Build Dependencies
+------------------
+You need to have Python (CPython) installed for the v8 build.
+
+
 Redistribution
 --------------
 Noesis.Javascript.dll needs the Microsoft C Runtime Libraries.
