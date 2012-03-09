@@ -81,6 +81,8 @@ public:
 	virtual System::Object^ Run(System::String^ iScript, System::String^ iScriptResourceName);
 
 	static void Collect();
+	
+	static void TerminateExecution();
 
 	////////////////////////////////////////////////////////////
 	// Internal methods
