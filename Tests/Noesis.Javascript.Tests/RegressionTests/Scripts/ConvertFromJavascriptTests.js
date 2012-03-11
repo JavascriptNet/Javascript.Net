@@ -42,7 +42,7 @@ var myArray = new Array(123,55,666);
 var myBool = false;
 
 // Test #6: Javascript's date
-var myDate = new Date(2010, 9, 9); // Days and Months are zero based.
+var myDate = new Date(2010, 9, 10); // Months are zero based.
 
 // Test #7: Javascript's object
 var myObject = new Object();
