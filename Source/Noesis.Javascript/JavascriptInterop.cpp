@@ -417,13 +417,7 @@ JavascriptInterop::Setter(Local<String> iName, Local<Value> iValue, const Access
 	Handle<Value> value;
 	
 	// set property
-	value = wrapper->SetProperty(name, iValue);
-
-	if (!value.IsEmpty())
-		return value;
-
-	// member not found
-	return v8::ThrowException(JavascriptInterop::ConvertToV8("Unknown member: " + gcnew System::String((wchar_t*) *String::Value(iName))));
+	return wrapper->SetProperty(name, iValue);
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////

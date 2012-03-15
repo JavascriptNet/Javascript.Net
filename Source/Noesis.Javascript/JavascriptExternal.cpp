@@ -206,7 +206,11 @@ JavascriptExternal::SetProperty(wstring iName, Handle<Value> iValue)
 	System::Type^ type = self->GetType();
 	PropertyInfo^ propertyInfo = type->GetProperty(gcnew System::String(iName.c_str()));
 
-	if (propertyInfo != nullptr)
+	if (propertyInfo == nullptr)
+	{
+		v8::ThrowException(JavascriptInterop::ConvertToV8("Unknown member: " + gcnew System::String(iName.c_str())));
+	}
+	else
 	{
 		try
 		{
