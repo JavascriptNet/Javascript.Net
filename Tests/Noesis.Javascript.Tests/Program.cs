@@ -13,6 +13,10 @@ namespace Noesis.Javascript.Tests
 {
     class Program
     {
+        /// <summary>
+        /// Each regression test is implemented as a partial part of the
+        /// RegressionTests class.
+        /// </summary>
         static void Main(string[] args)
         {
             MethodInfo[] memberInfos = typeof(RegressionTests).GetMethods(BindingFlags.Public | BindingFlags.Static);

@@ -49,25 +49,16 @@ using namespace System::Collections::Generic;
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
-Persistent<ObjectTemplate> JavascriptInterop::sObjectWrapperTemplate;
-
-////////////////////////////////////////////////////////////////////////////////////////////////////
-
-Handle<ObjectTemplate>
-JavascriptInterop::GetObjectWrapperTemplate()
+Persistent<ObjectTemplate>
+JavascriptInterop::NewObjectWrapperTemplate()
 {
-	if (sObjectWrapperTemplate.IsEmpty())
-	{
-		HandleScope handleScope;
+	HandleScope handleScope;
 
-		Handle<ObjectTemplate> result = ObjectTemplate::New();
-		result->SetInternalFieldCount(1);
-		result->SetNamedPropertyHandler(Getter, Setter);
-		result->SetIndexedPropertyHandler(IndexGetter, IndexSetter);
-		sObjectWrapperTemplate = Persistent<ObjectTemplate>::New(handleScope.Close(result));
-	}
-
-	return sObjectWrapperTemplate;
+	Handle<ObjectTemplate> result = ObjectTemplate::New();
+	result->SetInternalFieldCount(1);
+	result->SetNamedPropertyHandler(Getter, Setter);
+	result->SetIndexedPropertyHandler(IndexGetter, IndexSetter);
+	return Persistent<ObjectTemplate>::New(handleScope.Close(result));
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -162,7 +153,7 @@ JavascriptInterop::WrapObject(System::Object^ iObject)
 
 	if (context != nullptr)
 	{
-		Handle<ObjectTemplate> templ = GetObjectWrapperTemplate();
+		Handle<ObjectTemplate> templ = context->GetObjectWrapperTemplate();
 		Handle<Object> object = templ->NewInstance();
 		object->SetInternalField(0, External::New(context->WrapObject(iObject)));
 

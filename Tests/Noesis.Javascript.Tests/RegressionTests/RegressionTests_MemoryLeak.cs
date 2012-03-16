@@ -8,16 +8,6 @@ namespace Noesis.Javascript.Tests
 {
     public partial class RegressionTests
     {
-        public class SystemConsole
-        {
-            public SystemConsole() { }
-
-            public void Print(string iString)
-            {
-                Console.WriteLine(iString);
-            }
-        }
-
         public static string RunMemoryLeakTest(string js_dir)
         {
             MemoryUsageLoadInstance();

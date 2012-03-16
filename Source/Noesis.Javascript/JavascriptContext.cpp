@@ -49,7 +49,9 @@ static DWORD curThreadId;
 
 JavascriptContext::JavascriptContext()
 {
-	v8::Locker v8ThreadLock;
+	isolate = v8::Isolate::New();
+	v8::Locker v8ThreadLock(isolate);
+	v8::Isolate::Scope isolate_scope(isolate);
 	mExternals = new vector<JavascriptExternal*>();
 	mContext = new Persistent<Context>(Context::New());
 }
@@ -58,11 +60,16 @@ JavascriptContext::JavascriptContext()
 
 JavascriptContext::~JavascriptContext()
 {
-	v8::Locker v8ThreadLock;
-	mContext->Dispose();
-	Clear();
-	delete mContext;
-	delete mExternals;
+	{
+		v8::Locker v8ThreadLock(isolate);
+		v8::Isolate::Scope isolate_scope(isolate);
+		mContext->Dispose();
+		Clear();
+		delete mContext;
+		delete mExternals;
+	}
+	if (isolate != NULL)
+		isolate->Dispose();
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -181,23 +188,28 @@ JavascriptContext::GetCurrent()
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
-void
+v8::Locker *
 JavascriptContext::Enter()
 {
+	v8::Locker *locker = new v8::Locker(isolate);
+	isolate->Enter();
 	// We store the old context so that JavascriptContexts can be created and run
 	// recursively.
 	oldContext = sCurrentContext;
 	sCurrentContext = this;
 	(*mContext)->Enter();
+	return locker;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
 void
-JavascriptContext::Exit()
+JavascriptContext::Exit(v8::Locker *locker)
 {
 	(*mContext)->Exit();
 	sCurrentContext = oldContext;
+	isolate->Exit();
+	delete locker;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -229,6 +241,20 @@ JavascriptContext::WrapObject(System::Object^ iObject)
 	JavascriptExternal* external = new JavascriptExternal(iObject);
 	mExternals->push_back(external);
 	return external;
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+
+Handle<ObjectTemplate>
+JavascriptContext::GetObjectWrapperTemplate()
+{
+	// It would be better if this were cached to avoid recreating it each time,
+	// but you cannot include a Persistent<> in JavascriptContext because it is
+	// an unmanaged type, and you cannot put it in a static variable (as used to
+	// happen) because the wrapper is only valid for the isolate in which it
+	// was created.  I tried storing a pointer to a Persistent<>, but I got
+	// a heap mismatch when reusing it.  I'm not sure why.
+	return JavascriptInterop::NewObjectWrapperTemplate();
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////

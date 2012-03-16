@@ -92,6 +92,7 @@
     <Compile Include="RegressionTests\RegressionTests_ConvertToJavascriptTests.cs" />
     <Compile Include="RegressionTests\RegressionTests_AccessorsInterceptorsTests.cs" />
     <Compile Include="RegressionTests\RegressionTests_ExceptionTests.cs" />
+    <Compile Include="RegressionTests\RegressionTests_Isolates.cs" />
     <Compile Include="RegressionTests\RegressionTests_MemoryLeak.cs" />
     <Compile Include="UnitTest\JavascriptTest.cs" />
   </ItemGroup>

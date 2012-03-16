@@ -92,18 +92,24 @@ internal:
 
 	static JavascriptContext^ GetCurrent();
 
-	void Enter();
+	v8::Locker *Enter();
 
-	void Exit();
+	void Exit(v8::Locker *locker);
 
 	void Clear();
 
 	JavascriptExternal* WrapObject(System::Object^ iObject);
 
+	Handle<ObjectTemplate> GetObjectWrapperTemplate();
+
 	////////////////////////////////////////////////////////////
 	// Data members
 	////////////////////////////////////////////////////////////
-internal:
+protected:
+	// By entering an isolate before using a context, we can have multiple
+	// contexts used simultaneously in different threads.
+	v8::Isolate *isolate;
+
 	// v8 context required to be active for all v8 operations.
 	Persistent<Context>* mContext;
 
@@ -124,14 +130,14 @@ internal:
 class JavascriptScope
 {
 	// It is OK to nest v8::Lockers in one thread.
-	v8::Locker v8ThreadLock;
+	v8::Locker *v8ThreadLock;
 
 public:
 	JavascriptScope(JavascriptContext^ iContext)
-	{ iContext->Enter(); }
+	{ v8ThreadLock = iContext->Enter(); }
 	
 	~JavascriptScope()
-	{ JavascriptContext::GetCurrent()->Exit(); }
+	{ JavascriptContext::GetCurrent()->Exit(v8ThreadLock); }
 };
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////

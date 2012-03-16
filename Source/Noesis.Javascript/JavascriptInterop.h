@@ -51,7 +51,7 @@ class JavascriptInterop
 	////////////////////////////////////////////////////////////
 public:
 
-	static Handle<ObjectTemplate> GetObjectWrapperTemplate();
+	static Persistent<ObjectTemplate> NewObjectWrapperTemplate();
 
 	static System::Object^ ConvertFromV8(Handle<Value> iValue);
 
@@ -90,13 +90,6 @@ public:
 	static Handle<Value> IndexSetter(uint32_t iIndex, Local<Value> iValue, const AccessorInfo &iInfo);
 
 	static Handle<Value> Invoker(const v8::Arguments& iArgs);
-
-	////////////////////////////////////////////////////////////
-	// Data members
-	////////////////////////////////////////////////////////////
-private:
-
-	static Persistent<ObjectTemplate> sObjectWrapperTemplate;
 
 };
 
