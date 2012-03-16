@@ -26,7 +26,7 @@ namespace Noesis.Javascript.Tests
                 context.Run(code);
 
                 // Test #1: Javscript's float
-                javascriptTest.PrintTestName("Javascript' float");
+                javascriptTest.PrintTestName("Javascript's float");
                 javascriptTest.Assert(10.0125 == ((double)context.GetParameter("myFloat")));
 
                 // Test #2: Javascript's integer
