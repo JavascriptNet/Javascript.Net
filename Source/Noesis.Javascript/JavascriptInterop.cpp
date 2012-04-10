@@ -31,7 +31,6 @@
 #include "JavascriptInterop.h"
 
 #include "SystemInterop.h"
-#include "JavascriptContext.h"
 #include "JavascriptException.h"
 #include "JavascriptExternal.h"
 
@@ -393,7 +392,9 @@ JavascriptInterop::Getter(Local<String> iName, const AccessorInfo &iInfo)
 	}
 
 	// member not found
-	return v8::ThrowException(JavascriptInterop::ConvertToV8("Unknown member: " + gcnew System::String((wchar_t*) *String::Value(iName))));
+	if ((wrapper->GetOptions() & SetParameterOptions::RejectUnknownProperties) == SetParameterOptions::RejectUnknownProperties)
+		return v8::ThrowException(JavascriptInterop::ConvertToV8("Unknown member: " + gcnew System::String((wchar_t*) *String::Value(iName))));
+	return Handle<Value>();
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -404,8 +405,6 @@ JavascriptInterop::Setter(Local<String> iName, Local<Value> iValue, const Access
 	wstring name = (wchar_t*) *String::Value(iName);
 	Handle<External> external = Handle<External>::Cast(iInfo.Holder()->GetInternalField(0));
 	JavascriptExternal* wrapper = (JavascriptExternal*) external->Value();
-	Handle<Function> function;
-	Handle<Value> value;
 	
 	// set property
 	return wrapper->SetProperty(name, iValue);

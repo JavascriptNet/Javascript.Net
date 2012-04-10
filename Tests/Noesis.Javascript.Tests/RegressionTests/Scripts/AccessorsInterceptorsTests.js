@@ -26,32 +26,36 @@
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
-// Test #1: Accessing an element in a .NET Array
+// Test #1:
 JavascriptTest.PrintTestName("Accessing an element in a .NET's Array");
 JavascriptTest.Assert(myArray[2] == 2555);
 
-// Test #2: Accessing by index an property in a .NET Object
+// Test #2:
 JavascriptTest.PrintTestName("Accessing by index an property in a .NET Object");
 var jsInteger = 1000;
 JavascriptTest.Assert(myObject[jsInteger] == (jsInteger + "===You just pass in the string indexer of JavascriptTest"));
 
-// Test #3: Accessing by name an property in a .NET Object
+// Test #3:
 JavascriptTest.PrintTestName("Accessing by name an property in a .NET Object");
 JavascriptTest.Assert(myObject.MyProperty == "This is the string return by \"My Property\"");
 
-// Test #4: Setting by index an value in a .NET Array
+// Test #4:
 JavascriptTest.PrintTestName("Setting by index an value in a .NET Array");
 myArray[2] = 123456789;
 JavascriptTest.Assert(myArray[2] == 123456789);
 
-// Test #5: Setting by index an value in a .NET Object
+// Test #5:
 JavascriptTest.PrintTestName("Setting by index an value in a .NET Object");
 myObject[20] = "The Value is now set";
 JavascriptTest.Assert(myObject.Value == "20-----The Value is now set");
 
-// Test #6: Setting by name an property in a .NET Object
+// Test #6:
 JavascriptTest.PrintTestName("Setting by name an property in a .NET Object");
 JavascriptTest.Value = "I just changed the property";
 JavascriptTest.Assert(JavascriptTest.Value == "I just changed the property -- indeed you do");
 
-// Test #7: Chain of functions call on the same .NET object
+// Test #7: 
+JavascriptTest.PrintTestName("Setting unknown properties should get taken care of by v8");
+// but see SetParameterOptions.RejectUnknownProperties
+JavascriptTest.UnknownProperty = 77;
+JavascriptTest.Assert(JavascriptTest.UnknownProperty == 77);

@@ -84,12 +84,32 @@ void JavascriptContext::TerminateExecution()
 void
 JavascriptContext::SetParameter(System::String^ iName, System::Object^ iObject)
 {
+	SetParameter(iName, iObject, SetParameterOptions::None);
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+
+void
+JavascriptContext::SetParameter(System::String^ iName, System::Object^ iObject, SetParameterOptions options)
+{
 	pin_ptr<const wchar_t> namePtr = PtrToStringChars(iName);
 	wchar_t* name = (wchar_t*) namePtr;
 	JavascriptScope scope(this);
 	HandleScope handleScope;
 	
 	Handle<Value> value = JavascriptInterop::ConvertToV8(iObject);
+
+	if (options != SetParameterOptions::None) {
+		Handle<v8::Object> obj = value.As<v8::Object>();
+		if (!obj.IsEmpty()) {
+			Local<v8::External> wrap = obj->GetInternalField(0).As<v8::External>();
+			if (!wrap.IsEmpty()) {
+				JavascriptExternal* external = static_cast<JavascriptExternal*>(wrap->Value());
+				external->SetOptions(options);
+			}
+		}
+	}
+
 	(*mContext)->Global()->Set(String::New((uint16_t*)name), value);
 }
 

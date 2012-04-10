@@ -31,8 +31,8 @@
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
 #include <v8.h>
-
 #include <map>
+#include "JavascriptContext.h"
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -45,6 +45,9 @@ namespace Noesis { namespace Javascript {
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 // JavascriptExternal
+//
+// Wraps around a CLI object and serves it up to v8.  This object is itself
+// stored within the 0th internal field of a JavaScript object.
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 class JavascriptExternal
 {
@@ -64,6 +67,10 @@ public:
 public:
 	
 	void Clear();
+
+	SetParameterOptions GetOptions() { return mOptions; }
+
+	void SetOptions(SetParameterOptions options) { mOptions = options; }
 
 	System::Object^ GetObject();
 
@@ -85,6 +92,7 @@ public:
 private:
 	
 	System::Runtime::InteropServices::GCHandle mObjectHandle;
+	SetParameterOptions mOptions;
 	map<wstring, Persistent<Function> > mMethods;
 
 };

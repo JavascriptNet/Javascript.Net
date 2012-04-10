@@ -59,7 +59,7 @@ namespace Noesis.Javascript.Tests
 
         public void ThrowException()
         {
-            throw new Exception("\n\n\"Throwing an exception to test the exception's management.\"\n\n");
+            throw new Exception("Test C# exception");
         }
 
         public JavascriptTest GetClass()

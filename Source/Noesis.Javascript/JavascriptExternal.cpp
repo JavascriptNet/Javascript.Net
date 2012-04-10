@@ -51,6 +51,7 @@ using namespace std;
 JavascriptExternal::JavascriptExternal(System::Object^ iObject)
 {
 	mObjectHandle = System::Runtime::InteropServices::GCHandle::Alloc(iObject);
+	mOptions = SetParameterOptions::None;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -184,6 +185,10 @@ JavascriptExternal::GetProperty(uint32_t iIndex)
 		{
 			cli::array<int^>^ args = gcnew cli::array<int^>(1);
 			args[0] = index;
+			System::Reflection::PropertyInfo^ item_info = type->GetProperty("Item");
+			if (item_info == nullptr || item_info->GetIndexParameters()->Length != 1)
+				// No indexed property.
+				return Handle<Value>();  // v8 will return null
 			System::Object^ object = type->InvokeMember("Item", System::Reflection::BindingFlags::GetProperty, nullptr, self, args,  nullptr);
 			return JavascriptInterop::ConvertToV8(object);
 		}
@@ -208,7 +213,8 @@ JavascriptExternal::SetProperty(wstring iName, Handle<Value> iValue)
 
 	if (propertyInfo == nullptr)
 	{
-		v8::ThrowException(JavascriptInterop::ConvertToV8("Unknown member: " + gcnew System::String(iName.c_str())));
+		if ((mOptions & SetParameterOptions::RejectUnknownProperties) == SetParameterOptions::RejectUnknownProperties)
+			v8::ThrowException(JavascriptInterop::ConvertToV8("Unknown member: " + gcnew System::String(iName.c_str())));
 	}
 	else
 	{

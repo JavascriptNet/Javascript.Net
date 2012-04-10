@@ -47,6 +47,12 @@ using namespace std;
 
 class JavascriptExternal;
 
+[System::Flags]
+public enum class SetParameterOptions : int
+{
+    None = 0,
+    RejectUnknownProperties = 1
+};
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 // JavascriptContext
@@ -73,6 +79,8 @@ public:
 public:
 
 	void SetParameter(System::String^ iName, System::Object^ iObject);
+
+	void SetParameter(System::String^ iName, System::Object^ iObject, SetParameterOptions options);
 
 	System::Object^ GetParameter(System::String^ iName);
 
