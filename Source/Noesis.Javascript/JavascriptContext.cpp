@@ -76,7 +76,7 @@ JavascriptContext::~JavascriptContext()
 
 void JavascriptContext::TerminateExecution()
 {
-	v8::V8::TerminateExecution();
+	v8::V8::TerminateExecution(isolate);
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////

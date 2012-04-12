@@ -90,7 +90,7 @@ public:
 
 	static void Collect();
 	
-	static void TerminateExecution();
+	void TerminateExecution();
 
 	////////////////////////////////////////////////////////////
 	// Internal methods
