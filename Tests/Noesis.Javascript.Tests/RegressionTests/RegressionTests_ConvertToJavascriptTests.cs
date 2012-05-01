@@ -30,10 +30,18 @@ namespace Noesis.Javascript.Tests
                 context.SetParameter("JavascriptTest", new JavascriptTest());
 
                 // Test #1: .NET's float
-                context.SetParameter("myFloat", 125.25);
+                context.SetParameter("myFloat", 125.25f);
+                context.SetParameter("myDouble", 125.25);
 
                 // Test #2: .NET's integer
                 context.SetParameter("myInteger", 600);
+                context.SetParameter("mySignedByte", (sbyte)65);
+                context.SetParameter("myShort", (short)600);
+                context.SetParameter("myLong", (long)60012312321);
+                context.SetParameter("myUnsignedInteger", uint.MaxValue);
+                context.SetParameter("myByte", byte.MaxValue);
+                context.SetParameter("myUnsignedShort", ushort.MaxValue);
+                context.SetParameter("myUnsignedLong", ulong.MaxValue);
 
                 // Test #3: .NET's string
                 context.SetParameter("myString", "This is a string from .NET");
@@ -76,6 +84,12 @@ namespace Noesis.Javascript.Tests
                 // Test #12: .NET Delegate
                 ConvertToJavascriptTests.SampleDelegate MyDelegate = ConvertToJavascriptTests.MyDelegateMethod;
                 context.SetParameter("myDelegate", MyDelegate);
+
+                // Test #13: .NET Enum
+                context.SetParameter("myEnum", UriKind.Absolute);
+
+                // Test #14: .NET Char
+                context.SetParameter("myChar", 'B');
 
                 // Run context
                 context.Run(code);

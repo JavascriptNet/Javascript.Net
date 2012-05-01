@@ -29,10 +29,18 @@
 // Test #1: .NET's float
 JavascriptTest.PrintTestName(".NET' float");
 JavascriptTest.Assert(125.25 == myFloat);
+JavascriptTest.Assert(125.25 == myDouble);
 
 // Test #2: .NET's integer
 JavascriptTest.PrintTestName(".NET's integer");
 JavascriptTest.Assert(600 == myInteger);
+JavascriptTest.Assert(65 == mySignedByte);
+JavascriptTest.Assert(600 == myShort);
+JavascriptTest.Assert(60012312321 == myLong);
+JavascriptTest.Assert(4294967295 == myUnsignedInteger);
+JavascriptTest.Assert(255 == myByte);
+JavascriptTest.Assert(65535 == myUnsignedShort);
+JavascriptTest.Assert(18446744073709551615 == myUnsignedLong);
 
 // Test #3: .NET's string
 JavascriptTest.PrintTestName(".NET's string");
@@ -95,9 +103,10 @@ JavascriptTest.PrintTestName(".NET Delegate");
 var jsString = "The delegate that return this string";
 JavascriptTest.Assert((jsString + "--- Modify in the MyDelegateMethod of .NET") == myDelegate(jsString));
 
+// Test #13: .NET Enum
+JavascriptTest.PrintTestName(".NET Enum");
+JavascriptTest.Assert("Absolute" == myEnum);
 
-                      
-
-
-
-
+// Test #14: .NET Char
+JavascriptTest.PrintTestName(".NET Char");
+JavascriptTest.Assert("B" == myChar);

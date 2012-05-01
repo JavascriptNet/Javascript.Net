@@ -103,24 +103,55 @@ JavascriptInterop::ConvertToV8(System::Object^ iObject)
 	{
 		System::Type^ type = iObject->GetType();
 
-		if (type == System::Boolean::typeid)
-			return v8::Boolean::New(safe_cast<bool>(iObject));
-		if (type == System::Int16::typeid)
-			return v8::Int32::New(safe_cast<int>(iObject));
-		if (type == System::Int32::typeid)
-			return v8::Int32::New(safe_cast<int>(iObject));
-		if (type == System::Single::typeid)
-			return v8::Number::New(safe_cast<float>(iObject));
-		if (type == System::Double::typeid)
-			return v8::Number::New(safe_cast<double>(iObject));
+		if (type->IsValueType)
+		{
+			// Common types first.
+			if (type == System::Int32::typeid)
+				return v8::Int32::New(safe_cast<int>(iObject));
+			if (type == System::Double::typeid)
+				return v8::Number::New(safe_cast<double>(iObject));
+			if (type == System::Boolean::typeid)
+				return v8::Boolean::New(safe_cast<bool>(iObject));
+			if (type->IsEnum)
+			{
+				// No equivalent to enum, so convert to a string.
+				pin_ptr<const wchar_t> valuePtr = PtrToStringChars(iObject->ToString());
+				wchar_t* value = (wchar_t*) valuePtr;
+				return v8::String::New((uint16_t*)value);
+			}
+			else
+			{
+				if (type == System::Char::typeid)
+				{
+					uint16_t c = (uint16_t)safe_cast<wchar_t>(iObject);
+					return v8::String::New(&c, 1);
+				}
+				if (type == System::Int64::typeid)
+					return v8::Number::New((double)safe_cast<long long>(iObject));
+				if (type == System::Int16::typeid)
+					return v8::Int32::New(safe_cast<short>(iObject));
+				if (type == System::SByte::typeid)
+					return v8::Int32::New(safe_cast<signed char>(iObject));
+				if (type == System::Byte::typeid)
+					return v8::Int32::New(safe_cast<unsigned char>(iObject));
+				if (type == System::UInt16::typeid)
+					return v8::Uint32::New(safe_cast<unsigned short>(iObject));
+				if (type == System::UInt32::typeid)
+					return v8::Number::New(safe_cast<unsigned int>(iObject));  // I tried v8::Uint32, but it converted MaxInt to -1.
+				if (type == System::UInt64::typeid)
+					return v8::Number::New((double)safe_cast<unsigned long long>(iObject));
+				if (type == System::Single::typeid)
+					return v8::Number::New(safe_cast<float>(iObject));
+				if (type == System::DateTime::typeid)
+					return v8::Date::New(SystemInterop::ConvertFromSystemDateTime(safe_cast<System::DateTime^>(iObject)));
+			}
+		}
 		if (type == System::String::typeid)
 		{
 			pin_ptr<const wchar_t> valuePtr = PtrToStringChars(safe_cast<System::String^>(iObject));
 			wchar_t* value = (wchar_t*) valuePtr;
 			return v8::String::New((uint16_t*)value);
 		}
-		if (type == System::DateTime::typeid)
-			return v8::Date::New(SystemInterop::ConvertFromSystemDateTime(safe_cast<System::DateTime^>(iObject)));
 		if (type->IsArray)
 			return ConvertFromSystemArray(safe_cast<System::Array^>(iObject));
 		if (System::Delegate::typeid->IsAssignableFrom(type))
