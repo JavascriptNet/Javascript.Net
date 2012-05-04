@@ -166,7 +166,7 @@ JavascriptContext::Run(System::String^ iScript, System::String^ iScriptResourceN
 	HandleScope handleScope;
 	Local<Value> ret;	
 
-	Local<Script> compiledScript = CompileScript(script);
+	Local<Script> compiledScript = CompileScript(script, scriptResourceName);
 	
 	{
 		TryCatch tryCatch;
@@ -280,7 +280,7 @@ JavascriptContext::GetObjectWrapperTemplate()
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
 Local<Script>
-CompileScript(wchar_t const *source_code)
+CompileScript(wchar_t const *source_code, wchar_t const *resource_name)
 {
 	// convert source
 	Local<String> source = String::New((uint16_t const *)source_code);
@@ -289,7 +289,16 @@ CompileScript(wchar_t const *source_code)
 	{
 		TryCatch tryCatch;
 
-		Local<Script> script = Script::Compile(source);
+		Local<Script> script;
+		if (resource_name == NULL)
+		{
+			script = Script::Compile(source);
+		}
+		else
+		{
+			Local<String> resource = String::New((uint16_t const *)resource_name);
+			script = Script::Compile(source, resource);
+		}
 
 		if (script.IsEmpty())
 			throw gcnew JavascriptException(tryCatch);
