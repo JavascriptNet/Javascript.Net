@@ -50,6 +50,20 @@ JavascriptException::JavascriptException(TryCatch& iTryCatch): System::Exception
 		mStartColumn = message->GetStartColumn();
 		mEndColumn = message->GetEndColumn();
 	}
+
+	v8::Local<v8::Value> ex = iTryCatch.Exception();
+	this->Data->Add("V8Exception", JavascriptInterop::ConvertFromV8(ex));
+	if (!message.IsEmpty())
+	{
+		v8::String::Utf8Value sourceline(message->GetSourceLine());
+		System::String^ sourceLineStr = gcnew System::String((const char*)*sourceline);
+		this->Data->Add("V8SourceLine", sourceLineStr);
+	}
+	v8::Local<v8::Value> stackTrace = iTryCatch.StackTrace();
+	if (!stackTrace.IsEmpty())
+	{
+		this->Data->Add("V8StackTrace", JavascriptInterop::ConvertFromV8(stackTrace));
+	}
 }
 
 JavascriptException::JavascriptException(wchar_t const *complaint): System::Exception(gcnew System::String(complaint))
