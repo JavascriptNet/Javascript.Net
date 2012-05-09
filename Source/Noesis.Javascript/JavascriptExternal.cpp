@@ -147,7 +147,14 @@ JavascriptExternal::GetProperty(wstring iName, Handle<Value> &result)
 	else {
 		try
 		{
-			result = JavascriptInterop::ConvertToV8(propertyInfo->GetValue(self, nullptr));
+			if (!propertyInfo->CanRead)
+			{
+				v8::ThrowException(JavascriptInterop::ConvertToV8("Property " + gcnew System::String(iName.c_str()) + " may not be read."));
+			}
+			else
+			{
+				result = JavascriptInterop::ConvertToV8(propertyInfo->GetValue(self, nullptr));
+			}
 		}
 		catch(System::Reflection::TargetInvocationException^ exception)
 		{
@@ -230,8 +237,19 @@ JavascriptExternal::SetProperty(wstring iName, Handle<Value> iValue)
 					value = SystemInterop::ConvertToType(value, propertyType);
 			}
 
-			propertyInfo->SetValue(self, value, nullptr);
-			return JavascriptInterop::ConvertToV8(propertyInfo->GetValue(self, nullptr));
+			if (!propertyInfo->CanWrite)
+			{
+				v8::ThrowException(JavascriptInterop::ConvertToV8("Property " + gcnew System::String(iName.c_str()) + " may not be set."));
+			}
+			else
+			{
+				propertyInfo->SetValue(self, value, nullptr);
+				// We used to convert and return propertyInfo->GetValue() here.
+				// I don't know why we did, but I stopped it because CanRead
+				// might be false, which should not stop us _setting_.
+				// Also it wastes precious CPU time.
+				return iValue;
+			}
 		}
 		catch(System::Reflection::TargetInvocationException^ exception)
 		{
