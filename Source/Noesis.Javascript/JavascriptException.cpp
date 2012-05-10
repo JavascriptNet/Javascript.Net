@@ -52,7 +52,9 @@ JavascriptException::JavascriptException(TryCatch& iTryCatch): System::Exception
 	}
 
 	v8::Local<v8::Value> ex = iTryCatch.Exception();
-	this->Data->Add("V8Exception", JavascriptInterop::ConvertFromV8(ex));
+	// This causes an "Data is not serializable" exception sometimes, I think
+	// when it contains an InnerException.
+	//this->Data->Add("V8Exception", JavascriptInterop::ConvertFromV8(ex));
 	if (!message.IsEmpty())
 	{
 		v8::String::Utf8Value sourceline(message->GetSourceLine());
