@@ -142,6 +142,8 @@ JavascriptInterop::ConvertToV8(System::Object^ iObject)
 					return v8::Number::New((double)safe_cast<unsigned long long>(iObject));
 				if (type == System::Single::typeid)
 					return v8::Number::New(safe_cast<float>(iObject));
+				if (type == System::Decimal::typeid)
+					return v8::Number::New((double)safe_cast<System::Decimal>(iObject));
 				if (type == System::DateTime::typeid)
 					return v8::Date::New(SystemInterop::ConvertFromSystemDateTime(safe_cast<System::DateTime^>(iObject)));
 			}
