@@ -42,7 +42,7 @@ javascriptdotnet source too.
    
 5. Check out a recent v8 tag (the tagged releases are more stable than the 
    trunk) and move the v8 directory under your javascriptdotnet checkout.
-   C:\> svn checkout http://v8.googlecode.com/svn/tags/3.9.18/ v8
+   C:\> svn checkout http://v8.googlecode.com/svn/tags/3.11.6.2/ v8
    C:\> move v8 javascriptdotnet
    
 6. Run build.bat to build v8 for your preferred architecture and build

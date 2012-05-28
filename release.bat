@@ -1,7 +1,7 @@
 @echo off
 :: Release Procedure
 :: -----------------
-::  1. Consider updating to a newer v8 branch.
+::  1. Consider updating to a newer v8 branch (and update README.txt to refer to it)
 ::  2. Run Release.bat X.X
 ::  3. Zip up the created directory to Noesis.Javascript vX.X - Binaries.zip
 ::
