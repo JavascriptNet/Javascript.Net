@@ -374,6 +374,13 @@ JavascriptInterop::DelegateInvoker(const v8::Arguments& info)
 	{
 		v8::ThrowException(JavascriptInterop::ConvertToV8(exception->InnerException));
 	}
+	catch(System::ArgumentException^)
+	{
+		// This is what we get when the arguments cannot be converted to match the
+		// delegate's requirements.  Its message is all about C# types so I don't
+		// pass it on.
+		return v8::ThrowException(JavascriptInterop::ConvertToV8("Argument mismatch"));
+	}
 	catch(System::Exception^ exception)
 	{
 		v8::ThrowException(JavascriptInterop::ConvertToV8(exception));
