@@ -192,7 +192,7 @@ JavascriptExternal::GetProperty(uint32_t iIndex)
 		{
 			cli::array<int^>^ args = gcnew cli::array<int^>(1);
 			args[0] = index;
-			System::Reflection::PropertyInfo^ item_info = type->GetProperty("Item");
+			System::Reflection::PropertyInfo^ item_info = type->GetProperty("Item", gcnew cli::array<System::Type^> { int::typeid });
 			if (item_info == nullptr || item_info->GetIndexParameters()->Length != 1)
 				// No indexed property.
 				return Handle<Value>();  // v8 will return null
