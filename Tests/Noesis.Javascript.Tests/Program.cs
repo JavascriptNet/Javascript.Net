@@ -21,9 +21,9 @@ namespace Noesis.Javascript.Tests
         {
             MethodInfo[] memberInfos = typeof(RegressionTests).GetMethods(BindingFlags.Public | BindingFlags.Static);
 
-            string js_dir = "../../RegressionTests/Scripts/";
-            if (Path.GetFileName(Path.GetDirectoryName(Environment.CurrentDirectory)) != "bin")
-                js_dir = "../" + js_dir;
+            string js_dir = "../../../../RegressionTests/Scripts/";
+            //if (Path.GetFileName(Path.GetDirectoryName(Environment.CurrentDirectory)) != "bin")
+            //    js_dir = "../" + js_dir;
 
             for (int i = 0; i < memberInfos.Length; i++) {
                 Console.ForegroundColor = ConsoleColor.White;
