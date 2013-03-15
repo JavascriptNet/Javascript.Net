@@ -201,6 +201,13 @@ JavascriptInterop::WrapObject(System::Object^ iObject)
 System::Object^
 JavascriptInterop::UnwrapObject(Handle<Value> iValue)
 {
+	 if (iValue->IsExternal())
+	{
+		Handle<External> external = Handle<External>::Cast(iValue);
+		JavascriptExternal* wrapper = (JavascriptExternal*) external->Value();
+		return wrapper->GetObject();
+	}
+
 	if (iValue->IsObject())
 	{
 		Handle<Object> object = iValue->ToObject();
@@ -211,12 +218,6 @@ JavascriptInterop::UnwrapObject(Handle<Value> iValue)
 			JavascriptExternal* wrapper = (JavascriptExternal*) external->Value();
 			return wrapper->GetObject();
 		}
-	}
-	else if (iValue->IsExternal())
-	{
-		Handle<External> external = Handle<External>::Cast(iValue);
-		JavascriptExternal* wrapper = (JavascriptExternal*) external->Value();
-		return wrapper->GetObject();
 	}
 
 	return nullptr;
