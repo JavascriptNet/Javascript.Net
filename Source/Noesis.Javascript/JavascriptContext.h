@@ -90,6 +90,8 @@ public:
 
 	static void Collect();
 	
+	property static System::String^ V8Version { System::String^ get(); }
+
 	void TerminateExecution();
 
 	////////////////////////////////////////////////////////////

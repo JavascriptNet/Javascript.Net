@@ -82,6 +82,7 @@
   <ItemGroup>
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="RegressionTests\RegressionTests_VersionString.cs" />
     <Compile Include="RegressionTests\RegressionTests_ConvertFromJavascriptTests.cs" />
     <Compile Include="RegressionTests\RegressionTests_ConvertToJavascriptTests.cs" />
     <Compile Include="RegressionTests\RegressionTests_AccessorsInterceptorsTests.cs" />
