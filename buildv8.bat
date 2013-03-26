@@ -156,6 +156,7 @@ IF "%vs%"=="%vs2012%" (
 				echo ..\fart -r -i "*.vcxproj" "<PlatformToolset>v100</PlatformToolset>" "<PlatformToolset>Windows7.1SDK</PlatformToolset><TargetFrameworkVersion>v3.5</TargetFrameworkVersion>"
 				..\fart -r -i "*.vcxproj" "<PlatformToolset>v100</PlatformToolset>" "<PlatformToolset>Windows7.1SDK</PlatformToolset><TargetFrameworkVersion>v3.5</TargetFrameworkVersion>"
 			) ELSE (
+				echo ..\fart -r -i "*.vcxproj" "<PlatformToolset>v100</PlatformToolset>" "<PlatformToolset>v90</PlatformToolset><TargetFrameworkVersion>v3.5</TargetFrameworkVersion>"
 				..\fart -r -i "*.vcxproj" "<PlatformToolset>v100</PlatformToolset>" "<PlatformToolset>v90</PlatformToolset><TargetFrameworkVersion>v3.5</TargetFrameworkVersion>"
 			)
 		) ELSE (

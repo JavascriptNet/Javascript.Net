@@ -24,27 +24,27 @@ if "%1"=="" (
 )
 
 :: Build.
-cmd /c newbuildv8 ia32 vs2012 v90 release
+cmd /c buildv8 ia32 vs2012 v90 release
 if errorlevel 1 goto error
 C:\Windows\Microsoft.NET\Framework\v3.5\MSBuild.exe /t:Rebuild Noesis.Javascript.VS2008.sln /m /p:Configuration=Release /p:Platform=Win32
 if errorlevel 1 goto error
-cmd /c newbuildv8 x64 vs2008 v90 release
+cmd /c buildv8 x64 vs2008 v90 release
 if errorlevel 1 goto error
 C:\Windows\Microsoft.NET\Framework\v3.5\MSBuild.exe /t:Rebuild Noesis.Javascript.VS2008.sln /m /p:Configuration=Release /p:Platform=x64
 if errorlevel 1 goto error
-cmd /c newbuildv8 ia32 vs2012 v100 release
+cmd /c buildv8 ia32 vs2012 v100 release
 if errorlevel 1 goto error
 C:\Windows\Microsoft.NET\Framework\v4.0.30319\MSBuild.exe /t:Rebuild Noesis.Javascript.VS2010.sln /m /p:Configuration=Release /p:Platform=Win32
 if errorlevel 1 goto error
-cmd /c newbuildv8 x64 vs2012 v100 release
+cmd /c buildv8 x64 vs2012 v100 release
 if errorlevel 1 goto error
 C:\Windows\Microsoft.NET\Framework\v4.0.30319\MSBuild.exe /t:Rebuild Noesis.Javascript.VS2010.sln /m /p:Configuration=Release /p:Platform=x64
 if errorlevel 1 goto error
-cmd /c newbuildv8 ia32 vs2012 v110 release
+cmd /c buildv8 ia32 vs2012 v110 release
 if errorlevel 1 goto error
 C:\Windows\Microsoft.NET\Framework\v4.0.30319\MSBuild.exe /t:Rebuild Noesis.Javascript.VS2012.sln /m /p:Configuration=Release /p:Platform=Win32 /p:VisualStudioVersion=11.0
 if errorlevel 1 goto error
-cmd /c newbuildv8 x64 vs2012 v110 release
+cmd /c buildv8 x64 vs2012 v110 release
 if errorlevel 1 goto error
 C:\Windows\Microsoft.NET\Framework\v4.0.30319\MSBuild.exe /t:Rebuild Noesis.Javascript.VS2012.sln /m /p:Configuration=Release /p:Platform=x64 /p:VisualStudioVersion=11.0
 if errorlevel 1 goto error
