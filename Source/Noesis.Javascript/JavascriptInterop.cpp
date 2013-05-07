@@ -33,6 +33,7 @@
 #include "SystemInterop.h"
 #include "JavascriptException.h"
 #include "JavascriptExternal.h"
+#include "JavascriptFunction.h"
 
 #include <string>
 
@@ -129,6 +130,8 @@ JavascriptInterop::ConvertFromV8(Handle<Value> iValue, ConvertedObjects &already
 		return ConvertArrayFromV8(iValue, already_converted);
 	if (iValue->IsDate())
 		return ConvertDateFromV8(iValue);
+	if (iValue->IsFunction())
+		return gcnew JavascriptFunction(iValue->ToObject(), JavascriptContext::GetCurrent());
 	if (iValue->IsObject())
 	{
 		Handle<Object> object = iValue->ToObject();

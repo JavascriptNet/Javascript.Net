@@ -85,6 +85,7 @@
     <Compile Include="FatalErrorHandlerTests.cs" />
     <Compile Include="InternationalizationTests.cs" />
     <Compile Include="IsolationTests.cs" />
+    <Compile Include="JavascriptFunctionTests.cs" />
     <Compile Include="MemoryLeakTests.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="VersionStringTests.cs" />
