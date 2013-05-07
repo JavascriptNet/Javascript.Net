@@ -185,6 +185,7 @@
     <ClCompile Include="JavascriptContext.cpp" />
     <ClCompile Include="JavascriptException.cpp" />
     <ClCompile Include="JavascriptExternal.cpp" />
+    <ClCompile Include="JavascriptFunction.cpp" />
     <ClCompile Include="JavascriptInterop.cpp" />
     <ClCompile Include="SystemInterop.cpp" />
   </ItemGroup>
@@ -192,6 +193,7 @@
     <ClInclude Include="JavascriptContext.h" />
     <ClInclude Include="JavascriptException.h" />
     <ClInclude Include="JavascriptExternal.h" />
+    <ClInclude Include="JavascriptFunction.h" />
     <ClInclude Include="JavascriptInterop.h" />
     <ClInclude Include="SystemInterop.h" />
   </ItemGroup>

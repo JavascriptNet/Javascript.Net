@@ -106,6 +106,7 @@
     <Compile Include="ExceptionTests.cs" />
     <Compile Include="IsolationTests.cs" />
     <Compile Include="MemoryLeakTests.cs" />
+    <Compile Include="RegressionTests\RegressionTests_JavascriptFunction.cs" />
   </ItemGroup>
   <ItemGroup>
     <BootstrapperPackage Include="Microsoft.Net.Client.3.5">
