@@ -93,8 +93,8 @@
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="VersionStringTests.cs" />
-    <Compile Include="RegressionTests_ConvertFromJavascriptTests.cs" />
-    <Compile Include="RegressionTests\RegressionTests_ConvertToJavascriptTests.cs" />
+    <Compile Include="ConvertFromJavascriptTests.cs" />
+    <Compile Include="ConvertToJavascriptTests.cs" />
     <Compile Include="RegressionTests\RegressionTests_ExceptionTests.cs" />
     <Compile Include="RegressionTests\RegressionTests_Isolates.cs" />
     <Compile Include="RegressionTests\RegressionTests_MemoryLeak.cs" />
