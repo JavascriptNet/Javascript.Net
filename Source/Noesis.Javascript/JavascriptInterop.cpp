@@ -83,7 +83,7 @@ JavascriptInterop::ConvertFromV8(Handle<Value> iValue)
 	if (iValue->IsDate())
 		return ConvertDateFromV8(iValue);
 	if (iValue->IsFunction())
-		return gcnew JavascriptFunction(iValue->ToObject());
+		return gcnew JavascriptFunction(iValue->ToObject(), JavascriptContext::GetCurrent());
 	if (iValue->IsObject())
 	{
 		Handle<Object> object = iValue->ToObject();

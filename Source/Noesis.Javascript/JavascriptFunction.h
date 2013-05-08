@@ -22,7 +22,7 @@ namespace Noesis { namespace Javascript {
 public ref class JavascriptFunction
 {
 public:
-	JavascriptFunction(v8::Handle<v8::Object> iFunction);
+	JavascriptFunction(v8::Handle<v8::Object> iFunction, JavascriptContext^ context);
 	~JavascriptFunction();
 	!JavascriptFunction();
 
@@ -35,6 +35,7 @@ public:
 
 private:
 	v8::Persistent<v8::Function>* mFuncHandle;
+	JavascriptContext^ mContext;
 
 private:
 	JavascriptFunction() {}

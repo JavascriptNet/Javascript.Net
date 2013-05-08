@@ -1,5 +1,6 @@
 #include "JavascriptFunction.h"
 #include "JavascriptInterop.h"
+#include "JavascriptContext.h"
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -9,12 +10,16 @@ namespace Noesis { namespace Javascript {
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
-JavascriptFunction::JavascriptFunction( v8::Handle<v8::Object> iFunction)
+JavascriptFunction::JavascriptFunction( v8::Handle<v8::Object> iFunction, JavascriptContext^ context)
 {
 	if (!iFunction->IsFunction())
 		throw gcnew System::ArgumentException("Trying to use non-function as function");
 	
+	if(!context)
+		throw gcnew System::ArgumentException("Must provide a JavascriptContext");
+
 	mFuncHandle = new Persistent<Function>(Handle<Function>::Cast(iFunction));
+	mContext = context;
 }
 
 JavascriptFunction::~JavascriptFunction()
@@ -31,7 +36,14 @@ JavascriptFunction::!JavascriptFunction()
 
 System::Object^ JavascriptFunction::Call(... cli::array<System::Object^>^ args)
 {
+	JavascriptScope scope(mContext);
+	HandleScope handleScope();
+
+	//	Context::Scope contextScope(*mContext->mContext);
+	//	Handle<v8::Object> global = (*mContext->mContext)->Global();
+
 	Handle<v8::Object> global = (*mFuncHandle)->CreationContext()->Global();
+	
 
 	int argc = args->Length;
 	Handle<v8::Value> *argv = new Handle<v8::Value>[argc];
@@ -48,6 +60,9 @@ System::Object^ JavascriptFunction::Call(... cli::array<System::Object^>^ args)
 
 bool JavascriptFunction::operator==( JavascriptFunction^ func1, JavascriptFunction^ func2 )
 {
+	if(func2 == nullptr) {
+		return false;
+	}
 	Handle<Function> jsFuncPtr1 = *(func1->mFuncHandle);
 	Handle<Function> jsFuncPtr2 = *(func2->mFuncHandle);
 
@@ -61,7 +76,7 @@ bool JavascriptFunction::Equals( JavascriptFunction^ other )
 
 bool JavascriptFunction::Equals(Object^ other )
 {
-	JavascriptFunction^ otherFunc = safe_cast<JavascriptFunction^>(other);
+	JavascriptFunction^ otherFunc = dynamic_cast<JavascriptFunction^>(other);
 	return (otherFunc && this->Equals(otherFunc));
 }
 
