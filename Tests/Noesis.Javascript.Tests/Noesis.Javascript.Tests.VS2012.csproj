@@ -92,8 +92,8 @@
     <Compile Include="AccessorInterceptorTests.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="RegressionTests\RegressionTests_VersionString.cs" />
-    <Compile Include="RegressionTests\RegressionTests_ConvertFromJavascriptTests.cs" />
+    <Compile Include="VersionStringTests.cs" />
+    <Compile Include="RegressionTests_ConvertFromJavascriptTests.cs" />
     <Compile Include="RegressionTests\RegressionTests_ConvertToJavascriptTests.cs" />
     <Compile Include="RegressionTests\RegressionTests_ExceptionTests.cs" />
     <Compile Include="RegressionTests\RegressionTests_Isolates.cs" />
@@ -107,7 +107,6 @@
   </ItemGroup>
   <ItemGroup>
     <Content Include="RegressionTests\Scripts\ConvertToJavascriptTests.js" />
-    <Content Include="RegressionTests\Scripts\ConvertFromJavascriptTests.js" />
     <Content Include="RegressionTests\Scripts\ExceptionTests.js" />
   </ItemGroup>
   <ItemGroup>
