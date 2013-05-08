@@ -87,9 +87,7 @@ public:
 	virtual System::Object^ Run(System::String^ iSourceCode);
 
 	virtual System::Object^ Run(System::String^ iScript, System::String^ iScriptResourceName);
-
-	static void Collect();
-	
+		
 	property static System::String^ V8Version { System::String^ get(); }
 
 	void TerminateExecution();
@@ -98,6 +96,8 @@ public:
 	// Internal methods
 	////////////////////////////////////////////////////////////
 internal:
+	static void Collect();
+
 	void SetStackLimit();
 
 	static JavascriptContext^ GetCurrent();
