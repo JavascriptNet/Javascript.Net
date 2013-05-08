@@ -65,6 +65,14 @@ namespace Noesis.Javascript.Tests
         }
 
         [Test]
+        public void GracefullyHandlesAttemptsToAccessByIndexerWhenIndexerDoesntExist()
+        {
+            _context.SetParameter("myObject", new ClassWithProperty());
+
+            Assert.That(_context.Run("myObject[20] === undefined"), Is.True);
+        }
+
+        [Test]
         public void SetValueByIndexAValueInNetArray()
         {
             int[] ints = new[] {1, 2, 3};
@@ -114,6 +122,14 @@ namespace Noesis.Javascript.Tests
             _context.SetParameter("myObject", new ClassWithProperty(), SetParameterOptions.RejectUnknownProperties);
 
             Assert.Throws<JavascriptException>(() => _context.Run("myObject.UnknownProperty = 77"));
+        }
+        
+        [Test]
+        public void GettingUnknownPropertiesIsDisallowedIfRejectUnknownPropertiesIsSet()
+        {
+            _context.SetParameter("myObject", new ClassWithProperty(), SetParameterOptions.RejectUnknownProperties);
+
+            Assert.Throws<JavascriptException>(() => _context.Run("myObject.UnknownProperty")).Message.StartsWith("Unknown member:");
         }
     }
 }

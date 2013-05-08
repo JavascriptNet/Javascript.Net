@@ -95,8 +95,8 @@
     <Compile Include="VersionStringTests.cs" />
     <Compile Include="ConvertFromJavascriptTests.cs" />
     <Compile Include="ConvertToJavascriptTests.cs" />
-    <Compile Include="RegressionTests\RegressionTests_ExceptionTests.cs" />
-    <Compile Include="RegressionTests\RegressionTests_Isolates.cs" />
+    <Compile Include="ExceptionTests.cs" />
+    <Compile Include="IsolationTests.cs" />
     <Compile Include="RegressionTests\RegressionTests_MemoryLeak.cs" />
     <Compile Include="ScriptResources.Designer.cs">
       <AutoGen>True</AutoGen>
@@ -106,7 +106,6 @@
     <Compile Include="UnitTest\JavascriptTest.cs" />
   </ItemGroup>
   <ItemGroup>
-    <Content Include="RegressionTests\Scripts\ConvertToJavascriptTests.js" />
     <Content Include="RegressionTests\Scripts\ExceptionTests.js" />
   </ItemGroup>
   <ItemGroup>
@@ -155,6 +154,7 @@
     <EmbeddedResource Include="ScriptResources.resx">
       <Generator>ResXFileCodeGenerator</Generator>
       <LastGenOutput>ScriptResources.Designer.cs</LastGenOutput>
+      <SubType>Designer</SubType>
     </EmbeddedResource>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
