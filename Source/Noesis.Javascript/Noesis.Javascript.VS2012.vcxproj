@@ -181,6 +181,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="AssemblyInfo.cpp" />
     <ClCompile Include="JavascriptContext.cpp" />
     <ClCompile Include="JavascriptException.cpp" />
     <ClCompile Include="JavascriptExternal.cpp" />
