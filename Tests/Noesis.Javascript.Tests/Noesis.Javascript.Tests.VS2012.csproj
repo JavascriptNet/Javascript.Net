@@ -72,6 +72,9 @@
     <PlatformTarget>AnyCPU</PlatformTarget>
   </PropertyGroup>
   <ItemGroup>
+    <Reference Include="nunit.framework">
+      <HintPath>..\..\packages\NUnit.2.6.2\lib\nunit.framework.dll</HintPath>
+    </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core">
       <RequiredTargetFramework>3.5</RequiredTargetFramework>
@@ -86,20 +89,24 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="AccessorInterceptorTests.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="RegressionTests\RegressionTests_VersionString.cs" />
     <Compile Include="RegressionTests\RegressionTests_ConvertFromJavascriptTests.cs" />
     <Compile Include="RegressionTests\RegressionTests_ConvertToJavascriptTests.cs" />
-    <Compile Include="RegressionTests\RegressionTests_AccessorsInterceptorsTests.cs" />
     <Compile Include="RegressionTests\RegressionTests_ExceptionTests.cs" />
     <Compile Include="RegressionTests\RegressionTests_Isolates.cs" />
     <Compile Include="RegressionTests\RegressionTests_MemoryLeak.cs" />
+    <Compile Include="ScriptResources.Designer.cs">
+      <AutoGen>True</AutoGen>
+      <DesignTime>True</DesignTime>
+      <DependentUpon>ScriptResources.resx</DependentUpon>
+    </Compile>
     <Compile Include="UnitTest\JavascriptTest.cs" />
   </ItemGroup>
   <ItemGroup>
     <Content Include="RegressionTests\Scripts\ConvertToJavascriptTests.js" />
-    <Content Include="RegressionTests\Scripts\AccessorsInterceptorsTests.js" />
     <Content Include="RegressionTests\Scripts\ConvertFromJavascriptTests.js" />
     <Content Include="RegressionTests\Scripts\ExceptionTests.js" />
   </ItemGroup>
@@ -137,12 +144,19 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="app.config" />
+    <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\Source\Noesis.Javascript\Noesis.Javascript.VS2010.vcxproj">
       <Project>{AF1D460B-D372-40F7-8DDB-3F6EE4489EB4}</Project>
       <Name>Noesis.Javascript</Name>
     </ProjectReference>
+  </ItemGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="ScriptResources.resx">
+      <Generator>ResXFileCodeGenerator</Generator>
+      <LastGenOutput>ScriptResources.Designer.cs</LastGenOutput>
+    </EmbeddedResource>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
