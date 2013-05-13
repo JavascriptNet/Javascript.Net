@@ -115,6 +115,7 @@ internal:
 	////////////////////////////////////////////////////////////
 	// Data members
 	////////////////////////////////////////////////////////////
+
 protected:
 	// By entering an isolate before using a context, we can have multiple
 	// contexts used simultaneously in different threads.

@@ -106,6 +106,7 @@
     <Compile Include="ExceptionTests.cs" />
     <Compile Include="IsolationTests.cs" />
     <Compile Include="MemoryLeakTests.cs" />
+    <Compile Include="JavascriptFunctionTests.cs" />
   </ItemGroup>
   <ItemGroup>
     <BootstrapperPackage Include="Microsoft.Net.Client.3.5">
@@ -151,6 +152,7 @@
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>
+    <Folder Include="RegressionTests\" />
     <Folder Include="UnitTest\" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />

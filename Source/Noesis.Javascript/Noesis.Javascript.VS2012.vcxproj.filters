@@ -22,7 +22,10 @@
     <ClCompile Include="SystemInterop.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="AssemblyInfo.cpp">
+    <ClCompile Include="JavascriptFunction.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+   <ClCompile Include="AssemblyInfo.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -40,6 +43,9 @@
       <Filter>Source Files</Filter>
     </ClInclude>
     <ClInclude Include="SystemInterop.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="JavascriptFunction.h">
       <Filter>Source Files</Filter>
     </ClInclude>
   </ItemGroup>
