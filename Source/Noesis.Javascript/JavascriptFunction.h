@@ -35,10 +35,7 @@ public:
 
 private:
 	v8::Persistent<v8::Function>* mFuncHandle;
-	JavascriptContext^ mContext;
-
-private:
-	JavascriptFunction() {}
+	JavascriptContext^ mContext;	
 };
 
 //////////////////////////////////////////////////////////////////////////

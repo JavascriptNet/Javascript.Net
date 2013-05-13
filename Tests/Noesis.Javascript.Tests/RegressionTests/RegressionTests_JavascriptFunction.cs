@@ -12,7 +12,7 @@ namespace Noesis.Javascript.Tests
         {
             JavascriptTest javascriptTest = new JavascriptTest();
             JavascriptContext context = new JavascriptContext();
-            context.Run("var a = function(a,b) {return a+b;}");
+            context.Run("a = function(a,b) {return a+b;}");
             
             JavascriptFunction funcObj = context.GetParameter("a") as JavascriptFunction;
 

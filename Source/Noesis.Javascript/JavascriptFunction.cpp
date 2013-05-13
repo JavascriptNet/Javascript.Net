@@ -18,32 +18,40 @@ JavascriptFunction::JavascriptFunction( v8::Handle<v8::Object> iFunction, Javasc
 	if(!context)
 		throw gcnew System::ArgumentException("Must provide a JavascriptContext");
 
-	mFuncHandle = new Persistent<Function>(Handle<Function>::Cast(iFunction));
+	mFuncHandle = new Persistent<Function>();
+	*mFuncHandle = Persistent<Function>::New(Handle<Function>::Cast(iFunction));
 	mContext = context;
 }
 
 JavascriptFunction::~JavascriptFunction()
 {
-	mFuncHandle->Dispose();
-	delete mFuncHandle;
+	if(mFuncHandle) 
+	{
+		JavascriptScope scope(mContext);
+		mFuncHandle->Dispose();
+		delete mFuncHandle;
+		mFuncHandle = nullptr;
+	}
+	System::GC::SuppressFinalize(this);
 }
 
 JavascriptFunction::!JavascriptFunction() 
 {
-	mFuncHandle->Dispose();
-	delete mFuncHandle;
+	if(mFuncHandle) 
+	{
+		JavascriptScope scope(mContext);
+		mFuncHandle->Dispose();
+		delete mFuncHandle;
+		mFuncHandle = nullptr;
+	}
 }
 
 System::Object^ JavascriptFunction::Call(... cli::array<System::Object^>^ args)
-{
+{	
 	JavascriptScope scope(mContext);
-	HandleScope handleScope();
-
-	//	Context::Scope contextScope(*mContext->mContext);
-	//	Handle<v8::Object> global = (*mContext->mContext)->Global();
+	HandleScope handleScope;
 
 	Handle<v8::Object> global = (*mFuncHandle)->CreationContext()->Global();
-	
 
 	int argc = args->Length;
 	Handle<v8::Value> *argv = new Handle<v8::Value>[argc];
@@ -60,7 +68,7 @@ System::Object^ JavascriptFunction::Call(... cli::array<System::Object^>^ args)
 
 bool JavascriptFunction::operator==( JavascriptFunction^ func1, JavascriptFunction^ func2 )
 {
-	if(func2 == nullptr) {
+	if(ReferenceEquals(func2, nullptr)) {
 		return false;
 	}
 	Handle<Function> jsFuncPtr1 = *(func1->mFuncHandle);

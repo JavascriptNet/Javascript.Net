@@ -116,15 +116,13 @@ internal:
 	// Data members
 	////////////////////////////////////////////////////////////
 
-	// v8 context required to be active for all v8 operations.
-	Persistent<Context>* mContext;
-
 protected:
 	// By entering an isolate before using a context, we can have multiple
 	// contexts used simultaneously in different threads.
 	v8::Isolate *isolate;
 
-
+	// v8 context required to be active for all v8 operations.
+	Persistent<Context>* mContext;
 
 	// v8 objects we hang onto for the duration.
 	vector<JavascriptExternal*>* mExternals;
