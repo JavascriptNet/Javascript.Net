@@ -87,6 +87,8 @@ public:
 	virtual System::Object^ Run(System::String^ iSourceCode);
 
 	virtual System::Object^ Run(System::String^ iScript, System::String^ iScriptResourceName);
+
+    virtual System::Object^  CallFunction(System::String^ funName, ...array<Object^>^ params);
 		
 	property static System::String^ V8Version { System::String^ get(); }
 
