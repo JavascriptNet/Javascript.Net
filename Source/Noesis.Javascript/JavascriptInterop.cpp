@@ -519,21 +519,31 @@ JavascriptInterop::Invoker(const v8::Arguments& iArgs)
 			suppliedArguments[i] = ConvertFromV8(iArgs[i]);
 		
 		// look for best matching method
+		bool lastIsVariant = false;
 		for (int i = 0; i < members->Length; i++)
 		{
 			System::Reflection::MethodInfo^ method = (System::Reflection::MethodInfo^) members[i];
 			cli::array<System::Reflection::ParameterInfo^>^ parametersInfo = method->GetParameters();
 			cli::array<System::Object^>^ arguments;
+            if(parametersInfo->Length > 0)
+			{
+                System::Reflection::ParameterInfo^ info = parametersInfo[parametersInfo->Length - 1];
+                lastIsVariant = System::Attribute::IsDefined(info, System::ParamArrayAttribute::typeid);
+			}
 
 			// match arguments & parameters counts
-			if (iArgs.Length() == parametersInfo->Length)
+			if (iArgs.Length() == parametersInfo->Length
+				|| (lastIsVariant && (iArgs.Length() >= parametersInfo->Length - 1))
+				)
 			{
 				int match = 0;
 				int failed = 0;
 
 				// match parameters
-				arguments = gcnew cli::array<System::Object^>(iArgs.Length());
-				for (int p = 0; p < suppliedArguments->Length; p++)
+				arguments = gcnew cli::array<System::Object^>(parametersInfo->Length);
+                int exactMatchParams = lastIsVariant ? parametersInfo->Length - 1 : parametersInfo->Length;
+
+				for (int p = 0; p < exactMatchParams; p++)
 				{
 					System::Type^ paramType = parametersInfo[p]->ParameterType;
 
@@ -556,6 +566,15 @@ JavascriptInterop::Invoker(const v8::Arguments& iArgs)
 							}
 						}
 					}
+				}
+                if(lastIsVariant)
+				{
+                    array<System::Object^>^ extras = gcnew array<System::Object^>(suppliedArguments->Length - exactMatchParams);
+                    for (int p = exactMatchParams; p < suppliedArguments->Length; p++)
+					{
+                        extras[p - exactMatchParams] = suppliedArguments[p];
+					}
+                    arguments[parametersInfo->Length - 1] = extras;
 				}
 
 				// skip if a conversion failed
