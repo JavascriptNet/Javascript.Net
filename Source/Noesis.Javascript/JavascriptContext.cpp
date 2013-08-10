@@ -237,7 +237,7 @@ System::Object^  JavascriptContext::CallFunction(System::String^ funName, ...arr
         if(binding.IsEmpty())
             binding = (*mContext)->Global();
 		Handle<Value> js_result = func->Call(binding, v8Params.size(), v8Params.data());
-        return JavascriptInterop::UnwrapObject(js_result);
+        return JavascriptInterop::ConvertFromV8(js_result);
 	}
     return nullptr;
 }
