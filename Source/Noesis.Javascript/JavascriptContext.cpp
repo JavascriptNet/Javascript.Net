@@ -181,6 +181,67 @@ JavascriptContext::Run(System::String^ iScript, System::String^ iScriptResourceN
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
+System::Object^  JavascriptContext::CallFunction(System::String^ funName, ...array<Object^>^ params)
+{
+	JavascriptScope scope(this);
+	HandleScope handleScope;
+
+    Handle<v8::Value> value;
+    Handle<v8::Object> binding;
+    //
+    // simple function
+    if(!funName->Contains("."))
+	{
+		pin_ptr<const wchar_t> namePtr = PtrToStringChars(funName);
+		wchar_t* name = (wchar_t*) namePtr;
+		value = (*mContext)->Global()->Get(String::New((uint16_t*) name));
+	}
+	else //object functions
+	{
+		array<System::Char>^sep = gcnew array<System::Char>{
+			'.'
+		};
+		array<System::String^>^result = funName->Split(sep,  System::StringSplitOptions::RemoveEmptyEntries);
+        if(result->Length == 0)
+            return nullptr;
+
+		pin_ptr<const wchar_t> namePtr = PtrToStringChars(result[0]);
+		wchar_t* name = (wchar_t*) namePtr;
+		value = (*mContext)->Global()->Get(String::New((uint16_t*) name));
+
+        for (int i = 1; i < result->Length; i++)
+		{
+            if(value->IsObject())
+			{
+                binding = Handle<v8::Object>::Cast(value);
+				pin_ptr<const wchar_t> namePtr = PtrToStringChars(result[i]);
+				wchar_t* name = (wchar_t*) namePtr;
+                value = binding->Get(String::New((uint16_t*) name));
+			}
+			else //invalid call
+			{
+                return nullptr;
+			}
+		}
+	}
+    if(value->IsFunction())
+	{
+		Handle<v8::Function> func = v8::Handle<v8::Function>::Cast(value);
+
+        std::vector<v8::Handle<v8::Value>> v8Params(params->Length);
+        for(int i = 0; i < params->Length; i++)
+		{
+            v8Params[i] = JavascriptInterop::WrapObject(params[i]);
+		}
+
+        if(binding.IsEmpty())
+            binding = (*mContext)->Global();
+		Handle<Value> js_result = func->Call(binding, v8Params.size(), v8Params.data());
+        return JavascriptInterop::ConvertFromV8(js_result);
+	}
+    return nullptr;
+}
+
 void
 JavascriptContext::SetStackLimit()
 {
