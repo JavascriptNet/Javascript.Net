@@ -12,7 +12,7 @@ namespace Noesis.Javascript.Tests
     public class IsolationTests
     {
         [Test]
-        public string RunIsolatesTest()
+        public void RunIsolatesTest()
         {
 
             Stopwatch timer = new Stopwatch();
@@ -24,8 +24,6 @@ namespace Noesis.Javascript.Tests
             thread.Join();
 
             Assert.That(timer.ElapsedMilliseconds, Is.LessThan(1500), "It took too long, they must not be running in parallel.");
-
-            return null;
         }
 
         static void RunInstance()
