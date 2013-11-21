@@ -8,7 +8,7 @@ namespace Noesis.Javascript.Tests
     public class MemoryLeakTests
     {
         [Test]
-        public string RunMemoryLeakTest()
+        public void RunMemoryLeakTest()
         {
             MemoryUsageLoadInstance();
             long mem = Process.GetCurrentProcess().PrivateMemorySize64;
@@ -21,9 +21,7 @@ namespace Noesis.Javascript.Tests
             GC.Collect();
             decimal diffMBytes = (Process.GetCurrentProcess().PrivateMemorySize64 - mem) / 1048576m;
 
-            if (diffMBytes >= 1) // Allow 1 MB
-                return String.Format("{0:0.00}MB left allocated", diffMBytes);
-            return null;
+            Assert.That(diffMBytes < 1, String.Format("{0:0.00}MB left allocated", diffMBytes));
         }
 
         private static void MemoryUsageLoadInstance()
