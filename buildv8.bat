@@ -126,6 +126,8 @@ SET PATH=%vs%\VC\bin%adm64suffix%;%vs%\Common7\IDE;%vs%\Common7\IDE;%vs%\Common7
 SET INCLUDE=%vs%\VC\include;%sdk%\Include
 SET LIB=%vs%\VC\lib%adm64suffix%;%sdk%\Lib%x64suffix%
 
+:: Run gyp to update the Visual Studio project files to contain links
+:: to the latest v8 source files.
 echo third_party\python_26\python.exe build\gyp_v8 -D"target_arch=%target_arch%" -D"component=shared_library"
 third_party\python_26\python.exe build\gyp_v8 -D"target_arch=%target_arch%" -D"component=shared_library"
 

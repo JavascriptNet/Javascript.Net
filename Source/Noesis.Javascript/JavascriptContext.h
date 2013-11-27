@@ -92,12 +92,12 @@ public:
 
 	void TerminateExecution();
 
+	static void Collect();
+
 	////////////////////////////////////////////////////////////
 	// Internal methods
 	////////////////////////////////////////////////////////////
 internal:
-	static void Collect();
-
 	void SetStackLimit();
 
 	static JavascriptContext^ GetCurrent();
