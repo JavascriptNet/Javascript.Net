@@ -1,8 +1,8 @@
 :: Build v8 in various modes, using specific versions of Visual Studio.
-:: Builds both v8.lib (release) and v8_g.lib (debug)
 ::
 :: This script will trash bits of your environment, particularly your PATH.
 @ECHO OFF
+SET "usage=usage: %0 ia32/x64 [vs2008/vs2010/vs2012] [toolset] [Debug]"
 
 :: Set directory locations here.
 SET python=C:\Python27
@@ -23,20 +23,32 @@ echo using sdk %sdk%
 
 SET v8=%~dp0%\v8
 
+:: Allow building in just one mode.
+IF "%4"=="Debug" (
+    SET mode=Debug
+) ELSE (
+    IF "%4"=="" (
+        SET mode=Release
+    ) ELSE (
+        ECHO %usage%
+        EXIT /b 1
+    )
+)
+
 :: Parameterise specified architecture.
 IF "%1"=="x64" (
     SET "x64suffix=\x64"
     SET "adm64suffix=\amd64"
-	SET "target_arch=x64"
-	SET "profile=Release|x64"
+    SET "target_arch=x64"
+    SET "profile=%mode%|x64"
 ) ELSE (
     IF "%1"=="ia32" (
         SET "x64suffix="
         SET "adm64suffix="
-		SET "target_arch=ia32"
-		SET "profile=Release|Win32"
+        SET "target_arch=ia32"
+        SET "profile=%mode%|Win32"
     ) ELSE (
-        ECHO usage: %0 ia32/x64 [vs2008/vs2010/vs2012]
+        ECHO %usage%
         EXIT /b 1
     )
 )
@@ -82,18 +94,11 @@ IF "%vs%"=="" (
 				SET "vs=%vs2008%"
 				SET "GYP_MSVS_VERSION=2008"
 			) ELSE (
-				ECHO usage: %0 ia32/x64 vs2012/vs2008/vs2010
+				ECHO %usage%
 				EXIT /b 1
 			)
 		)
 	)
-)
-
-:: Allow building in just one mode.
-IF "%4"=="" (
-    SET mode=debug,release
-) ELSE (
-    SET mode=%4
 )
 
 :: Change to v8 directory.

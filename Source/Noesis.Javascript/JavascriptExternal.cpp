@@ -285,12 +285,14 @@ JavascriptExternal::SetProperty(uint32_t iIndex, Handle<Value> iValue)
 	{
 		try
 		{
-			cli::array<System::Object^>^ args = gcnew cli::array<System::Object^>(2);
-			args[0] = (int)index;
-			args[1] = JavascriptInterop::ConvertFromV8(iValue);
-			
-			System::Object^ result = type->InvokeMember("Item", System::Reflection::BindingFlags::SetProperty, nullptr, self, args,  nullptr);
-			return JavascriptInterop::ConvertToV8(result);
+			System::Reflection::PropertyInfo^ item_info = type->GetProperty("Item", gcnew cli::array<System::Type^> { int::typeid });
+			if (item_info == nullptr || item_info->GetIndexParameters()->Length != 1) {
+				v8::ThrowException(JavascriptInterop::ConvertToV8("No public integer-indexed property."));
+			} else {
+				cli::array<System::Object^>^ index_args = gcnew cli::array<System::Object^>(1);
+				index_args[0] = index;
+				item_info->SetValue(self, JavascriptInterop::ConvertFromV8(iValue), index_args);
+			}
 		}
 		catch(System::Reflection::TargetInvocationException^ exception)
 		{

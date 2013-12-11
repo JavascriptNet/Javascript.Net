@@ -73,17 +73,6 @@ namespace Noesis.Javascript.Tests
         }
 
         [Test]
-        public void SetValueByIndexAValueInNetArray()
-        {
-            int[] ints = new[] {1, 2, 3};
-            _context.SetParameter("myArray", ints);
-
-            _context.Run("myArray[1] = 17");
-
-            Assert.That(ints[1], Is.EqualTo(17));
-        }
-
-        [Test]
         public void SetValueByIndexerInManagedObject()
         {
             var classWithIndexer = new ClassWithIndexer();

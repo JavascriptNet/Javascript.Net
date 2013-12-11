@@ -32,9 +32,9 @@ Building from Source
     https://code.google.com/p/v8/issues/detail?id=2973
 
 3. Run build.bat to build v8 for your preferred architecture and build
-   environment.  e.g.
+   environment.  e.g. (builds Release mode DLL)
    > buildv8 ia32 vs2012
-   
+
 4. Load the Visual Studio Solution file corresponding to your version of
    Visual Studio.
 
