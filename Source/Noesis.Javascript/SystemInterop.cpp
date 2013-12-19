@@ -37,6 +37,7 @@ namespace Noesis {
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
+// Returns null if no conversion is possible.
 System::Object^
 SystemInterop::ConvertToType(System::Object^ iValue, System::Type^ iType)
 {
