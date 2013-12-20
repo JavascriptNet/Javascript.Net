@@ -351,7 +351,8 @@ JavascriptInterop::DelegateInvoker(const v8::Arguments& info)
 	System::Object^ object = wrapper->GetObject();
 
 	System::Delegate^ delegat = static_cast<System::Delegate^>(object);
-	int nparams = delegat->GetType()->GetMethods()[0]->GetParameters()->Length;
+	cli::array<System::Reflection::ParameterInfo^>^ parametersInfo = delegat->GetType()->GetMethods()[0]->GetParameters();
+	int nparams = parametersInfo->Length;
 
 	// As is normal in JavaScript, we ignore excess input parameters, and pad
 	// with null if insufficient are supplied.
@@ -363,6 +364,22 @@ JavascriptInterop::DelegateInvoker(const v8::Arguments& info)
 			args[i] = ConvertFromV8(info[i]);
 		else
 			args[i] = nullptr;
+	}
+
+	// Perform type conversions where possible.
+	for (int i = 0; i < args->Length; i++)
+	{
+		if (args[i] != nullptr)
+		{
+			System::Type^ paramType = parametersInfo[i]->ParameterType;
+			System::Type^ suppliedType = args[i]->GetType();
+			if (suppliedType != paramType)
+			{
+				System::Object^ converted = SystemInterop::ConvertToType(args[i], paramType);
+				if (converted != nullptr)  // if conversion fails then leave original type in place so user get appropriate error message
+					args[i] = converted;
+			}
+		}
 	}
 
 	System::Object^ ret;

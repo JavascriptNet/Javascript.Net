@@ -9,6 +9,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = ".nuget", ".nuget", "{9A6BE2
 		.nuget\packages.config = .nuget\packages.config
 	EndProjectSection
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Fiddling", "Fiddling\Fiddling.csproj", "{9E0C9657-BC4C-4A25-B7DD-9C772FC5670D}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -30,15 +32,23 @@ Global
 		{3594F612-97BB-41C2-90A1-867E78812F4E}.Release|x64.ActiveCfg = Release|Any CPU
 		{3594F612-97BB-41C2-90A1-867E78812F4E}.Release|x64.Build.0 = Release|Any CPU
 		{AF1D460B-D372-40F7-8DDB-3F6EE4489EB4}.Debug|Any CPU.ActiveCfg = Debug|Win32
-		{AF1D460B-D372-40F7-8DDB-3F6EE4489EB4}.Debug|Win32.ActiveCfg = Release|Win32
-		{AF1D460B-D372-40F7-8DDB-3F6EE4489EB4}.Debug|Win32.Build.0 = Release|Win32
-		{AF1D460B-D372-40F7-8DDB-3F6EE4489EB4}.Debug|x64.ActiveCfg = Release|x64
-		{AF1D460B-D372-40F7-8DDB-3F6EE4489EB4}.Debug|x64.Build.0 = Release|x64
+		{AF1D460B-D372-40F7-8DDB-3F6EE4489EB4}.Debug|Win32.ActiveCfg = Debug|Win32
+		{AF1D460B-D372-40F7-8DDB-3F6EE4489EB4}.Debug|Win32.Build.0 = Debug|Win32
+		{AF1D460B-D372-40F7-8DDB-3F6EE4489EB4}.Debug|x64.ActiveCfg = Debug|x64
+		{AF1D460B-D372-40F7-8DDB-3F6EE4489EB4}.Debug|x64.Build.0 = Debug|x64
 		{AF1D460B-D372-40F7-8DDB-3F6EE4489EB4}.Release|Any CPU.ActiveCfg = Release|Win32
 		{AF1D460B-D372-40F7-8DDB-3F6EE4489EB4}.Release|Win32.ActiveCfg = Release|Win32
 		{AF1D460B-D372-40F7-8DDB-3F6EE4489EB4}.Release|Win32.Build.0 = Release|Win32
 		{AF1D460B-D372-40F7-8DDB-3F6EE4489EB4}.Release|x64.ActiveCfg = Release|x64
 		{AF1D460B-D372-40F7-8DDB-3F6EE4489EB4}.Release|x64.Build.0 = Release|x64
+		{9E0C9657-BC4C-4A25-B7DD-9C772FC5670D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{9E0C9657-BC4C-4A25-B7DD-9C772FC5670D}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{9E0C9657-BC4C-4A25-B7DD-9C772FC5670D}.Debug|Win32.ActiveCfg = Debug|Any CPU
+		{9E0C9657-BC4C-4A25-B7DD-9C772FC5670D}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{9E0C9657-BC4C-4A25-B7DD-9C772FC5670D}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{9E0C9657-BC4C-4A25-B7DD-9C772FC5670D}.Release|Any CPU.Build.0 = Release|Any CPU
+		{9E0C9657-BC4C-4A25-B7DD-9C772FC5670D}.Release|Win32.ActiveCfg = Release|Any CPU
+		{9E0C9657-BC4C-4A25-B7DD-9C772FC5670D}.Release|x64.ActiveCfg = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

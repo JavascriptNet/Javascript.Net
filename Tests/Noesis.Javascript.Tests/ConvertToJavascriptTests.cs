@@ -202,6 +202,14 @@ namespace Noesis.Javascript.Tests
         }
 
         [Test]
+        public void SetDelegateWithArray()
+        {
+            _context.SetParameter("delegate", new Func<string[], string>((a) => String.Join(" ", a)));
+
+            Assert.That(_context.Run("delegate(['Big', 'dog']) == 'Big dog'"), Is.True);
+        }
+
+        [Test]
         public void SetEnum()
         {
             _context.SetParameter("val", UriKind.Absolute);

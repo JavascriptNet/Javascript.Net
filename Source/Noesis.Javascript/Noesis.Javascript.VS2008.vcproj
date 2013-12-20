@@ -65,7 +65,7 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="..\..\v8\v8_g.lib winmm.lib ws2_32.lib"
+				AdditionalDependencies="..\..\v8\build\Debug\lib\v8_snapshot.lib ..\..\v8\build\Debug\lib\v8_base.lib winmm.lib ws2_32.lib"
 				LinkIncremental="2"
 				AdditionalLibraryDirectories=""
 				GenerateDebugInformation="true"
@@ -143,7 +143,7 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="..\..\v8\v8_g.lib winmm.lib ws2_32.lib"
+				AdditionalDependencies="..\..\v8\build\Debug\lib\v8_snapshot.lib ..\..\v8\build\Debug\lib\v8_base.lib winmm.lib ws2_32.lib"
 				LinkIncremental="2"
 				AdditionalLibraryDirectories=""
 				GenerateDebugInformation="true"

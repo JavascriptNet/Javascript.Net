@@ -32,9 +32,9 @@ Building from Source
     https://code.google.com/p/v8/issues/detail?id=2973
 
 3. Run build.bat to build v8 for your preferred architecture and build
-   environment.  e.g.
+   environment.  e.g. (builds Release mode DLL)
    > buildv8 ia32 vs2012
-   
+
 4. Load the Visual Studio Solution file corresponding to your version of
    Visual Studio.
 
@@ -52,6 +52,10 @@ There may be a better way to do this, but all I've been able to figure
 out for running it is something like:
 
 > packages\NUnit.Runners.2.6.3\tools\nunit-console-x86 Tests\Noesis.Javascript.Tests\bin\VS2010\x86\Debug\Noesis.Javascript.Tests.dll
+
+or
+
+> packages\NUnit.Runners.2.6.3\tools\nunit-console Tests\Noesis.Javascript.Tests\bin\x64\Debug\Noesis.Javascript.Tests.dll
 
 
 Known Problems
