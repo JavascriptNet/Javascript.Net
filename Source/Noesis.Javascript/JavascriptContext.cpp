@@ -181,6 +181,7 @@ JavascriptContext::Run(System::String^ iScript, System::String^ iScriptResourceN
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
+
 void
 JavascriptContext::SetStackLimit()
 {
@@ -191,8 +192,18 @@ JavascriptContext::SetStackLimit()
 	DWORD dw = GetCurrentThreadId();
 	if (dw != curThreadId) {
 		v8::ResourceConstraints rc;
-		int limit = (int)&rc - 500000;
-		rc.set_stack_limit((uint32_t *)(limit));
+
+        // Copied form v8/test/cctest/test-api.cc
+        uint32_t size = 500000;
+        uint32_t* limit = &size - (size / sizeof(size));
+        // If the size is very large and the stack is very near the bottom of
+        // memory then the calculation above may wrap around and give an address
+        // that is above the (downwards-growing) stack.  In that case we return
+        // a very low address.
+        if (limit > &size)
+            limit = reinterpret_cast<uint32_t*>(sizeof(size));
+        
+        rc.set_stack_limit((uint32_t *)(limit));
 		v8::SetResourceConstraints(&rc);
 		curThreadId = dw;
 	}
