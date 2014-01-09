@@ -169,6 +169,21 @@ JavascriptInterop::ConvertToV8(System::Object^ iObject)
 				return ConvertFromSystemList(iObject);
 		}
 
+		if (System::Exception::typeid->IsAssignableFrom(type))
+		{
+			// Converting exceptions to proper v8 Error objects has the advantage that
+			// they will come with stack traces.  We tuck the original Exception into
+			// the "InnerException" object so we can rethrow it back into C# land
+			// if necessary.
+			System::Exception ^exception = safe_cast<System::Exception^>(iObject);
+			pin_ptr<const wchar_t> valuePtr = PtrToStringChars(safe_cast<System::String^>(exception->Message));
+			wchar_t* value = (wchar_t*)valuePtr;
+			Handle<v8::Value> error = v8::Exception::Error(v8::String::New((uint16_t*)value));
+			Handle<v8::Object> error_o = v8::Handle<v8::Object>::Cast(error);
+			error_o->Set(v8::String::New("InnerException"), WrapObject(iObject));
+			return error_o;
+		}
+
 		return WrapObject(iObject);
 	}
 

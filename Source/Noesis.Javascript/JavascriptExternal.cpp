@@ -199,9 +199,13 @@ JavascriptExternal::GetProperty(uint32_t iIndex)
 			System::Object^ object = type->InvokeMember("Item", System::Reflection::BindingFlags::GetProperty, nullptr, self, args,  nullptr);
 			return JavascriptInterop::ConvertToV8(object);
 		}
+		catch(System::Reflection::TargetInvocationException^ exception)
+		{
+			v8::ThrowException(JavascriptInterop::ConvertToV8(exception->InnerException));
+		}
 		catch(System::Exception^ Exception)
 		{
-			v8::ThrowException(JavascriptInterop::ConvertToV8(Exception->ToString()));
+			v8::ThrowException(JavascriptInterop::ConvertToV8(Exception));
 		}
 	}
 

@@ -51,9 +51,9 @@ JavascriptException::JavascriptException(TryCatch& iTryCatch): System::Exception
 		mEndColumn = message->GetEndColumn();
 	}
 
-	v8::Local<v8::Value> ex = iTryCatch.Exception();
 	// This causes an "Data is not serializable" exception sometimes, I think
 	// when it contains an InnerException.
+	//v8::Local<v8::Value> ex = iTryCatch.Exception();
 	//this->Data->Add("V8Exception", JavascriptInterop::ConvertFromV8(ex));
 	if (!message.IsEmpty())
 	{
@@ -132,11 +132,16 @@ JavascriptException::GetExceptionMessage(TryCatch& iTryCatch)
 System::Exception^
 JavascriptException::GetSystemException(TryCatch& iTryCatch)
 {
+	// If an exception was thrown by C# code that we previously invoked
+	// then we will have wrapped the original Exception object and
+	// stuck it in the InnerException property.  Let's get it out
+	// again.
 	v8::Local<v8::Value> v8exception = iTryCatch.Exception();
-
-	if (JavascriptInterop::IsSystemObject(v8exception))
+	v8::Handle<v8::Object> exception_o = v8::Handle<v8::Object>::Cast(v8exception);
+	v8::Handle<v8::Value> inner = exception_o->Get(v8::String::New("InnerException"));
+	if (JavascriptInterop::IsSystemObject(inner))
 	{
-		System::Object^ object = JavascriptInterop::UnwrapObject(v8exception);
+		System::Object^ object = JavascriptInterop::UnwrapObject(inner);
 		return dynamic_cast<System::Exception^>(object);
 	}
 
