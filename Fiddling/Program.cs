@@ -16,9 +16,14 @@ namespace Fiddling
         {
             using (JavascriptContext _context = new JavascriptContext()) {
                 int[] ints = new[] { 1, 2, 3 };
-                _context.SetParameter("myArray", new Bozo(ints));
-                object res = _context.Run("var a = myArray[1]; myArray[1] = 17; a");
-                Console.WriteLine(ints[1]);
+                _context.SetParameter("bozo", new Bozo(ints));
+                try {
+                    object res = _context.Run("bozo[7];");
+                } catch (Exception ex) {
+                    string s = (string)ex.Data["V8StackTrace"];
+                    Console.WriteLine(s);
+                }
+                //Console.WriteLine(ints[1]);
             }
         }
     }
@@ -27,9 +32,9 @@ namespace Fiddling
     {
         Array a;
         internal Bozo(Array a) { this.a = a; }
-        object this[int i]
+        public object this[int i]
         {
-            get { return a.GetValue(i); }
+            get { throw new ApplicationException("bozo");  return a.GetValue(i); }
             set { a.SetValue(value, i); }
         }
     }

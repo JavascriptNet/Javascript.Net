@@ -92,6 +92,8 @@ public:
 
 	void TerminateExecution();
 
+    bool IsExecutionTerminating();
+
 	static void Collect();
 
 	////////////////////////////////////////////////////////////
