@@ -149,7 +149,7 @@ JavascriptExternal::GetProperty(wstring iName, Handle<Value> &result)
 		{
 			if (!propertyInfo->CanRead)
 			{
-				v8::ThrowException(JavascriptInterop::ConvertToV8("Property " + gcnew System::String(iName.c_str()) + " may not be read."));
+				result = v8::ThrowException(JavascriptInterop::ConvertToV8("Property " + gcnew System::String(iName.c_str()) + " may not be read."));
 			}
 			else
 			{
@@ -158,7 +158,7 @@ JavascriptExternal::GetProperty(wstring iName, Handle<Value> &result)
 		}
 		catch(System::Reflection::TargetInvocationException^ exception)
 		{
-			result = v8::ThrowException(JavascriptInterop::ConvertToV8(exception->InnerException));
+			result = JavascriptInterop::HandleTargetInvocationException(exception);
 		}
 		catch(System::Exception^ exception)
 		{
@@ -201,11 +201,11 @@ JavascriptExternal::GetProperty(uint32_t iIndex)
 		}
 		catch(System::Reflection::TargetInvocationException^ exception)
 		{
-			v8::ThrowException(JavascriptInterop::ConvertToV8(exception->InnerException));
+			return JavascriptInterop::HandleTargetInvocationException(exception);
 		}
 		catch(System::Exception^ Exception)
 		{
-			v8::ThrowException(JavascriptInterop::ConvertToV8(Exception));
+			return v8::ThrowException(JavascriptInterop::ConvertToV8(Exception));
 		}
 	}
 
@@ -225,7 +225,7 @@ JavascriptExternal::SetProperty(wstring iName, Handle<Value> iValue)
 	if (propertyInfo == nullptr)
 	{
 		if ((mOptions & SetParameterOptions::RejectUnknownProperties) == SetParameterOptions::RejectUnknownProperties)
-			v8::ThrowException(JavascriptInterop::ConvertToV8("Unknown member: " + gcnew System::String(iName.c_str())));
+			return v8::ThrowException(JavascriptInterop::ConvertToV8("Unknown member: " + gcnew System::String(iName.c_str())));
 	}
 	else
 	{
@@ -243,7 +243,7 @@ JavascriptExternal::SetProperty(wstring iName, Handle<Value> iValue)
 
 			if (!propertyInfo->CanWrite)
 			{
-				v8::ThrowException(JavascriptInterop::ConvertToV8("Property " + gcnew System::String(iName.c_str()) + " may not be set."));
+				return v8::ThrowException(JavascriptInterop::ConvertToV8("Property " + gcnew System::String(iName.c_str()) + " may not be set."));
 			}
 			else
 			{
@@ -257,11 +257,11 @@ JavascriptExternal::SetProperty(wstring iName, Handle<Value> iValue)
 		}
 		catch(System::Reflection::TargetInvocationException^ exception)
 		{
-			v8::ThrowException(JavascriptInterop::ConvertToV8(exception->InnerException));
+			return JavascriptInterop::HandleTargetInvocationException(exception);
 		}
 		catch(System::Exception^ exception)
 		{
-			v8::ThrowException(JavascriptInterop::ConvertToV8(exception));
+			return v8::ThrowException(JavascriptInterop::ConvertToV8(exception));
 		}
 	}
 
@@ -291,7 +291,7 @@ JavascriptExternal::SetProperty(uint32_t iIndex, Handle<Value> iValue)
 		{
 			System::Reflection::PropertyInfo^ item_info = type->GetProperty("Item", gcnew cli::array<System::Type^> { int::typeid });
 			if (item_info == nullptr || item_info->GetIndexParameters()->Length != 1) {
-				v8::ThrowException(JavascriptInterop::ConvertToV8("No public integer-indexed property."));
+				return v8::ThrowException(JavascriptInterop::ConvertToV8("No public integer-indexed property."));
 			} else {
 				cli::array<System::Object^>^ index_args = gcnew cli::array<System::Object^>(1);
 				index_args[0] = index;
@@ -300,11 +300,11 @@ JavascriptExternal::SetProperty(uint32_t iIndex, Handle<Value> iValue)
 		}
 		catch(System::Reflection::TargetInvocationException^ exception)
 		{
-			v8::ThrowException(JavascriptInterop::ConvertToV8(exception->InnerException));
+			return JavascriptInterop::HandleTargetInvocationException(exception);
 		}
 		catch(System::Exception^ exception)
 		{
-			v8::ThrowException(JavascriptInterop::ConvertToV8(exception));
+			return v8::ThrowException(JavascriptInterop::ConvertToV8(exception));
 		}
 	}
 

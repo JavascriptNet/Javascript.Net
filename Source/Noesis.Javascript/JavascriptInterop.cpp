@@ -405,7 +405,7 @@ JavascriptInterop::DelegateInvoker(const v8::Arguments& info)
 	}
 	catch(System::Reflection::TargetInvocationException^ exception)
 	{
-		v8::ThrowException(JavascriptInterop::ConvertToV8(exception->InnerException));
+		return HandleTargetInvocationException(exception);
 	}
 	catch(System::ArgumentException^)
 	{
@@ -416,7 +416,7 @@ JavascriptInterop::DelegateInvoker(const v8::Arguments& info)
 	}
 	catch(System::Exception^ exception)
 	{
-		v8::ThrowException(JavascriptInterop::ConvertToV8(exception));
+		return v8::ThrowException(JavascriptInterop::ConvertToV8(exception));
 	}
 
 	return ConvertToV8(ret);
@@ -618,18 +618,34 @@ JavascriptInterop::Invoker(const v8::Arguments& iArgs)
 		}
 		catch(System::Reflection::TargetInvocationException^ exception)
 		{
-			v8::ThrowException(JavascriptInterop::ConvertToV8(exception->InnerException));
+			return HandleTargetInvocationException(exception);
 		}
 		catch(System::Exception^ exception)
 		{
-			v8::ThrowException(JavascriptInterop::ConvertToV8(exception));
+			return v8::ThrowException(JavascriptInterop::ConvertToV8(exception));
 		}
 	}
 	else
-		v8::ThrowException(JavascriptInterop::ConvertToV8("Argument mismatch for method \"" + memberName + "\"."));
+		return v8::ThrowException(JavascriptInterop::ConvertToV8("Argument mismatch for method \"" + memberName + "\"."));
 	
 	// return value
 	return ConvertToV8(ret);
+}
+
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+
+Handle<Value>
+JavascriptInterop::HandleTargetInvocationException(System::Reflection::TargetInvocationException^ exception)
+{
+    if (JavascriptContext::GetCurrent()->IsExecutionTerminating())
+        // As per comment in V8::TerminateExecution() we should just
+        // return here, to allow v8 to keep unwinding its stack.
+        // That is, TerminateExecution terminates the whole stack,
+        // not just until we notice it in C++ land.
+        return Handle<Value>();
+    else
+	    return v8::ThrowException(JavascriptInterop::ConvertToV8(exception->InnerException));
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////

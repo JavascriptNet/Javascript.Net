@@ -91,6 +91,7 @@ public:
 
 	static Handle<Value> Invoker(const v8::Arguments& iArgs);
 
+    static Handle<Value> HandleTargetInvocationException(System::Reflection::TargetInvocationException^ exception);
 };
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////

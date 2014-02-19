@@ -122,9 +122,19 @@ JavascriptException::GetExceptionMessage(TryCatch& iTryCatch)
 	
 	System::Exception^ exception = GetSystemException(iTryCatch);
 	if (exception != nullptr)
+	{
 		return gcnew System::String(exception->Message /*+ " (" + location + ")."*/);
+	}
 	else
-		return gcnew System::String((wchar_t*) *String::Value(iTryCatch.Exception())) /*+ " (" + location + ")"*/;
+	{
+		if (iTryCatch.Exception()->IsNull())
+			// We get a null exception here when execution is terminated.
+			// Documentation shows a HasTerminated() method on TryCatch,
+			// but perhaps our copy of v8 is too old.
+			return gcnew System::String(L"Execution Terminated");
+		else
+			return gcnew System::String((wchar_t*) *String::Value(iTryCatch.Exception())) /*+ " (" + location + ")"*/;
+	}
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
