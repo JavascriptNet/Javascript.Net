@@ -221,7 +221,7 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="..\..\v8\build\Release\lib\v8_snapshot.lib ..\..\v8\build\Release\lib\v8_base.lib winmm.lib ws2_32.lib"
+				AdditionalDependencies="..\..\v8\build\Release\lib\v8_snapshot.lib ..\..\v8\build\Release\lib\v8_base.ia32.lib ..\..\v8\build\Release\lib\icui18n.lib ..\..\v8\build\Release\lib\icuuc.lib winmm.lib ws2_32.lib"
 				LinkIncremental="1"
 				GenerateDebugInformation="true"
 				SubSystem="1"
@@ -300,7 +300,7 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="..\..\v8\build\Release\lib\v8_snapshot.lib ..\..\v8\build\Release\lib\v8_base.lib winmm.lib ws2_32.lib"
+				AdditionalDependencies="..\..\v8\build\Release\lib\v8_snapshot.lib ..\..\v8\build\Release\lib\v8_base.x64.lib ..\..\v8\build\Release\lib\icui18n.lib ..\..\v8\build\Release\lib\icuuc.lib winmm.lib ws2_32.lib"
 				LinkIncremental="1"
 				GenerateDebugInformation="true"
 				SubSystem="1"

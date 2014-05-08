@@ -18,6 +18,10 @@ Visual Stdio 2010+ is more flexible about where it finds its DLLs
 so you need not worry about the manifest, but you should still redistribute the
 runtime library because the user may not have it.
 
+You will also need to redistribute icuuc.dll and icui18n.dll, which seem to
+support the internationalization library (http://site.icu-project.org/) that
+is built into v8 nowadays.
+
 
 Building from Source
 --------------------
@@ -56,6 +60,17 @@ out for running it is something like:
 or
 
 > packages\NUnit.Runners.2.6.3\tools\nunit-console Tests\Noesis.Javascript.Tests\bin\x64\Debug\Noesis.Javascript.Tests.dll
+
+
+Upgrading v8
+------------
+
+Note that .gitmodules now specifies the v8 branch we are on.  This is good
+because v8 branches are more stable than the v8 trunk.  However when updating
+you probably want to find the highest branch number and edit .gitmodules
+to match.  Then run:
+
+> git submodule update --remote
 
 
 Known Problems
