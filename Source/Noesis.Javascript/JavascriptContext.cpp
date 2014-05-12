@@ -76,7 +76,6 @@ JavascriptContext::JavascriptContext()
 	mExternals = gcnew System::Collections::Generic::Dictionary<System::Object ^, WrappedJavascriptExternal>();
 	HandleScope scope(isolate);
 	mContext = new Persistent<Context>(isolate, Context::New(isolate));
-	methodsForTypes = gcnew Dictionary<System::Type ^, System::Collections::Generic::Dictionary<System::String ^, WrappedMethod> ^>();
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -88,9 +87,6 @@ JavascriptContext::~JavascriptContext()
 		v8::Isolate::Scope isolate_scope(isolate);
 		for each (WrappedJavascriptExternal wrapped in mExternals->Values)
 			delete wrapped.Pointer;
-		for each (System::Collections::Generic::Dictionary<System::String ^, WrappedMethod> ^tm in methodsForTypes->Values)
-			for each (WrappedMethod method in tm->Values)
-				delete method.Pointer;
 		delete mContext;
 		delete mExternals;
 	}
@@ -364,19 +360,6 @@ CompileScript(wchar_t const *source_code, wchar_t const *resource_name)
 
 		return script;
 	}
-}
-
-////////////////////////////////////////////////////////////////////////////////////////////////////
-
-System::Collections::Generic::Dictionary<System::String ^, WrappedMethod> ^
-JavascriptContext::MethodsForType(System::Type ^type)
-{
-	System::Collections::Generic::Dictionary<System::String ^, WrappedMethod> ^res;
-	if (!methodsForTypes->TryGetValue(type, res)) {
-		res = gcnew System::Collections::Generic::Dictionary<System::String ^, WrappedMethod>();
-		methodsForTypes[type] = res;
-	}
-	return res;
 }
 
 } } // namespace Noesis::Javascript

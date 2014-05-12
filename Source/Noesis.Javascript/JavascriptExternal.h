@@ -45,6 +45,34 @@ using namespace v8;
 namespace Noesis { namespace Javascript {
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
+// WrappedMethod
+//
+// Type-safely wraps a native pointer for inclusion in managed code as an IntPtr.  I thought
+// there would already be something for this, but I couldn't find it.
+////////////////////////////////////////////////////////////////////////////////////////////////////
+public value struct WrappedMethod
+{
+private:
+	System::IntPtr pointer;
+
+internal:
+	WrappedMethod(Persistent<Function> *value)
+	{
+		System::IntPtr value_pointer(value);
+        pointer = value_pointer;
+	}
+
+	property Persistent<Function> *Pointer
+    {
+        Persistent<Function> *get()
+        {
+            return (Persistent<Function> *)(void *)pointer;
+        }
+    }
+};
+
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
 // JavascriptExternal
 //
 // Wraps around a CLI object and serves it up to v8.  This object is itself

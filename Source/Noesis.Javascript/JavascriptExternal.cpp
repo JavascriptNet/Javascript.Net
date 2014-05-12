@@ -52,13 +52,16 @@ JavascriptExternal::JavascriptExternal(System::Object^ iObject)
 {
 	mObjectHandle = System::Runtime::InteropServices::GCHandle::Alloc(iObject);
 	mOptions = SetParameterOptions::None;
-	mMethods = JavascriptContext::GetCurrent()->MethodsForType(iObject->GetType());
+	mMethods = gcnew System::Collections::Generic::Dictionary<System::String ^, WrappedMethod>();
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
 JavascriptExternal::~JavascriptExternal()
 {
+	System::Collections::Generic::Dictionary<System::String ^, WrappedMethod> ^methods = mMethods;
+    for each (WrappedMethod method in methods->Values)
+		delete method.Pointer;
 	mObjectHandle.Free();
 }
 

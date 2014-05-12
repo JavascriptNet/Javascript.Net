@@ -56,34 +56,6 @@ public enum class SetParameterOptions : int
 
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-// WrappedMethod
-//
-// Type-safely wraps a native pointer for inclusion in managed code as an IntPtr.  I thought
-// there would already be something for this, but I couldn't find it.
-////////////////////////////////////////////////////////////////////////////////////////////////////
-public value struct WrappedMethod
-{
-private:
-	System::IntPtr pointer;
-
-internal:
-	WrappedMethod(Persistent<Function> *value)
-	{
-		System::IntPtr value_pointer(value);
-        pointer = value_pointer;
-	}
-
-	property Persistent<Function> *Pointer
-    {
-        Persistent<Function> *get()
-        {
-            return (Persistent<Function> *)(void *)pointer;
-        }
-    }
-};
-
-
-////////////////////////////////////////////////////////////////////////////////////////////////////
 // WrappedJavascriptExternal
 //
 // See comment in WrappedMethod.
@@ -179,8 +151,6 @@ internal:
 		
 	static void FatalErrorCallbackMember(const char* location, const char* message);
 
-	System::Collections::Generic::Dictionary<System::String ^, WrappedMethod> ^MethodsForType(System::Type ^type);
-
 	////////////////////////////////////////////////////////////
 	// Data members
 	////////////////////////////////////////////////////////////
@@ -204,9 +174,6 @@ protected:
 	// Keeping track of recursion.
 	[System::ThreadStaticAttribute] static JavascriptContext ^sCurrentContext;
 	JavascriptContext^ oldContext;
-
-	// Per-Type mapping from member method/property names to a v8 Function.
-	System::Collections::Generic::Dictionary<System::Type ^, System::Collections::Generic::Dictionary<System::String ^, WrappedMethod> ^> ^methodsForTypes;
 };
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
