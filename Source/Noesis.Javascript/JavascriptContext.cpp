@@ -45,6 +45,8 @@ namespace Noesis { namespace Javascript {
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
+static DWORD curThreadId;
+
 // Static function so it can be called from unmanaged code.
 void FatalErrorCallback(const char* location, const char* message)
 {
@@ -214,23 +216,28 @@ JavascriptContext::Run(System::String^ iScript, System::String^ iScriptResourceN
 void
 JavascriptContext::SetStackLimit()
 {
-    // This stack limit needs to be set for each Run because the
-    // stack of the caller could be in completely different spots (e.g.
-    // different threads), or have moved up/down because calls/returns.
-	v8::ResourceConstraints rc;
+    // v8 Needs to have its stack limit set separately in each thread because
+	// it detects stack overflows by reference to a stack pointer that it
+	// calculates when it is first invoked.  We recalculate the stack pointer
+	// for each thread.
+	DWORD dw = GetCurrentThreadId();
+	if (dw != curThreadId) {
+		v8::ResourceConstraints rc;
 
-    // Copied form v8/test/cctest/test-api.cc
-    uint32_t size = 500000;
-    uint32_t* limit = &size - (size / sizeof(size));
-    // If the size is very large and the stack is very near the bottom of
-    // memory then the calculation above may wrap around and give an address
-    // that is above the (downwards-growing) stack.  In that case we return
-    // a very low address.
-    if (limit > &size)
-        limit = reinterpret_cast<uint32_t*>(sizeof(size));
-    
-    rc.set_stack_limit((uint32_t *)(limit));
-	v8::SetResourceConstraints(isolate, &rc);
+        // Copied form v8/test/cctest/test-api.cc
+        uint32_t size = 500000;
+        uint32_t* limit = &size - (size / sizeof(size));
+        // If the size is very large and the stack is very near the bottom of
+        // memory then the calculation above may wrap around and give an address
+        // that is above the (downwards-growing) stack.  In that case we return
+        // a very low address.
+        if (limit > &size)
+            limit = reinterpret_cast<uint32_t*>(sizeof(size));
+        
+        rc.set_stack_limit((uint32_t *)(limit));
+		v8::SetResourceConstraints(isolate, &rc);
+		curThreadId = dw;
+	}
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
