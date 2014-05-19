@@ -32,7 +32,6 @@
 
 #include <v8.h>
 #include <map>
-#include <gcroot.h>
 #include "JavascriptContext.h"
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -66,6 +65,8 @@ public:
 	// Methods
 	////////////////////////////////////////////////////////////
 public:
+	
+	void Clear();
 
 	SetParameterOptions GetOptions() { return mOptions; }
 
@@ -90,14 +91,10 @@ public:
 	////////////////////////////////////////////////////////////
 private:
 	
-	// Handle to the .Net object being wrapped.  It takes this
-	// form so that the garbage collector won't try to move it.
 	System::Runtime::InteropServices::GCHandle mObjectHandle;
-
 	SetParameterOptions mOptions;
+	map<wstring, Persistent<Function> > mMethods;
 
-	// Owned by JavascriptContext.
-	gcroot<System::Collections::Generic::Dictionary<System::String ^, WrappedMethod> ^> mMethods;
 };
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////

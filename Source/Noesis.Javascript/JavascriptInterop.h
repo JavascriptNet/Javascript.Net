@@ -51,7 +51,7 @@ class JavascriptInterop
 	////////////////////////////////////////////////////////////
 public:
 
-	static Handle<ObjectTemplate> NewObjectWrapperTemplate();
+	static Persistent<ObjectTemplate> NewObjectWrapperTemplate();
 
 	static System::Object^ ConvertFromV8(Handle<Value> iValue);
 
@@ -69,7 +69,7 @@ public:
 
 	static v8::Handle<v8::Value> ConvertFromSystemDelegate(System::Delegate^ iDelegate);
 
-	static void DelegateInvoker(const FunctionCallbackInfo<Value>& info);
+	static v8::Handle<v8::Value> DelegateInvoker(const v8::Arguments& info);
 
 	static bool IsSystemObject(Handle<Value> iValue);
 
@@ -81,15 +81,15 @@ public:
 
 	static Handle<Object> WrapFunction(System::Object^ iObject, System::String^ iName);
 
-	static void Getter(Local<String> iName, const PropertyCallbackInfo<Value>& iInfo);
+	static Handle<Value> Getter(Local<String> iName, const AccessorInfo &iInfo);
 
-	static void Setter(Local<String> iName, Local<Value> iValue, const PropertyCallbackInfo<Value>& iInfo);
+	static Handle<Value> Setter(Local<String> iName, Local<Value> iValue, const AccessorInfo& iInfo);
 
-	static void IndexGetter(uint32_t iIndex, const PropertyCallbackInfo<Value>& iInfo);
+	static Handle<Value> IndexGetter(uint32_t iIndex, const AccessorInfo &iInfo);
 
-	static void IndexSetter(uint32_t iIndex, Local<Value> iValue, const PropertyCallbackInfo<Value>& iInfo);
+	static Handle<Value> IndexSetter(uint32_t iIndex, Local<Value> iValue, const AccessorInfo &iInfo);
 
-	static void Invoker(const v8::FunctionCallbackInfo<Value>& iArgs);
+	static Handle<Value> Invoker(const v8::Arguments& iArgs);
 
     static Handle<Value> HandleTargetInvocationException(System::Reflection::TargetInvocationException^ exception);
 };

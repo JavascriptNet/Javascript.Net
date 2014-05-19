@@ -52,14 +52,29 @@ JavascriptExternal::JavascriptExternal(System::Object^ iObject)
 {
 	mObjectHandle = System::Runtime::InteropServices::GCHandle::Alloc(iObject);
 	mOptions = SetParameterOptions::None;
-	mMethods = JavascriptContext::GetCurrent()->MethodsForType(iObject->GetType());
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
 JavascriptExternal::~JavascriptExternal()
 {
+	Clear();
 	mObjectHandle.Free();
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+
+void
+JavascriptExternal::Clear()
+{
+	map<wstring, Persistent<Function> >::iterator methodIterator;
+
+	// clear methods
+	for (methodIterator = mMethods.begin(); methodIterator != mMethods.end(); methodIterator++)
+		methodIterator->second.Dispose();
+	mMethods.clear();
+
+	// TODO: clear properties
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -75,12 +90,11 @@ JavascriptExternal::GetObject()
 Handle<Function>
 JavascriptExternal::GetMethod(wstring iName)
 {
-	v8::Isolate *isolate = JavascriptContext::GetCurrentIsolate();
-	System::Collections::Generic::Dictionary<System::String ^, WrappedMethod> ^methods = mMethods;
-	System::String^ memberName = gcnew System::String(iName.c_str());
-	WrappedMethod method;
-	if (methods->TryGetValue(memberName, method))
-		return Local<Function>::New(isolate, *(method.Pointer));
+	map<wstring, Persistent<Function> >::iterator it;
+
+	it = mMethods.find(iName); 
+	if (it != mMethods.end())
+		return it->second;
 	else
 	{
 		System::Object^ self = mObjectHandle.Target;
@@ -95,13 +109,11 @@ JavascriptExternal::GetMethod(wstring iName)
 		if (members->Length > 0 && members[0]->MemberType == MemberTypes::Method)
 		{
 			JavascriptContext^ context = JavascriptContext::GetCurrent();
-			Handle<External> external = External::New(isolate, context->WrapObject(objectInfo));
-			Handle<FunctionTemplate> functionTemplate = FunctionTemplate::New(isolate, JavascriptInterop::Invoker, external);
+			Handle<External> external = External::New(context->WrapObject(objectInfo));
+			Handle<FunctionTemplate> functionTemplate = FunctionTemplate::New(JavascriptInterop::Invoker, external);
 			Handle<Function> function = functionTemplate->GetFunction();
 
-			Persistent<Function> *function_ptr = new Persistent<Function>(isolate, function);
-			WrappedMethod wrapped(function_ptr);
-			methods[memberName] = wrapped;
+			mMethods[iName] = Persistent<Function>::New(function);
 
 			return function;
 		}
@@ -130,7 +142,6 @@ JavascriptExternal::GetProperty(wstring iName, Handle<Value> &result)
 	System::Type^ type = self->GetType();
 	PropertyInfo^ propertyInfo = type->GetProperty(gcnew System::String(iName.c_str()));
 
-	v8::Isolate *isolate = JavascriptContext::GetCurrentIsolate();
 	if (propertyInfo == nullptr)
 		return false;
 	else {
@@ -138,7 +149,7 @@ JavascriptExternal::GetProperty(wstring iName, Handle<Value> &result)
 		{
 			if (!propertyInfo->CanRead)
 			{
-				result = isolate->ThrowException(JavascriptInterop::ConvertToV8("Property " + gcnew System::String(iName.c_str()) + " may not be read."));
+				result = v8::ThrowException(JavascriptInterop::ConvertToV8("Property " + gcnew System::String(iName.c_str()) + " may not be read."));
 			}
 			else
 			{
@@ -151,7 +162,7 @@ JavascriptExternal::GetProperty(wstring iName, Handle<Value> &result)
 		}
 		catch(System::Exception^ exception)
 		{
-			result = isolate->ThrowException(JavascriptInterop::ConvertToV8(exception));
+			result = v8::ThrowException(JavascriptInterop::ConvertToV8(exception));
 		}
 		return true;
 	}
@@ -194,7 +205,7 @@ JavascriptExternal::GetProperty(uint32_t iIndex)
 		}
 		catch(System::Exception^ Exception)
 		{
-			return JavascriptContext::GetCurrentIsolate()->ThrowException(JavascriptInterop::ConvertToV8(Exception));
+			return v8::ThrowException(JavascriptInterop::ConvertToV8(Exception));
 		}
 	}
 
@@ -211,11 +222,10 @@ JavascriptExternal::SetProperty(wstring iName, Handle<Value> iValue)
 	System::Type^ type = self->GetType();
 	PropertyInfo^ propertyInfo = type->GetProperty(gcnew System::String(iName.c_str()));
 
-	v8::Isolate *isolate = JavascriptContext::GetCurrentIsolate();
 	if (propertyInfo == nullptr)
 	{
 		if ((mOptions & SetParameterOptions::RejectUnknownProperties) == SetParameterOptions::RejectUnknownProperties)
-			return isolate->ThrowException(JavascriptInterop::ConvertToV8("Unknown member: " + gcnew System::String(iName.c_str())));
+			return v8::ThrowException(JavascriptInterop::ConvertToV8("Unknown member: " + gcnew System::String(iName.c_str())));
 	}
 	else
 	{
@@ -233,7 +243,7 @@ JavascriptExternal::SetProperty(wstring iName, Handle<Value> iValue)
 
 			if (!propertyInfo->CanWrite)
 			{
-				return isolate->ThrowException(JavascriptInterop::ConvertToV8("Property " + gcnew System::String(iName.c_str()) + " may not be set."));
+				return v8::ThrowException(JavascriptInterop::ConvertToV8("Property " + gcnew System::String(iName.c_str()) + " may not be set."));
 			}
 			else
 			{
@@ -251,7 +261,7 @@ JavascriptExternal::SetProperty(wstring iName, Handle<Value> iValue)
 		}
 		catch(System::Exception^ exception)
 		{
-			return isolate->ThrowException(JavascriptInterop::ConvertToV8(exception));
+			return v8::ThrowException(JavascriptInterop::ConvertToV8(exception));
 		}
 	}
 
@@ -277,12 +287,11 @@ JavascriptExternal::SetProperty(uint32_t iIndex, Handle<Value> iValue)
 	} 
 	else
 	{
-		v8::Isolate *isolate = JavascriptContext::GetCurrentIsolate();
 		try
 		{
 			System::Reflection::PropertyInfo^ item_info = type->GetProperty("Item", gcnew cli::array<System::Type^> { int::typeid });
 			if (item_info == nullptr || item_info->GetIndexParameters()->Length != 1) {
-				return isolate->ThrowException(JavascriptInterop::ConvertToV8("No public integer-indexed property."));
+				return v8::ThrowException(JavascriptInterop::ConvertToV8("No public integer-indexed property."));
 			} else {
 				cli::array<System::Object^>^ index_args = gcnew cli::array<System::Object^>(1);
 				index_args[0] = index;
@@ -295,7 +304,7 @@ JavascriptExternal::SetProperty(uint32_t iIndex, Handle<Value> iValue)
 		}
 		catch(System::Exception^ exception)
 		{
-			return isolate->ThrowException(JavascriptInterop::ConvertToV8(exception));
+			return v8::ThrowException(JavascriptInterop::ConvertToV8(exception));
 		}
 	}
 

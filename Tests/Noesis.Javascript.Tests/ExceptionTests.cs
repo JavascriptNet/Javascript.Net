@@ -61,12 +61,5 @@ namespace Noesis.Javascript.Tests
             Assert.That(() => _context.Run("obj.MethodThatThrows()"),
                         Throws.InstanceOf<JavascriptException>().With.Message.EqualTo("Test C# exception"));
         }
-
-        [Test]
-        public void StackOverflow()
-        {
-            Assert.That(() => _context.Run("function f() { f(); }; f();"),
-                        Throws.InstanceOf<JavascriptException>().With.Message.EqualTo("RangeError: Maximum call stack size exceeded"));
-        }
     }
 }

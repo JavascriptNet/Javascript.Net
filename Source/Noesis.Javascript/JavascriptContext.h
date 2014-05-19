@@ -54,62 +54,6 @@ public enum class SetParameterOptions : int
     RejectUnknownProperties = 1
 };
 
-
-////////////////////////////////////////////////////////////////////////////////////////////////////
-// WrappedMethod
-//
-// Type-safely wraps a native pointer for inclusion in managed code as an IntPtr.  I thought
-// there would already be something for this, but I couldn't find it.
-////////////////////////////////////////////////////////////////////////////////////////////////////
-public value struct WrappedMethod
-{
-private:
-	System::IntPtr pointer;
-
-internal:
-	WrappedMethod(Persistent<Function> *value)
-	{
-		System::IntPtr value_pointer(value);
-        pointer = value_pointer;
-	}
-
-	property Persistent<Function> *Pointer
-    {
-        Persistent<Function> *get()
-        {
-            return (Persistent<Function> *)(void *)pointer;
-        }
-    }
-};
-
-
-////////////////////////////////////////////////////////////////////////////////////////////////////
-// WrappedJavascriptExternal
-//
-// See comment in WrappedMethod.
-////////////////////////////////////////////////////////////////////////////////////////////////////
-public value struct WrappedJavascriptExternal
-{
-private:
-	System::IntPtr pointer;
-
-internal:
-	WrappedJavascriptExternal(JavascriptExternal *value)
-	{
-		System::IntPtr value_pointer(value);
-        pointer = value_pointer;
-	}
-
-	property JavascriptExternal *Pointer
-    {
-        JavascriptExternal *get()
-        {
-            return (JavascriptExternal *)(void *)pointer;
-        }
-    }
-};
-
-
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 // JavascriptContext
 //
@@ -152,13 +96,6 @@ public:
 
 	static void Collect();
 
-	// Fatal errors can occur when v8 runs out of memory.  Your process
-	// will exit immediately after this handler is called, because
-	// that's just how v8 works.
-	// (http://stackoverflow.com/questions/16797423/how-to-handle-v8-engine-crash-when-process-runs-out-of-memory)
-	delegate void FatalErrorHandler(System::String^ location, System::String^ message);
-	event FatalErrorHandler^ FatalError;
-
 	////////////////////////////////////////////////////////////
 	// Internal methods
 	////////////////////////////////////////////////////////////
@@ -166,20 +103,16 @@ internal:
 	void SetStackLimit();
 
 	static JavascriptContext^ GetCurrent();
-	
-	static v8::Isolate *GetCurrentIsolate();
 
 	v8::Locker *Enter();
 
 	void Exit(v8::Locker *locker);
 
+	void Clear();
+
 	JavascriptExternal* WrapObject(System::Object^ iObject);
 
 	Handle<ObjectTemplate> GetObjectWrapperTemplate();
-		
-	static void FatalErrorCallbackMember(const char* location, const char* message);
-
-	System::Collections::Generic::Dictionary<System::String ^, WrappedMethod> ^MethodsForType(System::Type ^type);
 
 	////////////////////////////////////////////////////////////
 	// Data members
@@ -192,21 +125,12 @@ protected:
 	// v8 context required to be active for all v8 operations.
 	Persistent<Context>* mContext;
 
-	// Avoids us recreating these too often.
-	Persistent<ObjectTemplate> *objectWrapperTemplate;
-
-	// Stores every JavascriptExternal we create.  This saves time if the same
-	// objects are recreated frequently, and stops us building up a huge
-	// collection of JavascriptExternal objects that won't be freed until
-	// the context is destroyed.
-	System::Collections::Generic::Dictionary<System::Object ^, WrappedJavascriptExternal> ^mExternals;
+	// v8 objects we hang onto for the duration.
+	vector<JavascriptExternal*>* mExternals;
 
 	// Keeping track of recursion.
 	[System::ThreadStaticAttribute] static JavascriptContext ^sCurrentContext;
 	JavascriptContext^ oldContext;
-
-	// Per-Type mapping from member method/property names to a v8 Function.
-	System::Collections::Generic::Dictionary<System::Type ^, System::Collections::Generic::Dictionary<System::String ^, WrappedMethod> ^> ^methodsForTypes;
 };
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////

@@ -15,25 +15,16 @@ namespace Fiddling
         static void Main(string[] args)
         {
             using (JavascriptContext _context = new JavascriptContext()) {
-                _context.FatalError += _context_FatalError;
-                //int[] ints = new[] { 1, 2, 3 };
-                //_context.SetParameter("bozo", new Bozo(ints));
+                int[] ints = new[] { 1, 2, 3 };
+                _context.SetParameter("bozo", new Bozo(ints));
                 try {
-                    object res = _context.Run(
-                        //"function f() { f(); }; f();"
-                        "a = []; while(true) a.push(1);"
-                    );
+                    object res = _context.Run("bozo[7];");
                 } catch (Exception ex) {
                     string s = (string)ex.Data["V8StackTrace"];
                     Console.WriteLine(s);
                 }
                 //Console.WriteLine(ints[1]);
             }
-        }
-
-        static void _context_FatalError(string location, string message)
-        {
-            Console.WriteLine(message);
         }
     }
 
