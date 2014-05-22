@@ -29,6 +29,7 @@
 #include <msclr\lock.h>
 #include <vcclr.h>
 #include <msclr\marshal.h>
+#include <signal.h>
 
 #include "JavascriptContext.h"
 
@@ -45,14 +46,37 @@ namespace Noesis { namespace Javascript {
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
-static DWORD curThreadId;
+// Static function so it can be called from unmanaged code.
+void FatalErrorCallback(const char* location, const char* message)
+{
+	JavascriptContext::FatalErrorCallbackMember(location, message);
+	raise(SIGABRT);  // Exit immediately.
+}
+
+void JavascriptContext::FatalErrorCallbackMember(const char* location, const char* message)
+{
+	GetCurrent()->FatalError(gcnew System::String(location), gcnew System::String(message));
+}
 
 JavascriptContext::JavascriptContext()
 {
 	isolate = v8::Isolate::New();
 	v8::Locker v8ThreadLock(isolate);
 	v8::Isolate::Scope isolate_scope(isolate);
-	mExternals = new vector<JavascriptExternal*>();
+
+	// Only available in later v8 versions.  Therefore we abort
+	// cleanly ourself rather than suffer an AccessViolation().
+	//// If we don't call this then v8 signals an abort by triggering
+	//// a segmentation fault.  We want it just to cleanly shut down
+	//// the process, since it cannot recover from the problem.
+	//// It will call the FatalErrorHandler first.
+	//char *flags = "--no-hard_abort";
+	//V8::SetFlagsFromString(flags, strlen(flags));
+
+	V8::SetFatalErrorHandler(FatalErrorCallback);
+
+	mExternals = gcnew System::Collections::Generic::Dictionary<System::Object ^, WrappedJavascriptExternal>();
+	HandleScope scope;
 	mContext = new Persistent<Context>(Context::New());
 }
 
@@ -63,8 +87,8 @@ JavascriptContext::~JavascriptContext()
 	{
 		v8::Locker v8ThreadLock(isolate);
 		v8::Isolate::Scope isolate_scope(isolate);
-		mContext->Dispose();
-		Clear();
+		for each (WrappedJavascriptExternal wrapped in mExternals->Values)
+			delete wrapped.Pointer;
 		delete mContext;
 		delete mExternals;
 	}
@@ -192,28 +216,23 @@ JavascriptContext::Run(System::String^ iScript, System::String^ iScriptResourceN
 void
 JavascriptContext::SetStackLimit()
 {
-    // v8 Needs to have its stack limit set separately in each thread because
-	// it detects stack overflows by reference to a stack pointer that it
-	// calculates when it is first invoked.  We recalculate the stack pointer
-	// for each thread.
-	DWORD dw = GetCurrentThreadId();
-	if (dw != curThreadId) {
-		v8::ResourceConstraints rc;
+    // This stack limit needs to be set for each Run because the
+    // stack of the caller could be in completely different spots (e.g.
+    // different threads), or have moved up/down because calls/returns.
+	v8::ResourceConstraints rc;
 
-        // Copied form v8/test/cctest/test-api.cc
-        uint32_t size = 500000;
-        uint32_t* limit = &size - (size / sizeof(size));
-        // If the size is very large and the stack is very near the bottom of
-        // memory then the calculation above may wrap around and give an address
-        // that is above the (downwards-growing) stack.  In that case we return
-        // a very low address.
-        if (limit > &size)
-            limit = reinterpret_cast<uint32_t*>(sizeof(size));
-        
-        rc.set_stack_limit((uint32_t *)(limit));
-		v8::SetResourceConstraints(&rc);
-		curThreadId = dw;
-	}
+    // Copied form v8/test/cctest/test-api.cc
+    uint32_t size = 500000;
+    uint32_t* limit = &size - (size / sizeof(size));
+    // If the size is very large and the stack is very near the bottom of
+    // memory then the calculation above may wrap around and give an address
+    // that is above the (downwards-growing) stack.  In that case we return
+    // a very low address.
+    if (limit > &size)
+        limit = reinterpret_cast<uint32_t*>(sizeof(size));
+    
+    rc.set_stack_limit((uint32_t *)(limit));
+	v8::SetResourceConstraints(&rc);
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -252,18 +271,6 @@ JavascriptContext::Exit(v8::Locker *locker)
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
-void
-JavascriptContext::Clear()
-{
-	while (mExternals->size())
-	{
-		delete mExternals->back();
-		mExternals->pop_back();
-	}
-}
-
-////////////////////////////////////////////////////////////////////////////////////////////////////
-
 // Exposed for the benefit of a regression test.
 void
 JavascriptContext::Collect()
@@ -276,9 +283,18 @@ JavascriptContext::Collect()
 JavascriptExternal*
 JavascriptContext::WrapObject(System::Object^ iObject)
 {
-	JavascriptExternal* external = new JavascriptExternal(iObject);
-	mExternals->push_back(external);
-	return external;
+	WrappedJavascriptExternal external_wrapped;
+	if (mExternals->TryGetValue(iObject, external_wrapped))
+	{
+		// We've wrapped this guy before.
+		return external_wrapped.Pointer;
+	}
+	else
+	{
+		JavascriptExternal* external = new JavascriptExternal(iObject);
+		mExternals[iObject] = WrappedJavascriptExternal(external);
+		return external;
+	}
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -286,13 +302,9 @@ JavascriptContext::WrapObject(System::Object^ iObject)
 Handle<ObjectTemplate>
 JavascriptContext::GetObjectWrapperTemplate()
 {
-	// It would be better if this were cached to avoid recreating it each time,
-	// but you cannot include a Persistent<> in JavascriptContext because it is
-	// an unmanaged type, and you cannot put it in a static variable (as used to
-	// happen) because the wrapper is only valid for the isolate in which it
-	// was created.  I tried storing a pointer to a Persistent<>, but I got
-	// a heap mismatch when reusing it.  I'm not sure why.
-	return JavascriptInterop::NewObjectWrapperTemplate();
+	if (objectWrapperTemplate == NULL)
+		objectWrapperTemplate = new Persistent<ObjectTemplate>(JavascriptInterop::NewObjectWrapperTemplate());
+	return Local<ObjectTemplate>::New(isolate, *objectWrapperTemplate);
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -331,8 +343,6 @@ CompileScript(wchar_t const *source_code, wchar_t const *resource_name)
 		return script;
 	}
 }
-
-////////////////////////////////////////////////////////////////////////////////////////////////////
 
 } } // namespace Noesis::Javascript
 

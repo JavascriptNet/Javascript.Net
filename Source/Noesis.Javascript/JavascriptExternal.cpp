@@ -58,23 +58,11 @@ JavascriptExternal::JavascriptExternal(System::Object^ iObject)
 
 JavascriptExternal::~JavascriptExternal()
 {
-	Clear();
-	mObjectHandle.Free();
-}
-
-////////////////////////////////////////////////////////////////////////////////////////////////////
-
-void
-JavascriptExternal::Clear()
-{
 	map<wstring, Persistent<Function> >::iterator methodIterator;
+    for (methodIterator = mMethods.begin(); methodIterator != mMethods.end(); methodIterator++)
+        methodIterator->second.Dispose();
 
-	// clear methods
-	for (methodIterator = mMethods.begin(); methodIterator != mMethods.end(); methodIterator++)
-		methodIterator->second.Dispose();
-	mMethods.clear();
-
-	// TODO: clear properties
+	mObjectHandle.Free();
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -91,7 +79,6 @@ Handle<Function>
 JavascriptExternal::GetMethod(wstring iName)
 {
 	map<wstring, Persistent<Function> >::iterator it;
-
 	it = mMethods.find(iName); 
 	if (it != mMethods.end())
 		return it->second;
@@ -113,7 +100,7 @@ JavascriptExternal::GetMethod(wstring iName)
 			Handle<FunctionTemplate> functionTemplate = FunctionTemplate::New(JavascriptInterop::Invoker, external);
 			Handle<Function> function = functionTemplate->GetFunction();
 
-			mMethods[iName] = Persistent<Function>::New(function);
+            mMethods[iName] = Persistent<Function>::New(function);
 
 			return function;
 		}
