@@ -57,6 +57,10 @@ or
 
 > packages\NUnit.Runners.2.6.3\tools\nunit-console Tests\Noesis.Javascript.Tests\bin\x64\Debug\Noesis.Javascript.Tests.dll
 
+or (x64 in VS2012)
+
+> packages\NUnit.Runners.2.6.3\tools\nunit-console Tests\Noesis.Javascript.Tests\bin\VS2010\Release\Noesis.Javascript.Tests.dll
+
 
 Known Problems
 --------------

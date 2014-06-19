@@ -128,8 +128,10 @@ public:
 	// will exit immediately after this handler is called, because
 	// that's just how v8 works.
 	// (http://stackoverflow.com/questions/16797423/how-to-handle-v8-engine-crash-when-process-runs-out-of-memory)
+	//
+	// Call this just once for the whole library.
 	delegate void FatalErrorHandler(System::String^ location, System::String^ message);
-	event FatalErrorHandler^ FatalError;
+	static void SetFatalErrorHandler(FatalErrorHandler^ handler);
 
 	////////////////////////////////////////////////////////////
 	// Internal methods
@@ -172,6 +174,8 @@ protected:
 	// Keeping track of recursion.
 	[System::ThreadStaticAttribute] static JavascriptContext ^sCurrentContext;
 	JavascriptContext^ oldContext;
+
+	static FatalErrorHandler^ fatalErrorHandler;
 };
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////

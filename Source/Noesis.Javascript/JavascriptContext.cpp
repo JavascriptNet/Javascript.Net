@@ -55,7 +55,18 @@ void FatalErrorCallback(const char* location, const char* message)
 
 void JavascriptContext::FatalErrorCallbackMember(const char* location, const char* message)
 {
-	GetCurrent()->FatalError(gcnew System::String(location), gcnew System::String(message));
+	// Let's hope Out of Memory doesn't stop us allocating these strings!
+	// I guess we can generally count on the garbage collector to find
+	// us something, because it didn't have a chance to get involved if v8
+	// has just run out.
+	System::String ^location_str = gcnew System::String(location);
+	System::String ^message_str = gcnew System::String(message);
+	if (fatalErrorHandler != nullptr) {
+		fatalErrorHandler(location_str, message_str);
+	} else {
+		System::Console::WriteLine(location_str);
+		System::Console::WriteLine(message_str);
+	}
 }
 
 JavascriptContext::JavascriptContext()
@@ -94,6 +105,13 @@ JavascriptContext::~JavascriptContext()
 	}
 	if (isolate != NULL)
 		isolate->Dispose();
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+
+void JavascriptContext::SetFatalErrorHandler(FatalErrorHandler^ handler)
+{
+	fatalErrorHandler = handler;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
