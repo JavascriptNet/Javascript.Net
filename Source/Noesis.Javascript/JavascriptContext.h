@@ -141,9 +141,9 @@ internal:
 
 	static JavascriptContext^ GetCurrent();
 
-	v8::Locker *Enter();
+    v8::Locker *Enter([System::Runtime::InteropServices::Out] JavascriptContext^% old_context);
 
-	void Exit(v8::Locker *locker);
+	void Exit(v8::Locker *locker, JavascriptContext^ old_context);
 
 	JavascriptExternal* WrapObject(System::Object^ iObject);
 
@@ -184,17 +184,24 @@ protected:
 // This must be constructed before any use of handles or calling of v8 
 // functions.  It protects against simultaneous multithreaded use of v8.
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-class JavascriptScope
+ref class JavascriptScope
 {
 	// It is OK to nest v8::Lockers in one thread.
 	v8::Locker *v8ThreadLock;
+    JavascriptContext^ oldContext;
 
 public:
 	JavascriptScope(JavascriptContext^ iContext)
-	{ v8ThreadLock = iContext->Enter(); }
+	{
+	    // We store the old context so that JavascriptContexts can be created and run
+	    // recursively.
+        v8ThreadLock = iContext->Enter(oldContext);
+    }
 	
 	~JavascriptScope()
-	{ JavascriptContext::GetCurrent()->Exit(v8ThreadLock); }
+	{
+        JavascriptContext::GetCurrent()->Exit(v8ThreadLock, oldContext);
+    }
 };
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////

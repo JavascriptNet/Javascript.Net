@@ -264,13 +264,11 @@ JavascriptContext::GetCurrent()
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
 v8::Locker *
-JavascriptContext::Enter()
+JavascriptContext::Enter([System::Runtime::InteropServices::Out] JavascriptContext^% old_context)
 {
 	v8::Locker *locker = new v8::Locker(isolate);
 	isolate->Enter();
-	// We store the old context so that JavascriptContexts can be created and run
-	// recursively.
-	oldContext = sCurrentContext;
+    old_context = sCurrentContext;
 	sCurrentContext = this;
 	(*mContext)->Enter();
 	return locker;
@@ -279,10 +277,10 @@ JavascriptContext::Enter()
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
 void
-JavascriptContext::Exit(v8::Locker *locker)
+JavascriptContext::Exit(v8::Locker *locker, JavascriptContext^ old_context)
 {
 	(*mContext)->Exit();
-	sCurrentContext = oldContext;
+	sCurrentContext = old_context;
 	isolate->Exit();
 	delete locker;
 }
