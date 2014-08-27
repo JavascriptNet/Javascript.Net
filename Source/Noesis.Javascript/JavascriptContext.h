@@ -58,6 +58,34 @@ public enum class SetParameterOptions : int
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 // WrappedJavascriptExternal
 //
+// Type-safely wraps a native pointer for inclusion in managed code as an IntPtr.  I thought
+// there would already be something for this, but I couldn't find it.
+////////////////////////////////////////////////////////////////////////////////////////////////////
+public value struct WrappedMethod
+{
+private:
+	System::IntPtr pointer;
+
+internal:
+	WrappedMethod(Persistent<Function> *value)
+	{
+		System::IntPtr value_pointer(value);
+        pointer = value_pointer;
+	}
+
+	property Persistent<Function> *Pointer
+    {
+        Persistent<Function> *get()
+        {
+            return (Persistent<Function> *)(void *)pointer;
+        }
+    }
+};
+
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+// WrappedJavascriptExternal
+//
 // See comment in WrappedMethod.
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 public value struct WrappedJavascriptExternal
@@ -95,6 +123,7 @@ public ref class JavascriptContext: public System::IDisposable
 	// Constructor
 	////////////////////////////////////////////////////////////
 public:
+    static JavascriptContext();
 
 	JavascriptContext();
 
@@ -140,6 +169,8 @@ internal:
 	void SetStackLimit();
 
 	static JavascriptContext^ GetCurrent();
+	
+	static v8::Isolate *GetCurrentIsolate();
 
     v8::Locker *Enter([System::Runtime::InteropServices::Out] JavascriptContext^% old_context);
 
@@ -159,9 +190,9 @@ protected:
 	// contexts used simultaneously in different threads.
 	v8::Isolate *isolate;
 
- 	// v8 context required to be active for all v8 operations.
- 	Persistent<Context>* mContext;
- 
+	// v8 context required to be active for all v8 operations.
+	Persistent<Context>* mContext;
+
 	// Avoids us recreating these too often.
 	Persistent<ObjectTemplate> *objectWrapperTemplate;
 
@@ -173,7 +204,6 @@ protected:
 
 	// Keeping track of recursion.
 	[System::ThreadStaticAttribute] static JavascriptContext ^sCurrentContext;
-	JavascriptContext^ oldContext;
 
 	static FatalErrorHandler^ fatalErrorHandler;
 };

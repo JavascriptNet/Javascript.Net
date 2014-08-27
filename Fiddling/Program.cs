@@ -14,17 +14,25 @@ namespace Fiddling
     {
         static void Main(string[] args)
         {
+            JavascriptContext.SetFatalErrorHandler(FatalErrorHandler);
             using (JavascriptContext _context = new JavascriptContext()) {
                 int[] ints = new[] { 1, 2, 3 };
                 _context.SetParameter("bozo", new Bozo(ints));
                 try {
-                    object res = _context.Run("bozo[7];");
+                    //_context.Run("a=[]; while(true) a.push(0)");
+                    _context.Run("function f() { f(); } f()");
                 } catch (Exception ex) {
                     string s = (string)ex.Data["V8StackTrace"];
                     Console.WriteLine(s);
                 }
                 //Console.WriteLine(ints[1]);
             }
+        }
+
+        static void FatalErrorHandler(string a, string b)
+        {
+            Console.WriteLine(a);
+            Console.WriteLine(b);
         }
     }
 

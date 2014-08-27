@@ -126,8 +126,8 @@ DEL /S *.vcxproj.user  >nul 2>&1
 
 :: Run gyp to update the Visual Studio project files to contain links
 :: to the latest v8 source files.
-echo third_party\python_26\python.exe build\gyp_v8 -D"target_arch=%target_arch%" -D"component=shared_library"
-third_party\python_26\python.exe build\gyp_v8 -D"target_arch=%target_arch%" -D"component=shared_library"
+echo third_party\python_26\python.exe build\gyp_v8 -D"target_arch=%target_arch%" -D"component=shared_library" -Dv8_enable_i18n_support=0
+third_party\python_26\python.exe build\gyp_v8 -D"target_arch=%target_arch%" -D"component=shared_library" -Dv8_enable_i18n_support=0
 
 IF "%vs%"=="%vs2012%" (
 	IF "%msbuild_toolset%"=="v100" (

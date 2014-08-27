@@ -44,7 +44,6 @@ using namespace v8;
 
 namespace Noesis { namespace Javascript {
 
-
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 // JavascriptExternal
 //
@@ -94,9 +93,11 @@ private:
 	// Handle to the .Net object being wrapped.  It takes this
 	// form so that the garbage collector won't try to move it.
 	System::Runtime::InteropServices::GCHandle mObjectHandle;
+
 	SetParameterOptions mOptions;
 
-	map<wstring, Persistent<Function> > mMethods;
+	// Owned by JavascriptContext.
+	gcroot<System::Collections::Generic::Dictionary<System::String ^, WrappedMethod> ^> mMethods;
 };
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
