@@ -1,5 +1,5 @@
 [submodule "v8"]
 	path = v8
 	url = https://github.com/v8/v8.git
-    branch = 3.25
+    branch = 3.27
     

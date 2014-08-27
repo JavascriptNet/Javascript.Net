@@ -112,29 +112,22 @@ CD %v8%
 :: so we clean it up.  Also VS2008 builds sometimes output gobbledegook.
 :: We delete all outputs beforehand to force it to be rebuilt.
 
-RMDIR /S /Q obj
-RMDIR build\debug /s /q
-RMDIR build\release /s /q
-DEL *.idb
-DEL *.pdb
-DEL *.lib
+RMDIR /S /Q obj  >nul 2>&1
+RMDIR build\debug /s /q  >nul 2>&1
+RMDIR build\release /s /q  >nul 2>&1
+DEL *.idb  >nul 2>&1
+DEL *.pdb  >nul 2>&1
+DEL *.lib  >nul 2>&1
 
-DEL /S *.sln
-DEL /S *.vcproj
-DEL /S *.vcxproj
-DEL /S *.vcxproj.user
-
-
-:: Set environment required for scons to use the right toolset.
-SET PATH=%python%;%python%\Scripts;%PATH%
-SET PATH=%vs%\VC\bin%adm64suffix%;%vs%\Common7\IDE;%vs%\Common7\IDE;%vs%\Common7\Tools;%PATH%
-SET INCLUDE=%vs%\VC\include;%sdk%\Include
-SET LIB=%vs%\VC\lib%adm64suffix%;%sdk%\Lib%x64suffix%
+DEL /S *.sln  >nul 2>&1
+DEL /S *.vcproj  >nul 2>&1
+DEL /S *.vcxproj  >nul 2>&1
+DEL /S *.vcxproj.user  >nul 2>&1
 
 :: Run gyp to update the Visual Studio project files to contain links
 :: to the latest v8 source files.
-echo third_party\python_26\python.exe build\gyp_v8 -D"target_arch=%target_arch%" -D"component=shared_library"
-third_party\python_26\python.exe build\gyp_v8 -D"target_arch=%target_arch%" -D"component=shared_library"
+echo third_party\python_26\python.exe build\gyp_v8 -D"target_arch=%target_arch%" -D"component=shared_library" -Dv8_enable_i18n_support=0
+third_party\python_26\python.exe build\gyp_v8 -D"target_arch=%target_arch%" -D"component=shared_library" -Dv8_enable_i18n_support=0
 
 IF "%vs%"=="%vs2012%" (
 	IF "%msbuild_toolset%"=="v100" (

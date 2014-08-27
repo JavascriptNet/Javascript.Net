@@ -578,14 +578,18 @@ JavascriptInterop::Invoker(const v8::FunctionCallbackInfo<Value>& iArgs)
 			cli::array<System::Reflection::ParameterInfo^>^ parametersInfo = method->GetParameters();
 			cli::array<System::Object^>^ arguments;
 
-			// match arguments & parameters counts
-			if (iArgs.Length() == parametersInfo->Length)
+			// Match arguments & parameters counts.  We will add nulls where
+            // we have imsufficient parameters.  Note that this checking does
+            // not detect where nulls have been supplied (or insufficient parameters
+            // have been spplied), but the corresponding parameter cannot accept
+            // a null.  This will trigger an exception during invocation.
+			if (iArgs.Length() <= parametersInfo->Length)
 			{
 				int match = 0;
 				int failed = 0;
 
 				// match parameters
-				arguments = gcnew cli::array<System::Object^>(iArgs.Length());
+				arguments = gcnew cli::array<System::Object^>(parametersInfo->Length);  // trailing parameters will be null
 				for (int p = 0; p < suppliedArguments->Length; p++)
 				{
 					System::Type^ paramType = parametersInfo[p]->ParameterType;

@@ -56,7 +56,7 @@ public enum class SetParameterOptions : int
 
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-// WrappedMethod
+// WrappedJavascriptExternal
 //
 // Type-safely wraps a native pointer for inclusion in managed code as an IntPtr.  I thought
 // there would already be something for this, but I couldn't find it.
@@ -123,6 +123,7 @@ public ref class JavascriptContext: public System::IDisposable
 	// Constructor
 	////////////////////////////////////////////////////////////
 public:
+    static JavascriptContext();
 
 	JavascriptContext();
 
@@ -156,8 +157,10 @@ public:
 	// will exit immediately after this handler is called, because
 	// that's just how v8 works.
 	// (http://stackoverflow.com/questions/16797423/how-to-handle-v8-engine-crash-when-process-runs-out-of-memory)
+	//
+	// Call this just once for the whole library.
 	delegate void FatalErrorHandler(System::String^ location, System::String^ message);
-	event FatalErrorHandler^ FatalError;
+	static void SetFatalErrorHandler(FatalErrorHandler^ handler);
 
 	////////////////////////////////////////////////////////////
 	// Internal methods
@@ -169,17 +172,15 @@ internal:
 	
 	static v8::Isolate *GetCurrentIsolate();
 
-	v8::Locker *Enter();
+    v8::Locker *Enter([System::Runtime::InteropServices::Out] JavascriptContext^% old_context);
 
-	void Exit(v8::Locker *locker);
+	void Exit(v8::Locker *locker, JavascriptContext^ old_context);
 
 	JavascriptExternal* WrapObject(System::Object^ iObject);
 
 	Handle<ObjectTemplate> GetObjectWrapperTemplate();
 		
 	static void FatalErrorCallbackMember(const char* location, const char* message);
-
-	System::Collections::Generic::Dictionary<System::String ^, WrappedMethod> ^MethodsForType(System::Type ^type);
 
 	////////////////////////////////////////////////////////////
 	// Data members
@@ -203,10 +204,8 @@ protected:
 
 	// Keeping track of recursion.
 	[System::ThreadStaticAttribute] static JavascriptContext ^sCurrentContext;
-	JavascriptContext^ oldContext;
 
-	// Per-Type mapping from member method/property names to a v8 Function.
-	System::Collections::Generic::Dictionary<System::Type ^, System::Collections::Generic::Dictionary<System::String ^, WrappedMethod> ^> ^methodsForTypes;
+	static FatalErrorHandler^ fatalErrorHandler;
 };
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -215,17 +214,24 @@ protected:
 // This must be constructed before any use of handles or calling of v8 
 // functions.  It protects against simultaneous multithreaded use of v8.
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-class JavascriptScope
+ref class JavascriptScope
 {
 	// It is OK to nest v8::Lockers in one thread.
 	v8::Locker *v8ThreadLock;
+    JavascriptContext^ oldContext;
 
 public:
 	JavascriptScope(JavascriptContext^ iContext)
-	{ v8ThreadLock = iContext->Enter(); }
+	{
+	    // We store the old context so that JavascriptContexts can be created and run
+	    // recursively.
+        v8ThreadLock = iContext->Enter(oldContext);
+    }
 	
 	~JavascriptScope()
-	{ JavascriptContext::GetCurrent()->Exit(v8ThreadLock); }
+	{
+        JavascriptContext::GetCurrent()->Exit(v8ThreadLock, oldContext);
+    }
 };
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////

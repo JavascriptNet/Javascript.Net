@@ -14,15 +14,13 @@ namespace Fiddling
     {
         static void Main(string[] args)
         {
+            JavascriptContext.SetFatalErrorHandler(FatalErrorHandler);
             using (JavascriptContext _context = new JavascriptContext()) {
-                _context.FatalError += _context_FatalError;
-                //int[] ints = new[] { 1, 2, 3 };
-                //_context.SetParameter("bozo", new Bozo(ints));
+                int[] ints = new[] { 1, 2, 3 };
+                _context.SetParameter("bozo", new Bozo(ints));
                 try {
-                    object res = _context.Run(
-                        //"function f() { f(); }; f();"
-                        "a = []; while(true) a.push(1);"
-                    );
+                    //_context.Run("a=[]; while(true) a.push(0)");
+                    _context.Run("function f() { f(); } f()");
                 } catch (Exception ex) {
                     string s = (string)ex.Data["V8StackTrace"];
                     Console.WriteLine(s);
@@ -31,9 +29,10 @@ namespace Fiddling
             }
         }
 
-        static void _context_FatalError(string location, string message)
+        static void FatalErrorHandler(string a, string b)
         {
-            Console.WriteLine(message);
+            Console.WriteLine(a);
+            Console.WriteLine(b);
         }
     }
 
