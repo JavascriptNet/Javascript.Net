@@ -5,13 +5,13 @@ using System.Text;
 using System.Threading.Tasks;
 using Noesis.Javascript;
 
-namespace V8NetTest
+namespace JSUnitTest
 {
     class Foo
     {
-        public void doSomething(int SomeParam)
+        public string doSomething()
         {
-
+            return "did something";
         }
     }
 
@@ -19,8 +19,14 @@ namespace V8NetTest
     {
         static void Main(string[] args)
         {
+            Console.WriteLine(JavascriptContext.V8Version);
 
-            Console.WriteLine();
+            JavascriptContext context = new JavascriptContext();
+            context.SetParameter("$obj", new Foo());
+            var result = context.Run(@"var x = $obj.doSomething(); x");
+
+            Console.WriteLine((string)result);
+
             Console.ReadLine();
         }
     }
