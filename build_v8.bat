@@ -101,7 +101,7 @@ DEL /S *.vcxproj.user  >nul 2>&1
 :: Run gyp to update the Visual Studio project files to contain links
 :: to the latest v8 source files.
 ECHO on
-python build\gyp_v8 -D"target_arch=%target_arch%" -D"component=shared_library" -Dv8_enable_i18n_support=0
+CALL python build\gyp_v8 -D"target_arch=%target_arch%" -D"component=shared_library" -Dv8_enable_i18n_support=0
 "%vs%\Common7\IDE\devenv.com" /Build "%profile%" build\All.sln
 @ECHO off
 popd
