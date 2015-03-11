@@ -25,6 +25,8 @@ runtime library because the user may not have it.
 Building from Source
 ====================
 
+* You will need python 2.6+ in PATH
+
 * `git clone --recursive` this repo. You will need depot_tools (specified as submodule) to get V8.
 
 * run get_v8.bat to fetch required version of V8 and its build dependencies. 
