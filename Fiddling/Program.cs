@@ -1,6 +1,7 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.Remoting.Contexts;
 using System.Text;
 using Noesis.Javascript;
 
@@ -20,13 +21,23 @@ namespace Fiddling
                 _context.SetParameter("bozo", new Bozo(ints));
                 try {
                     //_context.Run("a=[]; while(true) a.push(0)");
-                    _context.Run("function f() { f(); } f()");
+                    //_context.Run("function f() { f(); } f()");
+					while(true) {
+						Console.Write("> ");
+						var input = Console.ReadLine();
+						if (input == "quit")
+							break;
+						var result = _context.Run(input);
+						Console.WriteLine("Result is: `{0}`", result);
+					}
                 } catch (Exception ex) {
                     string s = (string)ex.Data["V8StackTrace"];
                     Console.WriteLine(s);
                 }
                 //Console.WriteLine(ints[1]);
             }
+			Console.WriteLine("Press any key to end");
+	        Console.ReadKey();
         }
 
         static void FatalErrorHandler(string a, string b)
