@@ -3,6 +3,7 @@
 @SETLOCAL
 @ECHO off
 
+set args-abspath=%~dp0
 SET args-arch=%1
 SET args-vs=%2
 SET args-toolset=%3
@@ -72,7 +73,7 @@ SET PYTHONPATH=
 SET PYTHON=
 
 :: will use python from here if you don't have one
-PATH %PATH%;depot_tools
+PATH %PATH%;%args-abspath%\depot_tools
 
 :: Change to v8 directory.
 IF NOT EXIST v8\LICENSE.v8 (
