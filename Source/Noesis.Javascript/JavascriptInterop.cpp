@@ -158,7 +158,8 @@ JavascriptInterop::ConvertToV8(System::Object^ iObject)
 			return ConvertFromSystemArray(safe_cast<System::Array^>(iObject));
 		if (System::Delegate::typeid->IsAssignableFrom(type))
 			return ConvertFromSystemDelegate(safe_cast<System::Delegate^>(iObject));
-		
+	
+	
 		if (type->IsGenericType)
 		{
 			if(type->GetGenericTypeDefinition() == System::Collections::Generic::Dictionary::typeid)
@@ -167,6 +168,14 @@ JavascriptInterop::ConvertToV8(System::Object^ iObject)
 			}
 			if (type->IsGenericType && (type->GetGenericTypeDefinition() == System::Collections::Generic::List::typeid))
 				return ConvertFromSystemList(iObject);
+		}
+
+
+		if (System::Collections::IDictionary::typeid->IsAssignableFrom(type)){
+			//Only do this if no fields defined on this type
+			if (type->GetFields(System::Reflection::BindingFlags::DeclaredOnly | System::Reflection::BindingFlags::Instance )->Length == 0){
+				return ConvertFromSystemDictionary(iObject);
+			}
 		}
 
 		if (System::Exception::typeid->IsAssignableFrom(type))
@@ -325,6 +334,8 @@ JavascriptInterop::ConvertFromSystemDictionary(System::Object^ iObject)
 		v8::Handle<v8::Value> val = ConvertToV8(dictionary[keyValue]);
 		object->Set(key, val);
 	} 
+
+
 
 	return object;
 }	
