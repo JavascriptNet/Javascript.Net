@@ -25,6 +25,7 @@ runtime library because the user may not have it.
 Building from Source
 ====================
 
+* Make sure to follow the install instructions for cygwin [here](http://dev.chromium.org/developers/how-tos/cygwin)
 * You will need python 2.6+ in PATH
 
 * `git clone --recursive` this repo. You will need depot_tools (specified as submodule) to get V8.
