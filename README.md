@@ -97,3 +97,8 @@ Known Problems
 ==============
 
 See Issues on GitHub.
+
+Using .NET 4.5.2
+=================
+
+You will need the [.NET 4.5.2 Developer Pack](https://www.microsoft.com/en-us/download/details.aspx?id=42637) to build using .NET 4.5.2

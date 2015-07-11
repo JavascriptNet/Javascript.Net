@@ -74,6 +74,7 @@ echo PlatformToolset is set to %PlatformToolset%
 SET net40=4.0
 SET net45=4.5
 SET net451=4.5.1
+SET net452=4.5.2
 IF /I "%args-framework%"=="%net40%" (
 	SET TargetFrameworkVersion=v%net40%
 	SET TargetFrameworkProfile=Client
@@ -84,6 +85,10 @@ IF /I "%args-framework%"=="%net45%" (
 )
 IF /I "%args-framework%"=="%net451%" (
 	SET TargetFrameworkVersion=v%net451%
+	SET TargetFrameworkProfile=
+)
+IF /I "%args-framework%"=="%net452%" (
+	SET TargetFrameworkVersion=v%net452%
 	SET TargetFrameworkProfile=
 )
 IF NOT DEFINED TargetFrameworkVersion GOTO :helpAndExit
@@ -105,7 +110,7 @@ EXIT /b 0
 	ECHO    VS_version:           vs2010 ^| vs2012 ^| vs2013
 	ECHO    MSVC_version:         MSVC2010 ^| MSVC2012 ^| MSVC2013
 	ECHO    Build_mode:           Debug ^| Release
-	ECHO    Framework_version:    4.0 ^| 4.5 ^| 4.5.1
+	ECHO    Framework_version:    4.0 ^| 4.5 ^| 4.5.1 ^| 4.5.2
 	ECHO.
 	ECHO Note: see README if you have troubles building with MSVC different from your VS version (e.g. vs2013 and MSVC2010)
 	ENDLOCAL
