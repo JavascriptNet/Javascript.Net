@@ -27,7 +27,7 @@ EXIT /b 0
 	ECHO    VS_version:           vs2010 ^| vs2012 ^| vs2013
 	ECHO    MSVC_version:         MSVC2010 ^| MSVC2012 ^| MSVC2013
 	ECHO    Build_mode:           Debug ^| Release
-	ECHO    Framework_version:    4.0 ^| 4.5 ^| 4.5.1
+	ECHO    Framework_version:    4.0 ^| 4.5 ^| 4.5.1 ^| 4.5.2
 	ECHO.
 	ECHO Note: see README if you have troubles building with MSVC different from your VS version (e.g. vs2013 and MSVC2010)
 	ENDLOCAL
