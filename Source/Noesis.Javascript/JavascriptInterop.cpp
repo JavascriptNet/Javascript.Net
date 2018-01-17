@@ -158,7 +158,8 @@ JavascriptInterop::ConvertToV8(System::Object^ iObject)
 			return ConvertFromSystemArray(safe_cast<System::Array^>(iObject));
 		if (System::Delegate::typeid->IsAssignableFrom(type))
 			return ConvertFromSystemDelegate(safe_cast<System::Delegate^>(iObject));
-		
+	
+	
 		if (type->IsGenericType)
 		{
 			if(type->GetGenericTypeDefinition() == System::Collections::Generic::Dictionary::typeid)
@@ -167,6 +168,14 @@ JavascriptInterop::ConvertToV8(System::Object^ iObject)
 			}
 			if (type->IsGenericType && (type->GetGenericTypeDefinition() == System::Collections::Generic::List::typeid))
 				return ConvertFromSystemList(iObject);
+		}
+
+
+		if (System::Collections::IDictionary::typeid->IsAssignableFrom(type)){
+			//Only do this if no fields defined on this type
+			if (type->GetFields(System::Reflection::BindingFlags::DeclaredOnly | System::Reflection::BindingFlags::Instance )->Length == 0){
+				return ConvertFromSystemDictionary(iObject);
+			}
 		}
 
 		if (System::Exception::typeid->IsAssignableFrom(type))
@@ -325,6 +334,8 @@ JavascriptInterop::ConvertFromSystemDictionary(System::Object^ iObject)
 		v8::Handle<v8::Value> val = ConvertToV8(dictionary[keyValue]);
 		object->Set(key, val);
 	} 
+
+
 
 	return object;
 }	
@@ -579,9 +590,9 @@ JavascriptInterop::Invoker(const v8::FunctionCallbackInfo<Value>& iArgs)
 			cli::array<System::Object^>^ arguments;
 
 			// Match arguments & parameters counts.  We will add nulls where
-            // we have imsufficient parameters.  Note that this checking does
+            // we have insufficient parameters.  Note that this checking does
             // not detect where nulls have been supplied (or insufficient parameters
-            // have been spplied), but the corresponding parameter cannot accept
+            // have been supplied), but the corresponding parameter cannot accept
             // a null.  This will trigger an exception during invocation.
 			if (iArgs.Length() <= parametersInfo->Length)
 			{
@@ -626,10 +637,32 @@ JavascriptInterop::Invoker(const v8::FunctionCallbackInfo<Value>& iArgs)
 					bestMethodArguments = arguments;
 					bestMethodMatchedArgs = match;
 				}
-
+				else if (match == bestMethodMatchedArgs)
+				{
+					if (suppliedArguments->Length == parametersInfo->Length) // Prefer method with the most matches and the same length of arguments
+					{
+						bestMethod = method;
+						bestMethodArguments = arguments;
+						bestMethodMatchedArgs = match;
+					}
+				}
+				
+				/*
+					THE CODE BELOW MAY CHOOSE A METHOD PREMATURLY
+					for example:
+					
+					public void test(string a, int b, bool c) { ... }
+					public void test(string a, int b, bool c, float d) { ... }
+					
+					and then invoke it this way in JavaScript:
+					
+					test("some text", 1234, true, 3.14);
+					
+					it'll invoke the first one instead of the second because it found 3 matches and there are 3 arguments.
+				*/
 				// skip lookup if all args matched
-				if (match == arguments->Length)
-					break;
+				//if (match == arguments->Length)
+					//break;
 			}
 		}
 	}
