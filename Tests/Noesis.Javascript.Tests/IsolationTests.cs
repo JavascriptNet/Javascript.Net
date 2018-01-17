@@ -1,6 +1,7 @@
 ﻿using System.Threading;
 using System.Diagnostics;
-using NUnit.Framework;
+using Microsoft.VisualStudio.TestTools.UnitTesting;
+using FluentAssertions;
 
 namespace Noesis.Javascript.Tests
 {
@@ -8,10 +9,10 @@ namespace Noesis.Javascript.Tests
     /// Tests that we can run multiple instances of v8 side by side, 
     /// simultaneously, courtesy of v8 Isolates.
     /// </summary>
-    [TestFixture]
+    [TestClass]
     public class IsolationTests
     {
-        [Test]
+        [TestMethod]
         public void RunIsolatesTest()
         {
 
@@ -23,7 +24,7 @@ namespace Noesis.Javascript.Tests
             RunInstance();   // Second instance
             thread.Join();
 
-            Assert.That(timer.ElapsedMilliseconds, Is.LessThan(1500), "It took too long, they must not be running in parallel.");
+            timer.ElapsedMilliseconds.Should().BeLessThan(1500, "It took too long, they must not be running in parallel.");
         }
 
         static void RunInstance()

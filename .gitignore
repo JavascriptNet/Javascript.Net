@@ -22,3 +22,5 @@ _ReSharper*/
 *.sdf
 *.opensdf
 TestResult.xml
+/.vs
+/Source/Noesis.Javascript/packages

@@ -1,158 +1,159 @@
 ﻿using System;
 using System.Collections.Generic;
-using NUnit.Framework;
+using Microsoft.VisualStudio.TestTools.UnitTesting;
+using FluentAssertions;
 
 namespace Noesis.Javascript.Tests
 {
-    [TestFixture]
+    [TestClass]
     public class ConvertToJavascriptTests
     {        
         private JavascriptContext _context;
 
-        [SetUp]
+        [TestInitialize]
         public void SetUp()
         {
             _context = new JavascriptContext();
         }
 
-        [TearDown]
+        [TestCleanup]
         public void TearDown()
         {
             _context.Dispose();
         }
 
-        [Test]
+        [TestMethod]
         public void SetFloat()
         {
             _context.SetParameter("val", 125.25f);
 
-            Assert.That(_context.Run("val == 125.25"), Is.True);
+            _context.Run("val == 125.25").Should().BeOfType<bool>().Which.Should().BeTrue();
         }
         
-        [Test]
+        [TestMethod]
         public void SetDouble()
         {
             _context.SetParameter("val", 125.25);
 
-            Assert.That(_context.Run("val == 125.25"), Is.True);
+            _context.Run("val == 125.25").Should().BeOfType<bool>().Which.Should().BeTrue();
         }
 
-        [Test]
+        [TestMethod]
         public void SetInteger()
         {
             _context.SetParameter("val", 600);
 
-            Assert.That(_context.Run("val == 600"), Is.True);
+            _context.Run("val == 600").Should().BeOfType<bool>().Which.Should().BeTrue();
         }
 
-        [Test]
+        [TestMethod]
         public void SetSignedByte()
         {
             _context.SetParameter("val", (sbyte)65);
 
-            Assert.That(_context.Run("val == 65"), Is.True);
+            _context.Run("val == 65").Should().BeOfType<bool>().Which.Should().BeTrue();
         }     
         
-        [Test]
+        [TestMethod]
         public void SetShort()
         {
             _context.SetParameter("val", (short)600);
 
-            Assert.That(_context.Run("val == 600"), Is.True);
+            _context.Run("val == 600").Should().BeOfType<bool>().Which.Should().BeTrue();
         }
         
-        [Test]
+        [TestMethod]
         public void SetLong()
         {
             _context.SetParameter("val", (long)60012312321);
 
-            Assert.That(_context.Run("val == 60012312321"), Is.True);
+            _context.Run("val == 60012312321").Should().BeOfType<bool>().Which.Should().BeTrue();
         }
 
-        [Test]
+        [TestMethod]
         public void SetUnsignedInteger()
         {
             _context.SetParameter("val", uint.MaxValue);
 
-            Assert.That(_context.Run("val == 4294967295"), Is.True);
+            _context.Run("val == 4294967295").Should().BeOfType<bool>().Which.Should().BeTrue();
         }
 
-        [Test]
+        [TestMethod]
         public void SetByte()
         {
             _context.SetParameter("val", (byte)255);
 
-            Assert.That(_context.Run("val == 255"), Is.True);
+            _context.Run("val == 255").Should().BeOfType<bool>().Which.Should().BeTrue();
         }
 
-        [Test]
+        [TestMethod]
         public void SetUnsignedShort()
         {
             _context.SetParameter("val", ushort.MaxValue);
 
-            Assert.That(_context.Run("val == 65535"), Is.True);
+            _context.Run("val == 65535").Should().BeOfType<bool>().Which.Should().BeTrue();
         }
 
-        [Test]
+        [TestMethod]
         public void SetUnsignedLong()
         {
             _context.SetParameter("val", ulong.MaxValue);
 
-            Assert.That(_context.Run("val == 18446744073709551615"), Is.True);
+            _context.Run("val == 18446744073709551615").Should().BeOfType<bool>().Which.Should().BeTrue();
         }
 
-        [Test]
+        [TestMethod]
         public void SetString()
         {
             _context.SetParameter("val", "A string from .NET");
 
-            Assert.That(_context.Run("val == 'A string from .NET'"), Is.True);
+            _context.Run("val == 'A string from .NET'").Should().BeOfType<bool>().Which.Should().BeTrue();
         }
         
-        [Test]
+        [TestMethod]
         public void SetArray()
         {
             _context.SetParameter("val", new[]{1,2,3});
 
-            Assert.That(_context.Run("val[0] == 1 && val[1] == 2 && val[2] == 3"), Is.True);
+            _context.Run("val[0] == 1 && val[1] == 2 && val[2] == 3").Should().BeOfType<bool>().Which.Should().BeTrue();
         }
 
-        [Test]
+        [TestMethod]
         public void SetBoolean()
         {
             _context.SetParameter("val", true);
 
-            Assert.That(_context.Run("val == true"), Is.True);
+            _context.Run("val == true").Should().BeOfType<bool>().Which.Should().BeTrue();
         }
 
-        [Test]
+        [TestMethod]
         public void SetDateTime()
         {
             _context.SetParameter("val", new DateTime(2010,10,10));
 
-            Assert.That(_context.Run("val.getUTCFullYear() == 2010"), Is.True);
-            Assert.That(_context.Run("val.getMonth() == 9"), Is.True);
-            Assert.That(_context.Run("val.getDate() == 10"), Is.True);
+            _context.Run("val.getUTCFullYear() == 2010").Should().BeOfType<bool>().Which.Should().BeTrue();
+            _context.Run("val.getMonth() == 9").Should().BeOfType<bool>().Which.Should().BeTrue();
+            _context.Run("val.getDate() == 10").Should().BeOfType<bool>().Which.Should().BeTrue();
         }        
         
-        [Test]
+        [TestMethod]
         public void SetObject()
         {
             _context.SetParameter("val", new ConvertToJavascriptTests());
 
-            Assert.That(_context.Run("val.ToString() == 'Noesis.Javascript.Tests.ConvertToJavascriptTests'"), Is.True);
+            _context.Run("val.ToString() == 'Noesis.Javascript.Tests.ConvertToJavascriptTests'").Should().BeOfType<bool>().Which.Should().BeTrue();
         }
 
-        [Test]
+        [TestMethod]
         public void SetList()
         {
             List<string> myList = new List<string>() { "Foo", "Bar", "FooBar" };
             _context.SetParameter("myList", myList);
 
-            Assert.That(_context.Run("(myList[0] == 'Foo') && (myList[1] == 'Bar') && (myList[2] == 'FooBar')"), Is.True);
+            _context.Run("(myList[0] == 'Foo') && (myList[1] == 'Bar') && (myList[2] == 'FooBar')").Should().BeOfType<bool>().Which.Should().BeTrue();
         }    
         
-        [Test]
+        [TestMethod]
         public void SetDictionary()
         {
             // Test #10: .NET's Dictionary (Integer as keys) and Test #11: .NET Enumerator
@@ -164,12 +165,12 @@ namespace Noesis.Javascript.Tests
                 };
             _context.SetParameter("myDictionaryByKeyInteger", myDictionaryByKeyInteger);
 
-            Assert.That(_context.Run("(myDictionaryByKeyInteger['2'] == 8888855) && (myDictionaryByKeyInteger['200'] == 9191955) && (myDictionaryByKeyInteger['40000'] == 1236555)"), Is.True);
+            _context.Run("(myDictionaryByKeyInteger['2'] == 8888855) && (myDictionaryByKeyInteger['200'] == 9191955) && (myDictionaryByKeyInteger['40000'] == 1236555)").Should().BeOfType<bool>().Which.Should().BeTrue();
         }
 
 
         
-        [Test]
+        [TestMethod]
         public void EnumerateDictionary()
         {
             Dictionary<string, int> myDictionaryByKeyString = new Dictionary<string, int>()
@@ -180,7 +181,7 @@ namespace Noesis.Javascript.Tests
                 };
             _context.SetParameter("myDictionaryByKeyString", myDictionaryByKeyString);
 
-            Assert.That(_context.Run(@" var counter = 0;
+            _context.Run(@" var counter = 0;
                                         for (var key in myDictionaryByKeyString) {
                                             if (12 == myDictionaryByKeyString[key])
                                                 counter++;
@@ -190,39 +191,39 @@ namespace Noesis.Javascript.Tests
                                                 counter++;
                                         }
                                         counter == 3
-                                        "), Is.True);
+                                        ").Should().BeOfType<bool>().Which.Should().BeTrue();
         }
 
-        [Test]
+        [TestMethod]
         public void SetDelegate()
         {
             _context.SetParameter("delegate", new Func<string,string>((s) => s.ToUpper()));
 
-            Assert.That(_context.Run("delegate('Noesis') == 'NOESIS'"), Is.True);
+            _context.Run("delegate('Noesis') == 'NOESIS'").Should().BeOfType<bool>().Which.Should().BeTrue();
         }
 
-        [Test]
+        [TestMethod]
         public void SetDelegateWithArray()
         {
             _context.SetParameter("delegate", new Func<string[], string>((a) => String.Join(" ", a)));
 
-            Assert.That(_context.Run("delegate(['Big', 'dog']) == 'Big dog'"), Is.True);
+            _context.Run("delegate(['Big', 'dog']) == 'Big dog'").Should().BeOfType<bool>().Which.Should().BeTrue();
         }
 
-        [Test]
+        [TestMethod]
         public void SetEnum()
         {
             _context.SetParameter("val", UriKind.Absolute);
 
-            Assert.That(_context.Run("val == 'Absolute'"), Is.True);
+            _context.Run("val == 'Absolute'").Should().BeOfType<bool>().Which.Should().BeTrue();
         }
 
-        [Test]
+        [TestMethod]
         public void SetChar()
         {
             _context.SetParameter("val", 'B');
 
-            Assert.That(_context.Run("val == 'B'"), Is.True);
+            _context.Run("val == 'B'").Should().BeOfType<bool>().Which.Should().BeTrue();
         }        
     }
 }

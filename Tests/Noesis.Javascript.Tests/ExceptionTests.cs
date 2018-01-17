@@ -1,20 +1,21 @@
 ﻿using System;
-using NUnit.Framework;
+using Microsoft.VisualStudio.TestTools.UnitTesting;
+using FluentAssertions;
 
 namespace Noesis.Javascript.Tests
 {
-    [TestFixture]
+    [TestClass]
     public class ExceptionTests
     {
         private JavascriptContext _context;
 
-        [SetUp]
+        [TestInitialize]
         public void SetUp()
         {
             _context = new JavascriptContext();
         }
 
-        [TearDown]
+        [TestCleanup]
         public void TearDown()
         {
             _context.Dispose();
@@ -29,13 +30,13 @@ namespace Noesis.Javascript.Tests
             }
         }
 
-        [Test]
+        [TestMethod]
         public void HandleInvalidArgumentsInIndexerCall()
         {
             _context.SetParameter("obj", new ClassWithIndexer());
 
-            Assert.That(() => _context.Run("obj[1] = 123 /* passing int when expecting string */"),
-                Throws.InstanceOf<JavascriptException>().With.Message.Matches("Object of type 'System.Int32' cannot be converted to type 'System.String"));
+            Action action = () => _context.Run("obj[1] = 123 /* passing int when expecting string */");
+            action.ShouldThrowExactly<JavascriptException>().WithMessage("Object of type 'System.Int32' cannot be converted to type 'System.String'.");
         }
 
         class ClassWithMethods
@@ -44,29 +45,29 @@ namespace Noesis.Javascript.Tests
             public void MethodThatThrows() { throw new Exception("Test C# exception"); }
         }
 
-        [Test]
+        [TestMethod]
         public void HandleInvalidArgumentsInMethodCall()
         {
             _context.SetParameter("obj", new ClassWithMethods());
 
-            Assert.That(() => _context.Run("obj.Method('hello') /* passing string when expecting int */"),
-                Throws.InstanceOf<JavascriptException>().With.Message.EqualTo("Argument mismatch for method \"Method\"."));
+            Action action = () => _context.Run("obj.Method('hello') /* passing string when expecting int */");
+            action.ShouldThrowExactly<JavascriptException>().WithMessage("Argument mismatch for method \"Method\".");
         }
 
-        [Test]
+        [TestMethod]
         public void HandleExceptionWhenInvokingMethodOnManagedObject()
         {
             _context.SetParameter("obj", new ClassWithMethods());
 
-            Assert.That(() => _context.Run("obj.MethodThatThrows()"),
-                        Throws.InstanceOf<JavascriptException>().With.Message.EqualTo("Test C# exception"));
+            Action action = () => _context.Run("obj.MethodThatThrows()");
+            action.ShouldThrowExactly<JavascriptException>().WithMessage("Test C# exception");
         }
 
-        [Test]
+        [TestMethod]
         public void StackOverflow()
         {
-            Assert.That(() => _context.Run("function f() { f(); }; f();"),
-                        Throws.InstanceOf<JavascriptException>().With.Message.EqualTo("RangeError: Maximum call stack size exceeded"));
+            Action action = () => _context.Run("function f() { f(); }; f();");
+            action.ShouldThrowExactly<JavascriptException>().WithMessage("RangeError: Maximum call stack size exceeded");
         }
     }
 }

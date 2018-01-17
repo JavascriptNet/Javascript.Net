@@ -237,7 +237,7 @@ uint16_t*
 SystemInterop::ConvertFromSystemString(System::String^ iString)
 {
 	System::IntPtr ptr = System::Runtime::InteropServices::Marshal::StringToHGlobalUni(iString);
-	uint16_t* ret;
+	uint16_t* ret = NULL;
 
 	if (ptr != System::IntPtr::Zero)
 	{

@@ -1,31 +1,33 @@
-﻿using NUnit.Framework;
+﻿using Microsoft.VisualStudio.TestTools.UnitTesting;
+using FluentAssertions;
+using System;
 
 namespace Noesis.Javascript.Tests
 {
-    [TestFixture]
+    [TestClass]
     public class AccessorInterceptorTests
     {
         private JavascriptContext _context;
 
-        [SetUp]
+        [TestInitialize]
         public void SetUp()
         {
             _context = new JavascriptContext();
         }
 
-        [TearDown]
+        [TestCleanup]
         public void TearDown()
         {
             _context.Dispose();
         }
 
-        [Test]
+        [TestMethod]
         public void AccessAnElementInAManagedArray()
         {
             int[] myArray = new int[] { 151515, 666, 2555, 888, 99 };
             _context.SetParameter("myArray", myArray);
 
-            Assert.That(_context.Run("myArray[2] == 2555"), Is.True);
+           _context.Run("myArray[2] == 2555").Should().BeOfType<bool>().Which.Should().BeTrue();
         }
 
         class ClassWithIndexer
@@ -43,12 +45,12 @@ namespace Noesis.Javascript.Tests
             }
         }
 
-        [Test]
+        [TestMethod]
         public void AccessingByIndexAPropertyInAManagedObject()
         {
             _context.SetParameter("myObject", new ClassWithIndexer { Value = "Value"});
 
-            Assert.That(_context.Run("myObject[99] == 'Value 99'"), Is.True);
+            _context.Run("myObject[99] == 'Value 99'").Should().BeOfType<bool>().Which.Should().BeTrue();
         }
 
         class ClassWithProperty
@@ -56,23 +58,23 @@ namespace Noesis.Javascript.Tests
             public string MyProperty { get; set; }
         }
 
-        [Test]
+        [TestMethod]
         public void AccessingByNameAPropertyInManagedObject()
         {
             _context.SetParameter("myObject", new ClassWithProperty { MyProperty = "This is the string return by \"MyProperty\"" });
 
-            Assert.That(_context.Run("myObject.MyProperty == 'This is the string return by \"MyProperty\"'"), Is.True);
+            _context.Run("myObject.MyProperty == 'This is the string return by \"MyProperty\"'").Should().BeOfType<bool>().Which.Should().BeTrue();
         }
 
-        [Test]
+        [TestMethod]
         public void GracefullyHandlesAttemptsToAccessByIndexerWhenIndexerDoesntExist()
         {
             _context.SetParameter("myObject", new ClassWithProperty());
 
-            Assert.That(_context.Run("myObject[20] === undefined"), Is.True);
+            _context.Run("myObject[20] === undefined").Should().BeOfType<bool>().Which.Should().BeTrue(); ;
         }
 
-        [Test]
+        [TestMethod]
         public void SetValueByIndexerInManagedObject()
         {
             var classWithIndexer = new ClassWithIndexer();
@@ -80,11 +82,11 @@ namespace Noesis.Javascript.Tests
 
             _context.Run("myObject[20] = 'The value is now set'");
 
-            Assert.That(classWithIndexer.Value, Is.EqualTo("The value is now set"));
-            Assert.That(classWithIndexer.Index, Is.EqualTo(20));
+            classWithIndexer.Value.Should().Be("The value is now set");
+            classWithIndexer.Index.Should().Be(20);
         }
 
-        [Test]
+        [TestMethod]
         public void SetPropertyByNameInManagedObject()
         {
             var classWithProperty = new ClassWithProperty();
@@ -92,33 +94,35 @@ namespace Noesis.Javascript.Tests
 
             _context.Run("myObject.MyProperty = 'hello'");
 
-            Assert.That(classWithProperty.MyProperty, Is.EqualTo("hello"));
+            classWithProperty.MyProperty.Should().Be("hello");
         }
 
-        [Test]
+        [TestMethod]
         public void SettingUnknownPropertiesIsAllowed()
         {
             _context.SetParameter("myObject", new ClassWithProperty());
 
             _context.Run("myObject.UnknownProperty = 77");
 
-            Assert.That(_context.Run("myObject.UnknownProperty"), Is.EqualTo(77));
+            _context.Run("myObject.UnknownProperty").Should().Be(77);
         }
 
-        [Test]
+        [TestMethod]
         public void SettingUnknownPropertiesIsDisallowedIfRejectUnknownPropertiesIsSet()
         {
             _context.SetParameter("myObject", new ClassWithProperty(), SetParameterOptions.RejectUnknownProperties);
 
-            Assert.Throws<JavascriptException>(() => _context.Run("myObject.UnknownProperty = 77"));
+            Action action = () => _context.Run("myObject.UnknownProperty = 77");
+            action.ShouldThrowExactly<JavascriptException>();
         }
         
-        [Test]
+        [TestMethod]
         public void GettingUnknownPropertiesIsDisallowedIfRejectUnknownPropertiesIsSet()
         {
             _context.SetParameter("myObject", new ClassWithProperty(), SetParameterOptions.RejectUnknownProperties);
 
-            Assert.Throws<JavascriptException>(() => _context.Run("myObject.UnknownProperty")).Message.StartsWith("Unknown member:");
+            Action action = () => _context.Run("myObject.UnknownProperty");
+            action.ShouldThrowExactly<JavascriptException>().Which.Message.Should().StartWith("Unknown member:");
         }
     }
 }

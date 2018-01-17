@@ -15,9 +15,15 @@ namespace Fiddling
     {
         static void Main(string[] args)
         {
+            //Class1.Test();
+
+
             JavascriptContext.SetFatalErrorHandler(FatalErrorHandler);
             using (JavascriptContext _context = new JavascriptContext()) {
                 int[] ints = new[] { 1, 2, 3 };
+                _context.SetParameter("n", ints);
+                var result = _context.Run("n[1]");
+                Console.WriteLine(result.ToString());
                 _context.SetParameter("bozo", new Bozo(ints));
                 try {
                     //_context.Run("a=[]; while(true) a.push(0)");
@@ -53,7 +59,7 @@ namespace Fiddling
         internal Bozo(Array a) { this.a = a; }
         public object this[int i]
         {
-            get { throw new ApplicationException("bozo");  return a.GetValue(i); }
+            get { throw new ApplicationException("bozo"); return a.GetValue(i); }
             set { a.SetValue(value, i); }
         }
     }
