@@ -23,7 +23,7 @@
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
     <Prefer32Bit>false</Prefer32Bit>
-    <V8GnBuildName>x64.debug</V8GnBuildName>
+    <V8Platform>x64</V8Platform>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
     <PlatformTarget>AnyCPU</PlatformTarget>
@@ -34,7 +34,7 @@
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
     <Prefer32Bit>false</Prefer32Bit>
-    <V8GnBuildName>x64.release</V8GnBuildName>
+    <V8Platform>x64</V8Platform>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Debug|x86'">
     <DebugSymbols>true</DebugSymbols>
@@ -45,6 +45,7 @@
     <ErrorReport>prompt</ErrorReport>
     <CodeAnalysisRuleSet>MinimumRecommendedRules.ruleset</CodeAnalysisRuleSet>
     <Prefer32Bit>false</Prefer32Bit>
+    <V8Platform>Win32</V8Platform>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Release|x86'">
     <OutputPath>bin\x86\Release\</OutputPath>
@@ -55,6 +56,7 @@
     <ErrorReport>prompt</ErrorReport>
     <CodeAnalysisRuleSet>MinimumRecommendedRules.ruleset</CodeAnalysisRuleSet>
     <Prefer32Bit>false</Prefer32Bit>
+    <V8Platform>Win32</V8Platform>
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="System" />
@@ -80,12 +82,12 @@
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>
-    <PostBuildEvent>copy $(ProjectDir)..\x64\Release\v8.dll $(ProjectDir)$(OutDir)
-copy $(ProjectDir)..\x64\Release\v8_libbase.dll $(ProjectDir)$(OutDir)
-copy $(ProjectDir)..\x64\Release\v8_libplatform.dll $(ProjectDir)$(OutDir)
-copy $(ProjectDir)..\x64\Release\icuuc.dll $(ProjectDir)$(OutDir)
-copy $(ProjectDir)..\x64\Release\icui18n.dll $(ProjectDir)$(OutDir)
-copy $(ProjectDir)..\x64\Release\*.bin $(ProjectDir)$(OutDir)
+    <PostBuildEvent>copy $(ProjectDir)..\$(V8Platform)\$(Configuration)\v8.dll $(ProjectDir)$(OutDir)
+copy $(ProjectDir)..\$(V8Platform)\$(Configuration)\v8_libbase.dll $(ProjectDir)$(OutDir)
+copy $(ProjectDir)..\$(V8Platform)\$(Configuration)\v8_libplatform.dll $(ProjectDir)$(OutDir)
+copy $(ProjectDir)..\$(V8Platform)\$(Configuration)\icuuc.dll $(ProjectDir)$(OutDir)
+copy $(ProjectDir)..\$(V8Platform)\$(Configuration)\icui18n.dll $(ProjectDir)$(OutDir)
+copy $(ProjectDir)..\$(V8Platform)\$(Configuration)\*.bin $(ProjectDir)$(OutDir)
 </PostBuildEvent>
   </PropertyGroup>
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 

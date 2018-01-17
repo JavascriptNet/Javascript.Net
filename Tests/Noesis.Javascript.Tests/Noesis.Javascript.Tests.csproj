@@ -28,6 +28,7 @@
     <DefineConstants>DEBUG;TRACE</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
+    <V8Platform>x64</V8Platform>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
     <DebugType>pdbonly</DebugType>
@@ -36,6 +37,27 @@
     <DefineConstants>TRACE</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
+    <V8Platform>x64</V8Platform>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Debug|x86'">
+    <DebugSymbols>true</DebugSymbols>
+    <OutputPath>bin\x86\Debug\</OutputPath>
+    <DefineConstants>DEBUG;TRACE</DefineConstants>
+    <DebugType>full</DebugType>
+    <PlatformTarget>x86</PlatformTarget>
+    <ErrorReport>prompt</ErrorReport>
+    <CodeAnalysisRuleSet>MinimumRecommendedRules.ruleset</CodeAnalysisRuleSet>
+    <V8Platform>Win32</V8Platform>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Release|x86'">
+    <OutputPath>bin\x86\Release\</OutputPath>
+    <DefineConstants>TRACE</DefineConstants>
+    <Optimize>true</Optimize>
+    <DebugType>pdbonly</DebugType>
+    <PlatformTarget>x86</PlatformTarget>
+    <ErrorReport>prompt</ErrorReport>
+    <CodeAnalysisRuleSet>MinimumRecommendedRules.ruleset</CodeAnalysisRuleSet>
+    <V8Platform>Win32</V8Platform>
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="FluentAssertions, Version=4.19.4.0, Culture=neutral, PublicKeyToken=33f2691a05b67b6a, processorArchitecture=MSIL">
@@ -85,12 +107,12 @@
   </Target>
   <Import Project="..\..\packages\MSTest.TestAdapter.1.2.0\build\net45\MSTest.TestAdapter.targets" Condition="Exists('..\..\packages\MSTest.TestAdapter.1.2.0\build\net45\MSTest.TestAdapter.targets')" />
   <PropertyGroup>
-    <PostBuildEvent>copy $(ProjectDir)..\..\x64\Release\v8.dll $(ProjectDir)$(OutDir)
-copy $(ProjectDir)..\..\x64\Release\v8_libbase.dll $(ProjectDir)$(OutDir)
-copy $(ProjectDir)..\..\x64\Release\v8_libplatform.dll $(ProjectDir)$(OutDir)
-copy $(ProjectDir)..\..\x64\Release\icuuc.dll $(ProjectDir)$(OutDir)
-copy $(ProjectDir)..\..\x64\Release\icui18n.dll $(ProjectDir)$(OutDir)
-copy $(ProjectDir)..\..\x64\Release\*.bin $(ProjectDir)$(OutDir)
+    <PostBuildEvent>copy $(ProjectDir)..\..\$(V8Platform)\$(Configuration)\v8.dll $(ProjectDir)$(OutDir)
+copy $(ProjectDir)..\..\$(V8Platform)\$(Configuration)\v8_libbase.dll $(ProjectDir)$(OutDir)
+copy $(ProjectDir)..\..\$(V8Platform)\$(Configuration)\v8_libplatform.dll $(ProjectDir)$(OutDir)
+copy $(ProjectDir)..\..\$(V8Platform)\$(Configuration)\icuuc.dll $(ProjectDir)$(OutDir)
+copy $(ProjectDir)..\..\$(V8Platform)\$(Configuration)\icui18n.dll $(ProjectDir)$(OutDir)
+copy $(ProjectDir)..\..\$(V8Platform)\$(Configuration)\*.bin $(ProjectDir)$(OutDir)
 </PostBuildEvent>
   </PropertyGroup>
 </Project>
