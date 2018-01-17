@@ -66,6 +66,21 @@ namespace Noesis.Javascript.Tests
             _context.Run("myObject.MyProperty == 'This is the string return by \"MyProperty\"'").Should().BeOfType<bool>().Which.Should().BeTrue();
         }
 
+        class ClassWithDecimalProperty
+        {
+            public decimal D { get; set; }
+        }
+
+        [TestMethod]
+        public void AccessingByNameADecimalPropertyInManagedObject()
+        {
+            var myObject = new ClassWithDecimalProperty { D = 42 };
+            _context.SetParameter("myObject", myObject);
+
+            _context.Run("myObject.D = 43; myObject.D").Should().BeOfType<int>().Which.Should().Be(43);
+            myObject.D.Should().Be(43);
+        }
+
         [TestMethod]
         public void GracefullyHandlesAttemptsToAccessByIndexerWhenIndexerDoesntExist()
         {

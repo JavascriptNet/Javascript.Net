@@ -61,6 +61,8 @@ SystemInterop::ConvertToType(System::Object^ iValue, System::Type^ iType)
 			return ConvertToSingle(iValue);
 		else if (iType == System::Double::typeid)
 			return ConvertToDouble(iValue);
+		else if (iType == System::Decimal::typeid)
+			return ConvertToDecimal(iValue);
 		else if (iType == System::String::typeid)
 			return ConvertToString(iValue);
 	}
@@ -87,6 +89,8 @@ SystemInterop::ConvertToBoolean(System::Object^ iValue)
 			return ((float) iValue) != 0.0f;
 		else if (type == System::Double::typeid)
 			return ((double) iValue) != 0.0;
+		else if (type == System::Decimal::typeid)
+			return (double)((System::Decimal)iValue) != 0.0;
 		else if (type == System::String::typeid)
 		{
 			bool ret;
@@ -119,6 +123,8 @@ SystemInterop::ConvertToInt16(System::Object^ iValue)
 			return (short) ((float) iValue);
 		else if (type == System::Double::typeid)
 			return (short) ((double) iValue);
+		else if (type == System::Decimal::typeid)
+			return (short)((System::Decimal)iValue);
 		else if (type == System::String::typeid)
 		{
 			short ret;
@@ -149,6 +155,8 @@ SystemInterop::ConvertToInt32(System::Object^ iValue)
 			return (int) ((float) iValue);
 		else if (type == System::Double::typeid)
 			return (int) ((double) iValue);
+		else if (type == System::Decimal::typeid)
+			return (int)((System::Decimal)iValue);
 		else if (type == System::String::typeid)
 		{
 			int ret;
@@ -179,6 +187,8 @@ SystemInterop::ConvertToSingle(System::Object^ iValue)
 			return (float) iValue;
 		else if (type == System::Double::typeid)
 			return (float) ((double) iValue);
+		else if (type == System::Decimal::typeid)
+			return (float)((System::Decimal)iValue);
 		else if (type == System::String::typeid)
 		{
 			float ret;
@@ -200,15 +210,17 @@ SystemInterop::ConvertToDouble(System::Object^ iValue)
 		System::Type^ type = iValue->GetType();
 
 		if (type == System::Boolean::typeid)
-			return ((bool) iValue) ? -1.0 : 0.0;
+			return ((bool)iValue) ? -1.0 : 0.0;
 		else if (type == System::Int16::typeid)
-			return (double) ((short) iValue);
+			return (double)((short)iValue);
 		else if (type == System::Int32::typeid)
-			return (double) ((int) iValue);
+			return (double)((int)iValue);
 		else if (type == System::Single::typeid)
-			return (double) ((float) iValue);
+			return (double)((float)iValue);
 		else if (type == System::Double::typeid)
-			return (double) iValue;
+			return (double)iValue;
+		else if (type == System::Decimal::typeid)
+			return (double)((System::Decimal)iValue);
 		else if (type == System::String::typeid)
 		{
 			double ret;
@@ -218,6 +230,38 @@ SystemInterop::ConvertToDouble(System::Object^ iValue)
 	}
 
 	return 0.0;
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+
+System::Decimal
+SystemInterop::ConvertToDecimal(System::Object^ iValue)
+{
+	if (iValue != nullptr)
+	{
+		System::Type^ type = iValue->GetType();
+
+		if (type == System::Boolean::typeid)
+			return ((bool)iValue) ? -1 : 0;
+		else if (type == System::Int16::typeid)
+			return (System::Decimal)((short)iValue);
+		else if (type == System::Int32::typeid)
+			return (System::Decimal)((int)iValue);
+		else if (type == System::Single::typeid)
+			return (System::Decimal)((float)iValue);
+		else if (type == System::Double::typeid)
+			return (System::Decimal)((double)iValue);
+		else if (type == System::Double::typeid)
+			return (System::Decimal)iValue;
+		else if (type == System::String::typeid)
+		{
+			System::Decimal ret;
+			if (System::Decimal::TryParse((System::String^) iValue, ret))
+				return ret;
+		}
+	}
+
+	return 0;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
