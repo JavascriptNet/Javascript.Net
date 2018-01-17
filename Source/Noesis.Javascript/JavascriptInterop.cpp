@@ -51,9 +51,6 @@ using namespace System::Collections::Generic;
 Handle<ObjectTemplate>
 JavascriptInterop::NewObjectWrapperTemplate()
 {
-	v8::Isolate *isolate = JavascriptContext::GetCurrentIsolate();
-	HandleScope handleScope(isolate);
-
 	Handle<ObjectTemplate> result = ObjectTemplate::New();
 	result->SetInternalFieldCount(1);
 	result->SetNamedPropertyHandler(Getter, Setter);
