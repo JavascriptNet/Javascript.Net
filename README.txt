@@ -1,87 +1,35 @@
 Redistribution
 --------------
 Noesis.Javascript.dll needs the Microsoft C Runtime Libraries.
-The exact version required is specified in a manifest file automatically
-included inside the DLL.  You can extract it using 
-MT.exe (from the Windows SDK):
-
-> mt -inputresource:Noesis.Javascript.dll;2 -out:t.manifest
-> type t.manifest
 
 If you don't include the correct version of the runtime libraries
 when you redistribute Noesis.Javascript.dll then you will get errors
 when loading the DLL on some users machines.  (Many, but not all users
 will already have it.)
 
-Visual Stdio 2010+ is more flexible about where it finds its DLLs 
-(http://mariusbancila.ro/blog/2010/03/24/visual-studio-2010-changes-for-vc-part-5/)
-so you need not worry about the manifest, but you should still redistribute the
-runtime library because the user may not have it.
+Targets: .NET Framework 4.5
 
 
 Building from Source
 --------------------
 
-1. Fork and get a local copy of the github repository.
-   This will automatically check out a known good copy (perhaps old)
-   of the v8 source code.
+Open the .sln file in Visual Studio and build.  I've been working using Visual Studio 2017,
+but 2015 will probably work too.
 
-2. Follow Visual Studio build instructions at
-    http://code.google.com/p/v8/wiki/BuildingWithGYP
-   At the time of writing you also needed to read
-    https://code.google.com/p/v8/issues/detail?id=2973
-
-3. Run build.bat to build v8 for your preferred architecture and build
-   environment.  e.g. (builds Release mode DLL)
-   > buildv8 ia32 vs2012
-
-4. Load the Visual Studio Solution file corresponding to your version of
-   Visual Studio.
-
-5. Switch the architecture to match (x64/Win32) the v8 build you made.
-
-6. Build.
+The following warnings are expected:
+* warning LNK4248: unresolved typeref token (0100003F) for 'v8.internal.Object'; image may not run
+* warning MSB3270: There was a mismatch between the processor architecture of the project being built "MSIL" and the processor architecture of the reference "C:\Users\oliver\Documents\GitHub\Javascript.Net\x64\Release\JavaScript.Net.dll", "AMD64". This mismatch may cause runtime failures. Please consider changing the targeted processor architecture of your project through the Configuration Manager so as to align the processor architectures between your project and references, or take a dependency on references with a processor architecture that matches the targeted processor architecture of your project.
 
 
 Running Tests
 -------------
 
-Visual Studio may download nunit for you (though not if using VS 2008).
-
-There may be a better way to do this, but all I've been able to figure
-out for running it is something like:
-
-> packages\NUnit.Runners.2.6.3\tools\nunit-console-x86 Tests\Noesis.Javascript.Tests\bin\VS2010\x86\Debug\Noesis.Javascript.Tests.dll
-
-or
-
-> packages\NUnit.Runners.2.6.3\tools\nunit-console Tests\Noesis.Javascript.Tests\bin\x64\Debug\Noesis.Javascript.Tests.dll
-
-or (x64 in VS2012)
-
-> packages\NUnit.Runners.2.6.3\tools\nunit-console Tests\Noesis.Javascript.Tests\bin\VS2010\Release\Noesis.Javascript.Tests.dll
+The unit tests are standard Visual Studio - run them using the GUI.
 
 
-Upgrading v8
-------------
+Nuget
+-----
 
-Note that .gitmodules now specifies the v8 branch we are on.  This is good
-because v8 branches are more stable than the v8 trunk.  However when updating
-you probably want to find the highest branch number (less one to be sure it
-is stable) and edit .gitmodules to match.  Then run:
+Old versions have been published as Noesis.JavaScript.
 
-> git submodule update --remote
-
-You can read about changes to the v8 API at
-https://docs.google.com/a/g7.org/document/d/1g8JFi8T_oAE_7uAri7Njtig7fKaPDfotU6huOa1alds/edit
-
-
-Internationalization
---------------------
-buildv8.bat turns off internationalization when invoking gyp to avoid the need to distribute
-the (large) ICU DLLs and data file.
-
-
-Known Problems
---------------
-See Issues on GitHub.
+Publishing a newer version is a work in progress.

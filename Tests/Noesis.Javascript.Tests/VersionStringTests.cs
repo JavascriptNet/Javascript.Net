@@ -1,14 +1,15 @@
-﻿using NUnit.Framework;
+﻿using Microsoft.VisualStudio.TestTools.UnitTesting;
+using FluentAssertions;
 
 namespace Noesis.Javascript.Tests
 {
-    [TestFixture]
+    [TestClass]
     public class VersionStringTests
     {
-        [Test]
+        [TestMethod]
         public void RetrieveV8Version()
         {
-            Assert.That(JavascriptContext.V8Version, Is.Not.Empty);
+            JavascriptContext.V8Version.Should().NotBeEmpty();
         }
     }
 }

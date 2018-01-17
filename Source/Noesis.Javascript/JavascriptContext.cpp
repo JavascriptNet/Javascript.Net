@@ -30,6 +30,7 @@
 #include <vcclr.h>
 #include <msclr\marshal.h>
 #include <signal.h>
+#include "libplatform/libplatform.h"
 
 #include "JavascriptContext.h"
 
@@ -39,6 +40,7 @@
 #include "JavascriptInterop.h"
 
 using namespace msclr;
+using namespace v8::platform;
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -46,20 +48,44 @@ namespace Noesis { namespace Javascript {
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
+#pragma managed(push, off)
+	void GetPathToDll(char path[MAX_PATH])
+	{
+		HMODULE hm = NULL;
+		if (!GetModuleHandleExA(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS |
+			GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT,
+			(LPCSTR)&GetPathToDll,  // any address in the module we're caring about
+			&hm)) {
+			int ret = GetLastError();
+			fprintf(stderr, "GetModuleHandle error: %d\n", ret);
+		}
+		int nchars = GetModuleFileNameA(hm, path, MAX_PATH);
+		if (nchars == 0 || nchars >= MAX_PATH) {
+			int ret = GetLastError();
+			fprintf(stderr, "GetModuleFileNameA error: %d\n", ret);
+		}
+	}
+
+	// This code didn't work in managed code, probably due to too-clever smart pointers.
+	void UnmanagedInitialisation()
+	{
+		// Get location of DLL so that v8 can use it to find its .bin files.
+		char path[MAX_PATH];
+		GetPathToDll(path);
+		v8::V8::InitializeICUDefaultLocation(path);
+		v8::V8::InitializeExternalStartupData(path);
+		//std::unique_ptr<v8::Platform> platform = v8::platform::NewDefaultPlatform();
+		v8::Platform *platform = v8::platform::NewDefaultPlatform().release();
+		v8::V8::InitializePlatform(platform);
+		v8::V8::Initialize();
+	}
+#pragma managed(pop)
+
 static JavascriptContext::JavascriptContext()
 {
-    // If we don't initialize the ICU the calls to locale-specific functions
-    // (e.g. new Date().toLocaleString()) will cause an segmentation fault.
-    // Probably not after I added -Dv8_enable_i18n_support=0 to the gyp
-    // command line, but it's still good to have this here in case someone
-    // compiles with internationalization turned on.
-    v8::V8::InitializeICU();
-
-    // Things say we should do this, but I cannot find it.  Perhaps it is
-    // too new, or is old.
-    //v8::Platform* platform = v8::platform::CreateDefaultPlatform();
-    //v8::V8::InitializePlatform(platform);
+	UnmanagedInitialisation();
 }
+
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -88,7 +114,15 @@ void JavascriptContext::FatalErrorCallbackMember(const char* location, const cha
 
 JavascriptContext::JavascriptContext()
 {
-    isolate = v8::Isolate::New();
+    // Unfortunately the fatal error handler is not installed early enough to catch
+    // out-of-memory errors while creating new isolates
+    // (see my post Catching V8::FatalProcessOutOfMemory while creating an isolate (SetFatalErrorHandler does not work)).
+    // Also, HeapStatistics are only fetchable per-isolate, so they will not
+    // easily allow us to work out whether we are about to run out (although they
+    // would help us determine how much memory a new isolate used).
+	v8::Isolate::CreateParams create_params;
+	create_params.array_buffer_allocator = v8::ArrayBuffer::Allocator::NewDefaultAllocator();
+	isolate = v8::Isolate::New(create_params);
 	v8::Locker v8ThreadLock(isolate);
 	v8::Isolate::Scope isolate_scope(isolate);
 
@@ -126,14 +160,14 @@ void JavascriptContext::SetFatalErrorHandler(FatalErrorHandler^ handler)
 
 void JavascriptContext::TerminateExecution()
 {
-	v8::V8::TerminateExecution(isolate);
+	isolate->TerminateExecution();
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
 bool JavascriptContext::IsExecutionTerminating()
 {
-	return v8::V8::IsExecutionTerminating(isolate);
+	return isolate->IsExecutionTerminating();
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -194,7 +228,7 @@ JavascriptContext::Run(System::String^ iScript)
 	pin_ptr<const wchar_t> scriptPtr = PtrToStringChars(iScript);
 	wchar_t* script = (wchar_t*)scriptPtr;
 	JavascriptScope scope(this);
-	SetStackLimit();
+	//SetStackLimit();
 	HandleScope handleScope(JavascriptContext::GetCurrentIsolate());
 	Local<Value> ret;
 	
@@ -221,7 +255,7 @@ JavascriptContext::Run(System::String^ iScript, System::String^ iScriptResourceN
 	pin_ptr<const wchar_t> scriptResourceNamePtr = PtrToStringChars(iScriptResourceName);
 	wchar_t* scriptResourceName = (wchar_t*)scriptResourceNamePtr;
 	JavascriptScope scope(this);
-	SetStackLimit();
+	//SetStackLimit();
 	HandleScope handleScope(JavascriptContext::GetCurrentIsolate());
 	Local<Value> ret;	
 
@@ -241,27 +275,30 @@ JavascriptContext::Run(System::String^ iScript, System::String^ iScriptResourceN
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
 
-void
-JavascriptContext::SetStackLimit()
-{
-    // This stack limit needs to be set for each Run because the
-    // stack of the caller could be in completely different spots (e.g.
-    // different threads), or have moved up/down because calls/returns.
-	v8::ResourceConstraints rc;
-
-    // Copied form v8/test/cctest/test-api.cc
-    uint32_t size = 500000;
-    uint32_t* limit = &size - (size / sizeof(size));
-    // If the size is very large and the stack is very near the bottom of
-    // memory then the calculation above may wrap around and give an address
-    // that is above the (downwards-growing) stack.  In that case we return
-    // a very low address.
-    if (limit > &size)
-        limit = reinterpret_cast<uint32_t*>(sizeof(size));
-    
-    rc.set_stack_limit((uint32_t *)(limit));
-	v8::SetResourceConstraints(isolate, &rc);
-}
+//void
+//JavascriptContext::SetStackLimit()
+//{
+//    // This stack limit needs to be set for each Run because the
+//    // stack of the caller could be in completely different spots (e.g.
+//    // different threads), or have moved up/down because calls/returns.
+//	v8::ResourceConstraints rc;
+//
+//    // Copied form v8/test/cctest/test-api.cc
+//    uint32_t size = 500000;
+//    uint32_t* limit = &size - (size / sizeof(size));
+//    // If the size is very large and the stack is very near the bottom of
+//    // memory then the calculation above may wrap around and give an address
+//    // that is above the (downwards-growing) stack.  In that case we return
+//    // a very low address.
+//    if (limit > &size)
+//        limit = reinterpret_cast<uint32_t*>(sizeof(size));
+//    
+//    int mos = rc.max_old_space_size();
+//    
+//    rc.set_stack_limit((uint32_t *)(limit));
+//    rc.set_max_old_space_size(1700);
+//	v8::SetResourceConstraints(isolate, &rc);
+//}
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -313,7 +350,7 @@ JavascriptContext::Exit(v8::Locker *locker, JavascriptContext^ old_context)
 void
 JavascriptContext::Collect()
 {
-    while(!v8::V8::IdleNotification()) {}; 
+    while(!this->isolate->IdleNotification(1)) {};
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////

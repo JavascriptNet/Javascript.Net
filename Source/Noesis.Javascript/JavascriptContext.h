@@ -151,7 +151,7 @@ public:
 
     bool IsExecutionTerminating();
 
-	static void Collect();
+	void Collect();
 
 	// Fatal errors can occur when v8 runs out of memory.  Your process
 	// will exit immediately after this handler is called, because
@@ -166,7 +166,7 @@ public:
 	// Internal methods
 	////////////////////////////////////////////////////////////
 internal:
-	void SetStackLimit();
+	//void SetStackLimit();
 
 	static JavascriptContext^ GetCurrent();
 	

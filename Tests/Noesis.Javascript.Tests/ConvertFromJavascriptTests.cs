@@ -1,85 +1,86 @@
 ﻿using System;
 using System.Collections.Generic;
-using NUnit.Framework;
+using Microsoft.VisualStudio.TestTools.UnitTesting;
+using FluentAssertions;
 
 namespace Noesis.Javascript.Tests
 {
-    [TestFixture]
+    [TestClass]
     public class ConvertFromJavascriptTests
     {
         private JavascriptContext _context;
 
-        [SetUp]
+        [TestInitialize]
         public void SetUp()
         {
             _context = new JavascriptContext();
         }
 
-        [TearDown]
+        [TestCleanup]
         public void TearDown()
         {
             _context.Dispose();
         }
 
-        [Test]
+        [TestMethod]
         public void ReadFloat()
         {
             _context.Run("var myFloat = 10.0125");
             
-            Assert.That(_context.GetParameter("myFloat"), Is.InstanceOf<double>().And.EqualTo(10.0125));
+            _context.GetParameter("myFloat").Should().BeOfType<double>().Which.Should().Be(10.0125);
         }
 
-        [Test]
+        [TestMethod]
         public void ReadInteger()
         {
             _context.Run("var myInteger = 1000");
 
-            Assert.That(_context.GetParameter("myInteger"), Is.InstanceOf<int>().And.EqualTo(1000));
+            _context.GetParameter("myInteger").Should().BeOfType<int>().Which.Should().Be(1000);
         }
 
-        [Test]
+        [TestMethod]
         public void ReadString()
         {
             _context.Run("var myString = 'This is the string from Javascript'");
 
-            Assert.That(_context.GetParameter("myString"), Is.EqualTo("This is the string from Javascript"));
+            _context.GetParameter("myString").Should().BeOfType<string>().Which.Should().Be("This is the string from Javascript");
         }
 
-        [Test]
+        [TestMethod]
         public void ReadArray()
         {
             _context.Run("var myArray = [11,22,33]");
 
             Array jsArray = (Array)_context.GetParameter("myArray");
 
-            Assert.That(jsArray, Is.EquivalentTo(new[] {11, 22, 33}));
+            jsArray.Should().BeEquivalentTo(new[] {11, 22, 33});
         }
 
-        [Test]
+        [TestMethod]
         public void ReadBooleanFalse()
         {
             _context.Run("var myBool = false");
 
-            Assert.That(_context.GetParameter("myBool"), Is.False);
+            _context.GetParameter("myBool").Should().BeOfType<bool>().Which.Should().BeFalse();
         }
 
-        [Test]
+        [TestMethod]
         public void ReadBooleanTrue()
         {
             _context.Run("var myBool = true");
 
-            Assert.That(_context.GetParameter("myBool"), Is.True);
+            _context.GetParameter("myBool").Should().BeOfType<bool>().Which.Should().BeTrue();
         }
 
-        [Test]
+        [TestMethod]
         public void ReadDate()
         {
             _context.Run("var myDate = new Date(2010,9,10)");
 
-            Assert.That(_context.GetParameter("myDate"), Is.EqualTo(new DateTime(2010, 10, 10)));
+            _context.GetParameter("myDate").Should().BeOfType<DateTime>().Which.Should().Be(new DateTime(2010, 10, 10));
         }
 
-        [Test]
+        [TestMethod]
         public void ReadObject()
         {
             _context.Run(@"var myObject = new Object();
@@ -88,22 +89,22 @@ namespace Noesis.Javascript.Tests
 
             Dictionary<string, Object> jsObject = (Dictionary<string, Object>)_context.GetParameter("myObject");
 
-            Assert.That(jsObject["foo"], Is.EqualTo("new property"));
-            Assert.That(jsObject["bar"], Is.EqualTo(123456));
+            jsObject["foo"].Should().BeOfType<string>().Which.Should().Be("new property");
+            jsObject["bar"].Should().BeOfType<int>().Which.Should().Be(123456);
         }
 
-        [Test]
+        [TestMethod]
         public void ReadExternalObject()
         {
             _context.SetParameter("myExternal", new ConvertFromJavascriptTests());
-            Assert.That(_context.GetParameter("myExternal"), Is.InstanceOf<ConvertFromJavascriptTests>());
+            _context.GetParameter("myExternal").Should().BeOfType<ConvertFromJavascriptTests>();
         }
 
-        [Test]
+        [TestMethod]
         public void ReadDoubleByteChar()
         {
             _context.SetParameter("UniString", "呵呵呵呵呵");
-            Assert.That(_context.GetParameter("UniString"), Is.EqualTo("呵呵呵呵呵"));
+            _context.GetParameter("UniString").Should().BeOfType<string>().Which.Should().Be("呵呵呵呵呵");
         }
     }
 }
