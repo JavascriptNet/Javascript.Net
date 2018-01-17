@@ -1,0 +1,57 @@
+ src/code-stubs.cc | 9 +++++++++
+ src/code-stubs.h  | 2 ++
+ src/isolate.cc    | 1 +
+ 3 files changed, 12 insertions(+)
+
+diff --git a/src/code-stubs.cc b/src/code-stubs.cc
+index acd877d46..d509b0299 100644
+--- a/src/code-stubs.cc
++++ b/src/code-stubs.cc
+@@ -161,6 +161,8 @@ const char* CodeStub::MajorName(CodeStub::Major major_key,
+     CODE_STUB_LIST(DEF_CASE)
+ #undef DEF_CASE
+     case UninitializedMajorKey: return "<UninitializedMajorKey>Stub";
++    case NoCache:
++        return "<NoCache>Stub";
+     default:
+       if (!allow_unknown_keys) {
+         UNREACHABLE();
+@@ -764,6 +766,13 @@ void RegExpConstructResultStub::InstallDescriptors(Isolate* isolate) {
+ }
+ 
+ 
++// static
++void KeyedLoadDictionaryElementStub::InstallDescriptors(Isolate* isolate) {
++  KeyedLoadDictionaryElementStub stub(isolate);
++  InstallDescriptor(isolate, &stub);
++}
++
++
+ // static
+ void KeyedLoadGenericElementStub::InstallDescriptors(Isolate* isolate) {
+   KeyedLoadGenericElementStub stub(isolate);
+diff --git a/src/code-stubs.h b/src/code-stubs.h
+index b243b5609..ced37a577 100644
+--- a/src/code-stubs.h
++++ b/src/code-stubs.h
+@@ -1823,6 +1823,8 @@ class KeyedLoadDictionaryElementStub : public HydrogenCodeStub {
+   virtual void InitializeInterfaceDescriptor(
+       CodeStubInterfaceDescriptor* descriptor) V8_OVERRIDE;
+ 
++  static void InstallDescriptors(Isolate* isolate);
++
+  private:
+   Major MajorKey() { return KeyedLoadElement; }
+   int NotMissMinorKey() { return DICTIONARY_ELEMENTS; }
+diff --git a/src/isolate.cc b/src/isolate.cc
+index 9ec3c9b28..8a32a386f 100644
+--- a/src/isolate.cc
++++ b/src/isolate.cc
+@@ -2011,6 +2011,7 @@ bool Isolate::Init(Deserializer* des) {
+     NumberToStringStub::InstallDescriptors(this);
+     StringAddStub::InstallDescriptors(this);
+     RegExpConstructResultStub::InstallDescriptors(this);
++    KeyedLoadDictionaryElementStub::InstallDescriptors(this);
+     KeyedLoadGenericElementStub::InstallDescriptors(this);
+   }
+ 

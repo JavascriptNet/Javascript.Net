@@ -58,6 +58,8 @@ public:
 
 	static double ConvertToDouble(System::Object^ iValue);
 
+	static System::Decimal ConvertToDecimal(System::Object^ iValue);
+
 	static System::String^ ConvertToString(System::Object^ iValue);
 
 	static System::Object^ ConvertToType(System::Object^ iValue, System::Type^ iType);
