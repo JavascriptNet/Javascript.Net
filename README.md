@@ -24,6 +24,7 @@ using (JavascriptContext context = new JavascriptContext()) {
     Console.WriteLine("number: " + context.GetParameter("number"));
 }
 ```
+See [our wiki](https://github.com/JavascriptNet/Javascript.Net/wiki) for more information.
 
 Redistribution
 ==============
