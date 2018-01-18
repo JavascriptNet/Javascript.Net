@@ -6,7 +6,7 @@ before_build:
   - cd ../..
 
 platform:
-  - x64
+  - x86
 
 configuration:
   - Debug
