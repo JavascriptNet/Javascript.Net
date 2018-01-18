@@ -27,7 +27,7 @@ namespace Noesis.Javascript.Tests
         {
             _context.SetParameter("val", 125.25f);
 
-            _context.Run("val == 125.25").Should().BeOfType<bool>().Which.Should().BeTrue();
+            _context.Run("val === 125.25").Should().BeOfType<bool>().Which.Should().BeTrue();
         }
         
         [TestMethod]
@@ -35,7 +35,7 @@ namespace Noesis.Javascript.Tests
         {
             _context.SetParameter("val", 125.25);
 
-            _context.Run("val == 125.25").Should().BeOfType<bool>().Which.Should().BeTrue();
+            _context.Run("val === 125.25").Should().BeOfType<bool>().Which.Should().BeTrue();
         }
 
         [TestMethod]
@@ -43,7 +43,7 @@ namespace Noesis.Javascript.Tests
         {
             _context.SetParameter("val", 600);
 
-            _context.Run("val == 600").Should().BeOfType<bool>().Which.Should().BeTrue();
+            _context.Run("val === 600").Should().BeOfType<bool>().Which.Should().BeTrue();
         }
 
         [TestMethod]
@@ -51,7 +51,7 @@ namespace Noesis.Javascript.Tests
         {
             _context.SetParameter("val", (sbyte)65);
 
-            _context.Run("val == 65").Should().BeOfType<bool>().Which.Should().BeTrue();
+            _context.Run("val === 65").Should().BeOfType<bool>().Which.Should().BeTrue();
         }     
         
         [TestMethod]
@@ -59,7 +59,7 @@ namespace Noesis.Javascript.Tests
         {
             _context.SetParameter("val", (short)600);
 
-            _context.Run("val == 600").Should().BeOfType<bool>().Which.Should().BeTrue();
+            _context.Run("val === 600").Should().BeOfType<bool>().Which.Should().BeTrue();
         }
         
         [TestMethod]
@@ -67,7 +67,7 @@ namespace Noesis.Javascript.Tests
         {
             _context.SetParameter("val", (long)60012312321);
 
-            _context.Run("val == 60012312321").Should().BeOfType<bool>().Which.Should().BeTrue();
+            _context.Run("val === 60012312321").Should().BeOfType<bool>().Which.Should().BeTrue();
         }
 
         [TestMethod]
@@ -75,7 +75,7 @@ namespace Noesis.Javascript.Tests
         {
             _context.SetParameter("val", uint.MaxValue);
 
-            _context.Run("val == 4294967295").Should().BeOfType<bool>().Which.Should().BeTrue();
+            _context.Run("val === 4294967295").Should().BeOfType<bool>().Which.Should().BeTrue();
         }
 
         [TestMethod]
@@ -83,7 +83,7 @@ namespace Noesis.Javascript.Tests
         {
             _context.SetParameter("val", (byte)255);
 
-            _context.Run("val == 255").Should().BeOfType<bool>().Which.Should().BeTrue();
+            _context.Run("val === 255").Should().BeOfType<bool>().Which.Should().BeTrue();
         }
 
         [TestMethod]
@@ -91,7 +91,7 @@ namespace Noesis.Javascript.Tests
         {
             _context.SetParameter("val", ushort.MaxValue);
 
-            _context.Run("val == 65535").Should().BeOfType<bool>().Which.Should().BeTrue();
+            _context.Run("val === 65535").Should().BeOfType<bool>().Which.Should().BeTrue();
         }
 
         [TestMethod]
@@ -99,7 +99,7 @@ namespace Noesis.Javascript.Tests
         {
             _context.SetParameter("val", ulong.MaxValue);
 
-            _context.Run("val == 18446744073709551615").Should().BeOfType<bool>().Which.Should().BeTrue();
+            _context.Run("val === 18446744073709551615").Should().BeOfType<bool>().Which.Should().BeTrue();
         }
 
         [TestMethod]
@@ -107,7 +107,7 @@ namespace Noesis.Javascript.Tests
         {
             _context.SetParameter("val", "A string from .NET");
 
-            _context.Run("val == 'A string from .NET'").Should().BeOfType<bool>().Which.Should().BeTrue();
+            _context.Run("val === 'A string from .NET'").Should().BeOfType<bool>().Which.Should().BeTrue();
         }
         
         [TestMethod]
@@ -123,7 +123,7 @@ namespace Noesis.Javascript.Tests
         {
             _context.SetParameter("val", true);
 
-            _context.Run("val == true").Should().BeOfType<bool>().Which.Should().BeTrue();
+            _context.Run("val === true").Should().BeOfType<bool>().Which.Should().BeTrue();
         }
 
         [TestMethod]
@@ -131,9 +131,9 @@ namespace Noesis.Javascript.Tests
         {
             _context.SetParameter("val", new DateTime(2010,10,10));
 
-            _context.Run("val.getUTCFullYear() == 2010").Should().BeOfType<bool>().Which.Should().BeTrue();
-            _context.Run("val.getMonth() == 9").Should().BeOfType<bool>().Which.Should().BeTrue();
-            _context.Run("val.getDate() == 10").Should().BeOfType<bool>().Which.Should().BeTrue();
+            _context.Run("val.getUTCFullYear()").Should().BeOfType<int>().Which.Should().Be(2010);
+            _context.Run("val.getMonth()").Should().BeOfType<int>().Which.Should().Be(9);
+            _context.Run("val.getDate()").Should().BeOfType<int>().Which.Should().Be(10);
         }        
         
         [TestMethod]
@@ -141,7 +141,7 @@ namespace Noesis.Javascript.Tests
         {
             _context.SetParameter("val", new ConvertToJavascriptTests());
 
-            _context.Run("val.ToString() == 'Noesis.Javascript.Tests.ConvertToJavascriptTests'").Should().BeOfType<bool>().Which.Should().BeTrue();
+            _context.Run("val.ToString()").Should().BeOfType<string>().Which.Should().Be("Noesis.Javascript.Tests.ConvertToJavascriptTests");
         }
 
         [TestMethod]
