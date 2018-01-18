@@ -26,6 +26,14 @@ using (JavascriptContext context = new JavascriptContext()) {
 ```
 See [our wiki](https://github.com/JavascriptNet/Javascript.Net/wiki) for more information.
 
+Nuget
+=====
+
+Old versions have been published as Noesis.JavaScript.
+
+Publishing a newer version is a work in progress.
+
+
 Redistribution
 ==============
 
@@ -51,19 +59,12 @@ The following warnings are expected:
 
 * warning MSB3270: There was a mismatch between the processor architecture of the project being built "MSIL" and the processor architecture of the reference "C:\Users\oliver\Documents\GitHub\Javascript.Net\x64\Release\JavaScript.Net.dll", "AMD64". This mismatch may cause runtime failures. Please consider changing the targeted processor architecture of your project through the Configuration Manager so as to align the processor architectures between your project and references, or take a dependency on references with a processor architecture that matches the targeted processor architecture of your project.
 
+Also note that when using the DLL built from source, you will need to add a Post Build Step to your consuming project, which copies the v8 DLLs and .bin files into your output directory.  See Noesis.Javascript.Tests.csproj for an example, noting that it has some extra sections manually inserted to define `V8Platform`.
 
 Running Tests
 =============
 
 The unit tests are standard Visual Studio - run them using the GUI.
-
-
-Nuget
-=====
-
-Old versions have been published as Noesis.JavaScript.
-
-Publishing a newer version is a work in progress.
 
 
 Internationalization
