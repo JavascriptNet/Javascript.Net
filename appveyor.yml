@@ -1,3 +1,6 @@
 image: Visual Studio 2017
 before_build:
   - nuget restore
+  - cd Source\Noesis.Javascript
+  - nuget restore -PackagesDirectory packages  # For some reason the C++ project wants them in its own packages subdirectory
+  - cd ../..
