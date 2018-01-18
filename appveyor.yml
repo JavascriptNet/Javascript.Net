@@ -4,3 +4,9 @@ before_build:
   - cd Source\Noesis.Javascript
   - nuget restore -PackagesDirectory packages  # For some reason the C++ project wants them in its own packages subdirectory
   - cd ../..
+
+platform:
+  - x64
+
+configuration:
+  - Debug
