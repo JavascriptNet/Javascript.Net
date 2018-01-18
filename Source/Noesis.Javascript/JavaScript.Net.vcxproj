@@ -101,6 +101,9 @@
     <Link>
       <AdditionalDependencies>v8.dll.lib;v8_libbase.dll.lib;v8_libplatform.dll.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
+    <PreBuildEvent>
+      <Command>nuget restore -PackagesDirectory packages</Command>
+    </PreBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
@@ -112,6 +115,9 @@
     <Link>
       <AdditionalDependencies>v8.dll.lib;v8_libbase.dll.lib;v8_libplatform.dll.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
+    <PreBuildEvent>
+      <Command>nuget restore -PackagesDirectory packages</Command>
+    </PreBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <ClCompile>
@@ -122,6 +128,9 @@
     <Link>
       <AdditionalDependencies>v8.dll.lib;v8_libbase.dll.lib;v8_libplatform.dll.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
+    <PreBuildEvent>
+      <Command>nuget restore -PackagesDirectory packages</Command>
+    </PreBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ClCompile>
@@ -132,6 +141,9 @@
     <Link>
       <AdditionalDependencies>v8.dll.lib;v8_libbase.dll.lib;v8_libplatform.dll.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
+    <PreBuildEvent>
+      <Command>nuget restore -PackagesDirectory packages</Command>
+    </PreBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
     <Reference Include="System" />
