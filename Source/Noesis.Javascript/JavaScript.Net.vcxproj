@@ -2,6 +2,8 @@
 <Project DefaultTargets="Build" ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <Import Project="..\..\packages\v8-v141-x86.6.4.388.11\build\native\v8-v141-x86.props" Condition="Exists('..\..\packages\v8-v141-x86.6.4.388.11\build\native\v8-v141-x86.props')" />
   <Import Project="..\..\packages\v8.redist-v141-x86.6.4.388.11\build\native\v8.redist-v141-x86.props" Condition="Exists('..\..\packages\v8.redist-v141-x86.6.4.388.11\build\native\v8.redist-v141-x86.props')" />
+  <Import Project="..\..\packages\v8-v141-x64.6.4.388.11\build\native\v8-v141-x64.props" Condition="Exists('..\..\packages\v8-v141-x64.6.4.388.11\build\native\v8-v141-x64.props')" />
+  <Import Project="..\..\packages\v8.redist-v141-x64.6.4.388.11\build\native\v8.redist-v141-x64.props" Condition="Exists('..\..\packages\v8.redist-v141-x64.6.4.388.11\build\native\v8.redist-v141-x64.props')" />
   <Import Project="packages\v8-v141-x64.6.4.388.11\build\native\v8-v141-x64.props" Condition="Exists('packages\v8-v141-x64.6.4.388.11\build\native\v8-v141-x64.props')" />
   <Import Project="packages\v8.redist-v141-x64.6.4.388.11\build\native\v8.redist-v141-x64.props" Condition="Exists('packages\v8.redist-v141-x64.6.4.388.11\build\native\v8.redist-v141-x64.props')" />
   <ItemGroup Label="ProjectConfigurations">
@@ -174,13 +176,4 @@
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets" />
-  <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">
-    <PropertyGroup>
-      <ErrorText>This project references NuGet package(s) that are missing on this computer. Use NuGet Package Restore to download them.  For more information, see http://go.microsoft.com/fwlink/?LinkID=322105. The missing file is {0}.</ErrorText>
-    </PropertyGroup>
-    <Error Condition="!Exists('packages\v8.redist-v141-x64.6.4.388.11\build\native\v8.redist-v141-x64.props')" Text="$([System.String]::Format('$(ErrorText)', 'packages\v8.redist-v141-x64.6.4.388.11\build\native\v8.redist-v141-x64.props'))" />
-    <Error Condition="!Exists('packages\v8-v141-x64.6.4.388.11\build\native\v8-v141-x64.props')" Text="$([System.String]::Format('$(ErrorText)', 'packages\v8-v141-x64.6.4.388.11\build\native\v8-v141-x64.props'))" />
-    <Error Condition="!Exists('..\..\packages\v8.redist-v141-x86.6.4.388.11\build\native\v8.redist-v141-x86.props')" Text="$([System.String]::Format('$(ErrorText)', '..\..\packages\v8.redist-v141-x86.6.4.388.11\build\native\v8.redist-v141-x86.props'))" />
-    <Error Condition="!Exists('..\..\packages\v8-v141-x86.6.4.388.11\build\native\v8-v141-x86.props')" Text="$([System.String]::Format('$(ErrorText)', '..\..\packages\v8-v141-x86.6.4.388.11\build\native\v8-v141-x86.props'))" />
-  </Target>
 </Project>
