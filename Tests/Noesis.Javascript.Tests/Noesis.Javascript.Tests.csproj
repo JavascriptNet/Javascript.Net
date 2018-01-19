@@ -82,6 +82,7 @@
     <Compile Include="ConvertFromJavascriptTests.cs" />
     <Compile Include="ConvertToJavascriptTests.cs" />
     <Compile Include="ExceptionTests.cs" />
+    <Compile Include="FatalErrorHandlerTests.cs" />
     <Compile Include="IsolationTests.cs" />
     <Compile Include="MemoryLeakTests.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />

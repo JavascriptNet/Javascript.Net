@@ -146,7 +146,7 @@ JavascriptContext::JavascriptContext()
 	v8::Locker v8ThreadLock(isolate);
 	v8::Isolate::Scope isolate_scope(isolate);
 
-    V8::SetFatalErrorHandler(FatalErrorCallback);
+    isolate->SetFatalErrorHandler(FatalErrorCallback);
 
 	mExternals = gcnew System::Collections::Generic::Dictionary<System::Object ^, WrappedJavascriptExternal>();
 	HandleScope scope(isolate);
