@@ -58,27 +58,33 @@ namespace Noesis { namespace Javascript {
 			&hm)) {
 			int ret = GetLastError();
 			fprintf(stderr, "GetModuleHandle error: %d\n", ret);
+			raise(SIGABRT);  // Exit immediately.
 		}
 		int nchars = GetModuleFileNameA(hm, dll_path, MAX_PATH);
 		if (nchars == 0 || nchars >= MAX_PATH) {
 			int ret = GetLastError();
 			fprintf(stderr, "GetModuleFileNameA error: %d\n", ret);
+			raise(SIGABRT);  // Exit immediately.
 		}
 		// Because they can conflict with differently-versioned .bin files from Chromiu/CefSharp,
 		// we'll prefer .bin files prefixed by "v8_", if present.
-		strcpy(natives_blob_bin_path, dll_path);
-		strcpy(snapshot_blob_bin_path, dll_path);
-		strcpy(strrchr(natives_blob_bin_path, '\\'), "\\v8_natives_blob.bin");
-		strcpy(strrchr(snapshot_blob_bin_path, '\\'), "\\v8_snapshot_blob.bin");
+		strcpy_s(natives_blob_bin_path, MAX_PATH, dll_path);
+		strcpy_s(snapshot_blob_bin_path, MAX_PATH, dll_path);
+		if (strlen(dll_path) > MAX_PATH - 20) {
+			fprintf(stderr, "Path is too long - don't want to overflow our buffers.");
+			raise(SIGABRT);  // Exit immediately.
+		}
+		strcpy_s(strrchr(natives_blob_bin_path, '\\'), 21, "\\v8_natives_blob.bin");
+		strcpy_s(strrchr(snapshot_blob_bin_path, '\\'), 22, "\\v8_snapshot_blob.bin");
 		FILE *file;
-		if ((file = fopen(natives_blob_bin_path, "r")) != NULL)
+		if (fopen_s(&file, natives_blob_bin_path, "r") == 0)
 			fclose(file);
 		else
-			strcpy(strrchr(natives_blob_bin_path, '\\'), "\\natives_blob.bin");
-		if ((file = fopen(snapshot_blob_bin_path, "r")) != NULL)
+			strcpy_s(strrchr(natives_blob_bin_path, '\\'), 18, "\\natives_blob.bin");
+		if (fopen_s(&file, snapshot_blob_bin_path, "r") == 0)
 			fclose(file);
 		else
-			strcpy(strrchr(snapshot_blob_bin_path, '\\'), "\\snapshot_blob.bin");
+			strcpy_s(strrchr(snapshot_blob_bin_path, '\\'), 19, "\\snapshot_blob.bin");
 	}
 
 	// This code didn't work in managed code, probably due to too-clever smart pointers.
@@ -88,7 +94,7 @@ namespace Noesis { namespace Javascript {
 		char dll_path[MAX_PATH], natives_blob_bin_path[MAX_PATH], snapshot_blob_bin_path[MAX_PATH];
 		GetPathsForInitialisation(dll_path, natives_blob_bin_path, snapshot_blob_bin_path);
 		v8::V8::InitializeICUDefaultLocation(dll_path);
-		v8::V8::InitializeExternalStartupData(natives_blob_bin_path, snapshot_blob_bin_path  );
+		v8::V8::InitializeExternalStartupData(natives_blob_bin_path, snapshot_blob_bin_path);
 		v8::Platform *platform = v8::platform::NewDefaultPlatform().release();
 		v8::V8::InitializePlatform(platform);
 		v8::V8::Initialize();
