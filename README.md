@@ -1,3 +1,5 @@
+<img src="https://ci.appveyor.com/api/projects/status/5e8ofnu5d6d08wax/branch/master?svg=true">
+
 Example
 =======
 ```
