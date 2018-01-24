@@ -49,7 +49,7 @@ namespace Noesis { namespace Javascript {
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
 #pragma managed(push, off)
-	void GetPathsForInitialisation(char dll_path[MAX_PATH], char natives_blob_bin_path[MAX_PATH], char snapshot_blob_bin_path[MAX_PATH])
+	void GetPathsForInitialisation(char dll_path[MAX_PATH], char natives_blob_bin_path[MAX_PATH], char snapshot_blob_bin_path[MAX_PATH], char icudtl_dat_path[MAX_PATH])
 	{
 		HMODULE hm = NULL;
 		if (!GetModuleHandleExA(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS |
@@ -66,7 +66,7 @@ namespace Noesis { namespace Javascript {
 			fprintf(stderr, "GetModuleFileNameA error: %d\n", ret);
 			raise(SIGABRT);  // Exit immediately.
 		}
-		// Because they can conflict with differently-versioned .bin files from Chromiu/CefSharp,
+		// Because they can conflict with differently-versioned .bin/.dat files from Chromium/CefSharp,
 		// we'll prefer .bin files prefixed by "v8_", if present.
 		strcpy_s(natives_blob_bin_path, MAX_PATH, dll_path);
 		strcpy_s(snapshot_blob_bin_path, MAX_PATH, dll_path);
@@ -76,6 +76,7 @@ namespace Noesis { namespace Javascript {
 		}
 		strcpy_s(strrchr(natives_blob_bin_path, '\\'), 21, "\\v8_natives_blob.bin");
 		strcpy_s(strrchr(snapshot_blob_bin_path, '\\'), 22, "\\v8_snapshot_blob.bin");
+		strcpy_s(strrchr(icudtl_dat_path, '\\'), 22, "\\v8_icudtl.dat");
 		FILE *file;
 		if (fopen_s(&file, natives_blob_bin_path, "r") == 0)
 			fclose(file);
@@ -85,15 +86,19 @@ namespace Noesis { namespace Javascript {
 			fclose(file);
 		else
 			strcpy_s(strrchr(snapshot_blob_bin_path, '\\'), 19, "\\snapshot_blob.bin");
+		if (fopen_s(&file, icudtl_dat_path, "r") == 0)
+			fclose(file);
+		else
+			strcpy_s(strrchr(icudtl_dat_path, '\\'), 19, "\\icudtl.dat");
 	}
 
 	// This code didn't work in managed code, probably due to too-clever smart pointers.
 	void UnmanagedInitialisation()
 	{
 		// Get location of DLL so that v8 can use it to find its .bin files.
-		char dll_path[MAX_PATH], natives_blob_bin_path[MAX_PATH], snapshot_blob_bin_path[MAX_PATH];
-		GetPathsForInitialisation(dll_path, natives_blob_bin_path, snapshot_blob_bin_path);
-		v8::V8::InitializeICUDefaultLocation(dll_path);
+		char dll_path[MAX_PATH], natives_blob_bin_path[MAX_PATH], snapshot_blob_bin_path[MAX_PATH], icudtl_dat_path[MAX_PATH];
+		GetPathsForInitialisation(dll_path, natives_blob_bin_path, snapshot_blob_bin_path, icudtl_dat_path);
+		v8::V8::InitializeICUDefaultLocation(dll_path, icudtl_dat_path);
 		v8::V8::InitializeExternalStartupData(natives_blob_bin_path, snapshot_blob_bin_path);
 		v8::Platform *platform = v8::platform::NewDefaultPlatform().release();
 		v8::V8::InitializePlatform(platform);
