@@ -70,13 +70,14 @@ namespace Noesis { namespace Javascript {
 		// we'll prefer .bin files prefixed by "v8_", if present.
 		strcpy_s(natives_blob_bin_path, MAX_PATH, dll_path);
 		strcpy_s(snapshot_blob_bin_path, MAX_PATH, dll_path);
+		strcpy_s(icudtl_dat_path, MAX_PATH, dll_path);
 		if (strlen(dll_path) > MAX_PATH - 20) {
 			fprintf(stderr, "Path is too long - don't want to overflow our buffers.");
 			raise(SIGABRT);  // Exit immediately.
 		}
 		strcpy_s(strrchr(natives_blob_bin_path, '\\'), 21, "\\v8_natives_blob.bin");
 		strcpy_s(strrchr(snapshot_blob_bin_path, '\\'), 22, "\\v8_snapshot_blob.bin");
-		strcpy_s(strrchr(icudtl_dat_path, '\\'), 22, "\\v8_icudtl.dat");
+		strcpy_s(strrchr(icudtl_dat_path, '\\'), 15, "\\v8_icudtl.dat");
 		FILE *file;
 		if (fopen_s(&file, natives_blob_bin_path, "r") == 0)
 			fclose(file);
@@ -89,7 +90,7 @@ namespace Noesis { namespace Javascript {
 		if (fopen_s(&file, icudtl_dat_path, "r") == 0)
 			fclose(file);
 		else
-			strcpy_s(strrchr(icudtl_dat_path, '\\'), 19, "\\icudtl.dat");
+			strcpy_s(strrchr(icudtl_dat_path, '\\'), 12, "\\icudtl.dat");
 	}
 
 	// This code didn't work in managed code, probably due to too-clever smart pointers.
