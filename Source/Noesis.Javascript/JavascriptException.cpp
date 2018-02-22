@@ -149,7 +149,7 @@ JavascriptException::GetSystemException(TryCatch& iTryCatch)
 	v8::Local<v8::Value> v8exception = iTryCatch.Exception();
 	if (v8exception->IsObject()) {
 		v8::Handle<v8::Object> exception_o = v8::Handle<v8::Object>::Cast(v8exception);
-		v8::Handle<v8::String> inner_exception_str = v8::String::NewFromUtf8(JavascriptContext::GetCurrentIsolate(), "InnerException");
+		v8::Handle<v8::String> inner_exception_str = v8::String::NewFromUtf8(JavascriptContext::GetCurrentIsolate(), "InnerException", v8::NewStringType::kNormal).ToLocalChecked();
 		if (exception_o->HasOwnProperty(inner_exception_str)) {
 			v8::Handle<v8::Value> inner = exception_o->Get(inner_exception_str);
 			System::Object^ object = JavascriptInterop::UnwrapObject(inner);

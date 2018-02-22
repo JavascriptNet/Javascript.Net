@@ -228,7 +228,8 @@ JavascriptContext::SetParameter(System::String^ iName, System::Object^ iObject, 
 		}
 	}
 
-	Local<Context>::New(isolate, *mContext)->Global()->Set(String::NewFromTwoByte(isolate, (uint16_t*)name), value);
+	v8::Local<v8::String> key = String::NewFromTwoByte(isolate, (uint16_t*)name, v8::NewStringType::kNormal).ToLocalChecked();
+	Local<Context>::New(isolate, *mContext)->Global()->Set(isolate->GetCurrentContext(), key, value).ToChecked();
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -242,7 +243,7 @@ JavascriptContext::GetParameter(System::String^ iName)
 	v8::Isolate *isolate = JavascriptContext::GetCurrentIsolate();
 	HandleScope handleScope(isolate);
 	
-	Local<Value> value = Local<Context>::New(isolate, *mContext)->Global()->Get(String::NewFromTwoByte(isolate, (uint16_t*)name));
+	Local<Value> value = Local<Context>::New(isolate, *mContext)->Global()->Get(String::NewFromTwoByte(isolate, (uint16_t*)name, v8::NewStringType::kNormal).ToLocalChecked());
 	return JavascriptInterop::ConvertFromV8(value);
 }
 
@@ -422,7 +423,7 @@ CompileScript(wchar_t const *source_code, wchar_t const *resource_name)
 {
 	// convert source
 	v8::Isolate *isolate = JavascriptContext::GetCurrentIsolate();
-	Local<String> source = String::NewFromTwoByte(isolate, (uint16_t const *)source_code);
+	Local<String> source = String::NewFromTwoByte(isolate, (uint16_t const *)source_code, v8::NewStringType::kNormal).ToLocalChecked();
 
 	// compile
 	{
@@ -435,7 +436,7 @@ CompileScript(wchar_t const *source_code, wchar_t const *resource_name)
 		}
 		else
 		{
-			Local<String> resource = String::NewFromTwoByte(isolate, (uint16_t const *)resource_name);
+			Local<String> resource = String::NewFromTwoByte(isolate, (uint16_t const *)resource_name, v8::NewStringType::kNormal).ToLocalChecked();
 			script = Script::Compile(source, resource);
 		}
 
