@@ -114,14 +114,14 @@ JavascriptInterop::ConvertToV8(System::Object^ iObject)
 				// No equivalent to enum, so convert to a string.
 				pin_ptr<const wchar_t> valuePtr = PtrToStringChars(iObject->ToString());
 				wchar_t* value = (wchar_t*) valuePtr;
-				return v8::String::NewFromTwoByte(isolate, (uint16_t*)value);
+				return v8::String::NewFromTwoByte(isolate, (uint16_t*)value, v8::NewStringType::kNormal).ToLocalChecked();
 			}
 			else
 			{
 				if (type == System::Char::typeid)
 				{
 					uint16_t c = (uint16_t)safe_cast<wchar_t>(iObject);
-					return v8::String::NewFromTwoByte(isolate, &c, v8::String::NewStringType::kNormalString, 1);
+					return v8::String::NewFromTwoByte(isolate, &c, v8::NewStringType::kNormal, 1).ToLocalChecked();
 				}
 				if (type == System::Int64::typeid)
 					return v8::Number::New(isolate, (double)safe_cast<long long>(iObject));
@@ -142,14 +142,14 @@ JavascriptInterop::ConvertToV8(System::Object^ iObject)
 				if (type == System::Decimal::typeid)
 					return v8::Number::New(isolate, (double)safe_cast<System::Decimal>(iObject));
 				if (type == System::DateTime::typeid)
-					return v8::Date::New(isolate, SystemInterop::ConvertFromSystemDateTime(safe_cast<System::DateTime^>(iObject)));
+					return v8::Date::New(isolate->GetCurrentContext(), SystemInterop::ConvertFromSystemDateTime(safe_cast<System::DateTime^>(iObject))).ToLocalChecked();
 			}
 		}
 		if (type == System::String::typeid)
 		{
 			pin_ptr<const wchar_t> valuePtr = PtrToStringChars(safe_cast<System::String^>(iObject));
 			wchar_t* value = (wchar_t*) valuePtr;
-			return v8::String::NewFromTwoByte(isolate, (uint16_t*)value);
+			return v8::String::NewFromTwoByte(isolate, (uint16_t*)value, v8::NewStringType::kNormal).ToLocalChecked();
 		}
 		if (type->IsArray)
 			return ConvertFromSystemArray(safe_cast<System::Array^>(iObject));
@@ -184,9 +184,10 @@ JavascriptInterop::ConvertToV8(System::Object^ iObject)
 			System::Exception ^exception = safe_cast<System::Exception^>(iObject);
 			pin_ptr<const wchar_t> valuePtr = PtrToStringChars(safe_cast<System::String^>(exception->Message));
 			wchar_t* value = (wchar_t*)valuePtr;
-			Handle<v8::Value> error = v8::Exception::Error(v8::String::NewFromTwoByte(isolate, (uint16_t*)value));
+			Handle<v8::Value> error = v8::Exception::Error(v8::String::NewFromTwoByte(isolate, (uint16_t*)value, v8::NewStringType::kNormal).ToLocalChecked());
 			Handle<v8::Object> error_o = v8::Handle<v8::Object>::Cast(error);
-			error_o->Set(v8::String::NewFromUtf8(isolate, "InnerException"), WrapObject(iObject));
+			Local<String> key = v8::String::NewFromUtf8(isolate, "InnerException", v8::NewStringType::kNormal).ToLocalChecked();
+			error_o->Set(isolate->GetCurrentContext(), key, WrapObject(iObject)).ToChecked();
 			return error_o;
 		}
 
@@ -207,8 +208,9 @@ JavascriptInterop::WrapObject(System::Object^ iObject)
 	if (context != nullptr)
 	{
 		Handle<ObjectTemplate> templ = context->GetObjectWrapperTemplate();
-		Handle<Object> object = templ->NewInstance();
-		object->SetInternalField(0, External::New(JavascriptContext::GetCurrentIsolate(), context->WrapObject(iObject)));
+		v8::Isolate *isolate = JavascriptContext::GetCurrentIsolate();
+		Handle<Object> object = templ->NewInstance(isolate->GetCurrentContext()).ToLocalChecked();
+		object->SetInternalField(0, External::New(isolate, context->WrapObject(iObject)));
 
 		return object;
 	}
@@ -305,13 +307,14 @@ JavascriptInterop::ConvertFromSystemArray(System::Array^ iArray)
 {
 	int lenght = iArray->Length;
 	v8::Isolate *isolate = JavascriptContext::GetCurrentIsolate();
+	Local<Context> context = isolate->GetCurrentContext();
 	v8::Handle<v8::Array> result = v8::Array::New(isolate);
 	
 	// Transform the .NET array into a Javascript array 
 	for (int i = 0; i < lenght; i++) 
 	{
 		v8::Handle<v8::Value> key = v8::Int32::New(isolate, i);
-		result->Set(key, ConvertToV8(iArray->GetValue(i)));
+		result->Set(context, key, ConvertToV8(iArray->GetValue(i))).ToChecked();
 	}
 
 	return result;
@@ -324,12 +327,14 @@ JavascriptInterop::ConvertFromSystemDictionary(System::Object^ iObject)
 {
 	v8::Handle<v8::Object> object = v8::Object::New(JavascriptContext::GetCurrentIsolate());
 	System::Collections::IDictionary^ dictionary =  safe_cast<System::Collections::IDictionary^>(iObject);
+	v8::Isolate *isolate = JavascriptContext::GetCurrentIsolate();
+	Local<Context> context = isolate->GetCurrentContext();
 
 	for each(System::Object^ keyValue in dictionary->Keys) 
 	{
 		v8::Handle<v8::Value> key = ConvertToV8(keyValue);
 		v8::Handle<v8::Value> val = ConvertToV8(dictionary[keyValue]);
-		object->Set(key, val);
+		object->Set(context, key, val).ToChecked();
 	} 
 
 
