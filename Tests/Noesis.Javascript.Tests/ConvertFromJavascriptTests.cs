@@ -106,5 +106,17 @@ namespace Noesis.Javascript.Tests
             _context.SetParameter("UniString", "呵呵呵呵呵");
             _context.GetParameter("UniString").Should().BeOfType<string>().Which.Should().Be("呵呵呵呵呵");
         }
+
+        [TestMethod]
+        public void SelfReferentialObjectDoesNotCauseStackOverflow()
+        {
+            _context.Run("a = {}; a.a = a");
+        }
+
+        [TestMethod]
+        public void SelfReferentialArrayDoesNotCauseStackOverflow()
+        {
+            _context.Run("a = []; a.push(a)");
+        }
     }
 }

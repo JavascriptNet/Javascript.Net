@@ -56,7 +56,7 @@ public enum class SetParameterOptions : int
 
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-// WrappedJavascriptExternal
+// WrappedMethod
 //
 // Type-safely wraps a native pointer for inclusion in managed code as an IntPtr.  I thought
 // there would already be something for this, but I couldn't find it.
@@ -97,7 +97,7 @@ internal:
 	WrappedJavascriptExternal(JavascriptExternal *value)
 	{
 		System::IntPtr value_pointer(value);
-        pointer = value_pointer;
+		pointer = value_pointer;
 	}
 
 	property JavascriptExternal *Pointer

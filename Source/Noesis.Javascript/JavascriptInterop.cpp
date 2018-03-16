@@ -60,8 +60,60 @@ JavascriptInterop::NewObjectWrapperTemplate()
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
+ConvertedObjects::ConvertedObjects()
+{
+	objectToConversion = v8::Map::New(JavascriptContext::GetCurrentIsolate());
+}
+
+ConvertedObjects::~ConvertedObjects()
+{
+	size_t n = objectToConversion->Size();
+	Local<Array> keys_and_items = objectToConversion->AsArray();
+	for (size_t i = 0; i < n; i++) {
+		Local<Value> item_i = keys_and_items->Get(i * 2 + 1);
+		Local<External> external = Local<External>::Cast(item_i);
+		delete (gcroot<System::Object^> *)external->Value();
+	}
+}
+
+void
+ConvertedObjects::AddConverted(v8::Local<v8::Object> o, System::Object^ converted)
+{
+	Isolate *isolate = JavascriptContext::GetCurrentIsolate();
+	Local<Context> context = isolate->GetCurrentContext();
+	Local<External> clr_object_wrapped_for_v8 = External::New(isolate, new gcroot<System::Object^>(converted));
+	objectToConversion->Set(context, o, clr_object_wrapped_for_v8);
+}
+
+System::Object^
+ConvertedObjects::GetConverted(v8::Local<v8::Object> o)
+{
+	Isolate *isolate = JavascriptContext::GetCurrentIsolate();
+	Local<Context> context = isolate->GetCurrentContext();
+	MaybeLocal<Value> maybe_found = objectToConversion->Get(context, o);
+	Local<Value> found = maybe_found.ToLocalChecked();
+	if (found->IsUndefined())
+		return nullptr;  // haven't seen this JavaScript object before
+	Local<External> external = Local<External>::Cast(found);
+	gcroot<System::Object^> *object_ptr = (gcroot<System::Object^> *)external->Value();
+	System::Object^ converted = *object_ptr;
+	return converted;
+}
+
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+
 System::Object^
 JavascriptInterop::ConvertFromV8(Handle<Value> iValue)
+{
+	ConvertedObjects already_converted;
+	return ConvertFromV8(iValue, already_converted);
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+
+System::Object^
+JavascriptInterop::ConvertFromV8(Handle<Value> iValue, ConvertedObjects &already_converted)
 {
 	if (iValue->IsNull() || iValue->IsUndefined())
 		return nullptr;
@@ -74,7 +126,7 @@ JavascriptInterop::ConvertFromV8(Handle<Value> iValue)
 	if (iValue->IsString())
 		return gcnew System::String((wchar_t*)*String::Value(iValue->ToString()));
 	if (iValue->IsArray())
-		return ConvertArrayFromV8(iValue);
+		return ConvertArrayFromV8(iValue, already_converted);
 	if (iValue->IsDate())
 		return ConvertDateFromV8(iValue);
 	if (iValue->IsObject())
@@ -84,7 +136,7 @@ JavascriptInterop::ConvertFromV8(Handle<Value> iValue)
 		if (object->InternalFieldCount() > 0)
 			return UnwrapObject(iValue);
 		else
-			return ConvertObjectFromV8(object);
+			return ConvertObjectFromV8(object, already_converted);
 	}
 
 	return nullptr;
@@ -249,7 +301,7 @@ JavascriptInterop::UnwrapObject(Handle<Value> iValue)
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
 System::Object^
-JavascriptInterop::ConvertArrayFromV8(Handle<Value> iValue)
+JavascriptInterop::ConvertArrayFromV8(Handle<Value> iValue, ConvertedObjects &already_converted)
 {
 	v8::Handle<v8::Array> object = v8::Handle<v8::Array>::Cast(iValue->ToObject());
 	int length = object->Length();
@@ -258,7 +310,7 @@ JavascriptInterop::ConvertArrayFromV8(Handle<Value> iValue)
 	// Populate the .NET Array with the v8 Array
 	for(int i = 0; i < length; i++)
 	{
-		results->SetValue(ConvertFromV8(object->Get(i)), i);
+		results->SetValue(ConvertFromV8(object->Get(i), already_converted), i);
 	}
 
 	return results;
@@ -267,26 +319,31 @@ JavascriptInterop::ConvertArrayFromV8(Handle<Value> iValue)
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
 System::Object^
-JavascriptInterop::ConvertObjectFromV8(Handle<Object> iObject)
+JavascriptInterop::ConvertObjectFromV8(Handle<Object> iObject, ConvertedObjects &already_converted)
 {
-	v8::Isolate *isolate = JavascriptContext::GetCurrentIsolate();
-	v8::Local<v8::Array> names = iObject->GetPropertyNames();
-	
-	unsigned int length = names->Length();
-	Dictionary<System::String^, System::Object^>^ results = gcnew Dictionary<System::String^, System::Object^>(length);
-	for (unsigned int i = 0; i < length; i++) {
-		v8::Handle<v8::Value> nameKey = v8::Uint32::New(isolate, i);
-		v8::Handle<v8::Value> propName = names->Get(nameKey);
-		v8::Handle<v8::Value> propValue = iObject->Get(propName);
+	System::Object ^converted_object = already_converted.GetConverted(iObject);
+	if (converted_object == nullptr) {
+		v8::Isolate *isolate = JavascriptContext::GetCurrentIsolate();
+		v8::Local<v8::Array> names = iObject->GetPropertyNames();
 
-		// Property "names" may be integers or other types.  However they will
-		// generally be strings so continuing to key this dictionary that way is 
-		// probably OK.
-		System::String^ key = safe_cast<System::String^>(ConvertFromV8(propName)->ToString());
-		results[key] = ConvertFromV8(propValue);
+		unsigned int length = names->Length();
+		Dictionary<System::String^, System::Object^>^ results = gcnew Dictionary<System::String^, System::Object^>(length);
+		already_converted.AddConverted(iObject, results);
+		for (unsigned int i = 0; i < length; i++) {
+			v8::Handle<v8::Value> nameKey = v8::Uint32::New(isolate, i);
+			v8::Handle<v8::Value> propName = names->Get(nameKey);
+			v8::Handle<v8::Value> propValue = iObject->Get(propName);
+
+			// Property "names" may be integers or other types.  However they will
+			// generally be strings so continuing to key this dictionary that way is 
+			// probably OK.
+			System::String^ key = safe_cast<System::String^>(ConvertFromV8(propName, already_converted)->ToString());
+			results[key] = ConvertFromV8(propValue, already_converted);
+		}
+		converted_object = results;
 	}
 
-	return results;
+	return converted_object;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -391,10 +448,11 @@ JavascriptInterop::DelegateInvoker(const FunctionCallbackInfo<Value>& info)
 	// with null if insufficient are supplied.
 	int nsupplied = info.Length();
 	cli::array<System::Object^>^ args = gcnew cli::array<System::Object^>(nparams);
+	ConvertedObjects already_converted;
 	for (int i = 0; i < nparams; i++) 
 	{
 		if (i < nsupplied)
-			args[i] = ConvertFromV8(info[i]);
+			args[i] = ConvertFromV8(info[i], already_converted);
 		else
 			args[i] = nullptr;
 	}
@@ -581,8 +639,9 @@ JavascriptInterop::Invoker(const v8::FunctionCallbackInfo<Value>& iArgs)
 	{
 		// parameters
 		suppliedArguments = gcnew cli::array<System::Object^>(iArgs.Length());
+		ConvertedObjects already_converted;
 		for (int i = 0; i < iArgs.Length(); i++)
-			suppliedArguments[i] = ConvertFromV8(iArgs[i]);
+			suppliedArguments[i] = ConvertFromV8(iArgs[i], already_converted);
 		
 		// look for best matching method
 		for (int i = 0; i < members->Length; i++)
