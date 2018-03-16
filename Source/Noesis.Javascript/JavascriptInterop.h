@@ -41,6 +41,26 @@ namespace Noesis { namespace Javascript {
 using namespace v8;
 using namespace System::Collections::Generic;
 
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+// Remembers which objects have been just converted, to avoid stack overflows when we are 
+// converting self-referential objects.
+////////////////////////////////////////////////////////////////////////////////////////////////////
+class ConvertedObjects
+{
+	//std::unordered_map<v8::Local<v8::Object>, int> mConvertedHandles = new std::unordered_map<v8::Local<v8::Object>, int>();
+	//gcroot<System::Collections::Generic::Dictionary<System::Int32, System::Object^> ^> intToConverted = gcnew System::Collections::Generic::Dictionary<System::Int32, System::Object^>();
+public:
+	ConvertedObjects();
+	~ConvertedObjects();
+	System::Object^ GetConverted(v8::Local<v8::Object> o);
+	void AddConverted(v8::Local<v8::Object> o, System::Object^ converted);
+
+private:
+	v8::Local<v8::Map> objectToConversion;
+};
+
+
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 // JavascriptInterop
 ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -57,7 +77,16 @@ public:
 
 	static Handle<Value> ConvertToV8(System::Object^ iObject);
 
-	static System::Object^ ConvertObjectFromV8(Handle<Object> iObject);
+	static System::Object^ UnwrapObject(Handle<Value> iValue);
+
+	static void Invoker(const v8::FunctionCallbackInfo<Value>& iArgs);
+
+	static Handle<Value> HandleTargetInvocationException(System::Reflection::TargetInvocationException^ exception);
+
+private:
+	static System::Object^ ConvertFromV8(Handle<Value> iValue, ConvertedObjects &already_converted);
+
+	static System::Object^ ConvertObjectFromV8(Handle<Object> iObject, ConvertedObjects &already_converted);
 
 	static System::DateTime^ ConvertDateFromV8(Handle<Value> iValue);
 
@@ -75,9 +104,7 @@ public:
 
 	static Handle<Object> WrapObject(System::Object^ iObject);
 
-	static System::Object^ UnwrapObject(Handle<Value> iValue);
-
-	static System::Object^ ConvertArrayFromV8(Handle<Value> iValue);
+	static System::Object^ ConvertArrayFromV8(Handle<Value> iValue, ConvertedObjects &already_converted);
 
 	static Handle<Object> WrapFunction(System::Object^ iObject, System::String^ iName);
 
@@ -88,10 +115,6 @@ public:
 	static void IndexGetter(uint32_t iIndex, const PropertyCallbackInfo<Value>& iInfo);
 
 	static void IndexSetter(uint32_t iIndex, Local<Value> iValue, const PropertyCallbackInfo<Value>& iInfo);
-
-	static void Invoker(const v8::FunctionCallbackInfo<Value>& iArgs);
-
-    static Handle<Value> HandleTargetInvocationException(System::Reflection::TargetInvocationException^ exception);
 };
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
