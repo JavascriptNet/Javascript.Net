@@ -52,7 +52,7 @@ Targets: .NET Framework 4.5
 Building from Source
 ====================
 
-Open the .sln file in Visual Studio and build.  I've been working using Visual Studio 2017,
+Open the .sln file in Visual Studio, use Configuration Manager to switch to platform to x64, and build.  I've been working using Visual Studio 2017,
 but 2015 will probably work too.
 
 The following warnings are expected:
