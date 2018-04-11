@@ -70,7 +70,7 @@ ConvertedObjects::~ConvertedObjects()
 	size_t n = objectToConversion->Size();
 	Local<Array> keys_and_items = objectToConversion->AsArray();
 	for (size_t i = 0; i < n; i++) {
-		Local<Value> item_i = keys_and_items->Get(i * 2 + 1);
+		Local<Value> item_i = keys_and_items->Get((uint32_t)i * 2 + 1);
 		Local<External> external = Local<External>::Cast(item_i);
 		delete (gcroot<System::Object^> *)external->Value();
 	}
