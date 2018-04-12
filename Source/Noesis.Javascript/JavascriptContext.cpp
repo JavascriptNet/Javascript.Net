@@ -180,7 +180,7 @@ JavascriptContext::~JavascriptContext()
 void JavascriptContext::SetFatalErrorHandler(FatalErrorHandler^ handler)
 {
 	if (handler == nullptr)
-		throw gcnew System::ArgumentException("handler");
+		throw gcnew System::ArgumentNullException("handler");
 	fatalErrorHandler = handler;
 }
 
@@ -212,7 +212,7 @@ void
 JavascriptContext::SetParameter(System::String^ iName, System::Object^ iObject, SetParameterOptions options)
 {
 	if (iName == nullptr)
-		throw gcnew System::ArgumentException("iName");
+		throw gcnew System::ArgumentNullException("iName");
 	pin_ptr<const wchar_t> namePtr = PtrToStringChars(iName);
 	wchar_t* name = (wchar_t*) namePtr;
 	JavascriptScope scope(this);
@@ -242,7 +242,7 @@ System::Object^
 JavascriptContext::GetParameter(System::String^ iName)
 {
 	if (iName == nullptr)
-		throw gcnew System::ArgumentException("iName");
+		throw gcnew System::ArgumentNullException("iName");
 	pin_ptr<const wchar_t> namePtr = PtrToStringChars(iName);
 	wchar_t* name = (wchar_t*)namePtr;
 	JavascriptScope scope(this);
@@ -259,7 +259,7 @@ System::Object^
 JavascriptContext::Run(System::String^ iScript)
 {
 	if (iScript == nullptr)
-		throw gcnew System::ArgumentException("iScript");
+		throw gcnew System::ArgumentNullException("iScript");
 	pin_ptr<const wchar_t> scriptPtr = PtrToStringChars(iScript);
 	wchar_t* script = (wchar_t*)scriptPtr;
 	JavascriptScope scope(this);
@@ -286,9 +286,9 @@ System::Object^
 JavascriptContext::Run(System::String^ iScript, System::String^ iScriptResourceName)
 {
 	if (iScript == nullptr)
-		throw gcnew System::ArgumentException("iScript");
+		throw gcnew System::ArgumentNullException("iScript");
 	if (iScriptResourceName == nullptr)
-		throw gcnew System::ArgumentException("iScriptResourceName");
+		throw gcnew System::ArgumentNullException("iScriptResourceName");
 	pin_ptr<const wchar_t> scriptPtr = PtrToStringChars(iScript);
 	wchar_t* script = (wchar_t*)scriptPtr;
 	pin_ptr<const wchar_t> scriptResourceNamePtr = PtrToStringChars(iScriptResourceName);

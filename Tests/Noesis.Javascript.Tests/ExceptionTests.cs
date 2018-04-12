@@ -69,5 +69,12 @@ namespace Noesis.Javascript.Tests
             Action action = () => _context.Run("function f() { f(); }; f();");
             action.ShouldThrowExactly<JavascriptException>().WithMessage("RangeError: Maximum call stack size exceeded");
         }
+
+        [TestMethod]
+        public void ArgumentChecking()
+        {
+            Action action = () => _context.Run(null);
+            action.ShouldThrowExactly<ArgumentNullException>();
+        }
     }
 }
