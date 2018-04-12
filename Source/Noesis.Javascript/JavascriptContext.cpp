@@ -140,7 +140,7 @@ void JavascriptContext::FatalErrorCallbackMember(const char* location, const cha
 
 JavascriptContext::JavascriptContext()
 {
-    // Unfortunately the fatal error handler is not installed early enough to catch
+	// Unfortunately the fatal error handler is not installed early enough to catch
     // out-of-memory errors while creating new isolates
     // (see my post Catching V8::FatalProcessOutOfMemory while creating an isolate (SetFatalErrorHandler does not work)).
     // Also, HeapStatistics are only fetchable per-isolate, so they will not
@@ -179,6 +179,8 @@ JavascriptContext::~JavascriptContext()
 
 void JavascriptContext::SetFatalErrorHandler(FatalErrorHandler^ handler)
 {
+	if (handler == nullptr)
+		throw gcnew System::ArgumentException("handler");
 	fatalErrorHandler = handler;
 }
 
@@ -209,6 +211,8 @@ JavascriptContext::SetParameter(System::String^ iName, System::Object^ iObject)
 void
 JavascriptContext::SetParameter(System::String^ iName, System::Object^ iObject, SetParameterOptions options)
 {
+	if (iName == nullptr)
+		throw gcnew System::ArgumentException("iName");
 	pin_ptr<const wchar_t> namePtr = PtrToStringChars(iName);
 	wchar_t* name = (wchar_t*) namePtr;
 	JavascriptScope scope(this);
@@ -237,8 +241,10 @@ JavascriptContext::SetParameter(System::String^ iName, System::Object^ iObject, 
 System::Object^
 JavascriptContext::GetParameter(System::String^ iName)
 {
+	if (iName == nullptr)
+		throw gcnew System::ArgumentException("iName");
 	pin_ptr<const wchar_t> namePtr = PtrToStringChars(iName);
-	wchar_t* name = (wchar_t*) namePtr;
+	wchar_t* name = (wchar_t*)namePtr;
 	JavascriptScope scope(this);
 	v8::Isolate *isolate = JavascriptContext::GetCurrentIsolate();
 	HandleScope handleScope(isolate);
@@ -252,14 +258,16 @@ JavascriptContext::GetParameter(System::String^ iName)
 System::Object^
 JavascriptContext::Run(System::String^ iScript)
 {
+	if (iScript == nullptr)
+		throw gcnew System::ArgumentException("iScript");
 	pin_ptr<const wchar_t> scriptPtr = PtrToStringChars(iScript);
 	wchar_t* script = (wchar_t*)scriptPtr;
 	JavascriptScope scope(this);
 	//SetStackLimit();
-	HandleScope handleScope(JavascriptContext::GetCurrentIsolate());
+	HandleScope handleScope(isolate);
 	Local<Value> ret;
 	
-	Local<Script> compiledScript = CompileScript(script);
+	Local<Script> compiledScript = CompileScript(isolate, script);
 
 	{
 		TryCatch tryCatch;
@@ -277,16 +285,20 @@ JavascriptContext::Run(System::String^ iScript)
 System::Object^
 JavascriptContext::Run(System::String^ iScript, System::String^ iScriptResourceName)
 {
+	if (iScript == nullptr)
+		throw gcnew System::ArgumentException("iScript");
+	if (iScriptResourceName == nullptr)
+		throw gcnew System::ArgumentException("iScriptResourceName");
 	pin_ptr<const wchar_t> scriptPtr = PtrToStringChars(iScript);
 	wchar_t* script = (wchar_t*)scriptPtr;
 	pin_ptr<const wchar_t> scriptResourceNamePtr = PtrToStringChars(iScriptResourceName);
 	wchar_t* scriptResourceName = (wchar_t*)scriptResourceNamePtr;
 	JavascriptScope scope(this);
 	//SetStackLimit();
-	HandleScope handleScope(JavascriptContext::GetCurrentIsolate());
+	HandleScope handleScope(isolate);
 	Local<Value> ret;	
 
-	Local<Script> compiledScript = CompileScript(script, scriptResourceName);
+	Local<Script> compiledScript = CompileScript(isolate, script, scriptResourceName);
 	
 	{
 		TryCatch tryCatch;
@@ -419,10 +431,9 @@ System::String^ JavascriptContext::V8Version::get()
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
 Local<Script>
-CompileScript(wchar_t const *source_code, wchar_t const *resource_name)
+CompileScript(v8::Isolate *isolate, wchar_t const *source_code, wchar_t const *resource_name)
 {
 	// convert source
-	v8::Isolate *isolate = JavascriptContext::GetCurrentIsolate();
 	Local<String> source = String::NewFromTwoByte(isolate, (uint16_t const *)source_code, v8::NewStringType::kNormal).ToLocalChecked();
 
 	// compile

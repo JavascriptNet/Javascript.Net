@@ -238,7 +238,7 @@ public:
 // Standalone functions - can be called from unmanaged code too
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
-Local<Script> CompileScript(wchar_t const *source_code, wchar_t const *resource_name = NULL);
+Local<Script> CompileScript(v8::Isolate *isolate, wchar_t const *source_code, wchar_t const *resource_name = NULL);
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
