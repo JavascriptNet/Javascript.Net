@@ -20,7 +20,7 @@ namespace Noesis.Javascript.Tests
             _context.Dispose();
         }
 
-		[TestMethod]
+        [TestMethod]
         public void GetFunctionFromJsContext()
         {
             _context.Run("a = function(a,b) {return a+b;}");
