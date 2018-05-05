@@ -357,6 +357,13 @@ JavascriptContext::GetCurrentIsolate()
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
+Handle<v8::Object> JavascriptContext::GetGlobal()
+{
+	return mContext->Get(this->GetCurrentIsolate())->Global();
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+
 v8::Locker *
 JavascriptContext::Enter([System::Runtime::InteropServices::Out] JavascriptContext^% old_context)
 {

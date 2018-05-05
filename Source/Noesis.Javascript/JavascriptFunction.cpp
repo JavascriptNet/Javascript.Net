@@ -10,7 +10,7 @@ namespace Noesis { namespace Javascript {
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
-JavascriptFunction::JavascriptFunction( v8::Handle<v8::Object> iFunction, JavascriptContext^ context)
+JavascriptFunction::JavascriptFunction(v8::Handle<v8::Object> iFunction, JavascriptContext^ context)
 {
 	if (!iFunction->IsFunction())
 		throw gcnew System::ArgumentException("Trying to use non-function as function");
@@ -18,8 +18,7 @@ JavascriptFunction::JavascriptFunction( v8::Handle<v8::Object> iFunction, Javasc
 	if(!context)
 		throw gcnew System::ArgumentException("Must provide a JavascriptContext");
 
-	mFuncHandle = new Persistent<Function>();
-	*mFuncHandle = Persistent<Function>::New(Handle<Function>::Cast(iFunction));
+	mFuncHandle = new Persistent<Function>(context->GetCurrentIsolate(), Handle<Function>::Cast(iFunction));
 	mContext = context;
 }
 
@@ -28,7 +27,7 @@ JavascriptFunction::~JavascriptFunction()
 	if(mFuncHandle) 
 	{
 		JavascriptScope scope(mContext);
-		mFuncHandle->Dispose();
+		mFuncHandle->Reset();
 		delete mFuncHandle;
 		mFuncHandle = nullptr;
 	}
@@ -40,18 +39,18 @@ JavascriptFunction::!JavascriptFunction()
 	if(mFuncHandle) 
 	{
 		JavascriptScope scope(mContext);
-		mFuncHandle->Dispose();
+		mFuncHandle->Reset();
 		delete mFuncHandle;
 		mFuncHandle = nullptr;
 	}
 }
 
 System::Object^ JavascriptFunction::Call(... cli::array<System::Object^>^ args)
-{	
+{
 	JavascriptScope scope(mContext);
-	HandleScope handleScope;
+	HandleScope handleScope(mContext->GetCurrentIsolate());
 
-	Handle<v8::Object> global = (*mFuncHandle)->CreationContext()->Global();
+	Handle<v8::Object> global = mContext->GetGlobal();
 
 	int argc = args->Length;
 	Handle<v8::Value> *argv = new Handle<v8::Value>[argc];
@@ -60,29 +59,29 @@ System::Object^ JavascriptFunction::Call(... cli::array<System::Object^>^ args)
 		argv[i] = JavascriptInterop::ConvertToV8(args[i]);
 	}
 
-	Local<Value> retVal = (*mFuncHandle)->Call(global, argc, argv);
+	Local<Value> retVal = mFuncHandle->Get(mContext->GetCurrentIsolate())->Call(global, argc, argv);
 
 	delete [] argv;
 	return JavascriptInterop::ConvertFromV8(retVal);
 }
 
-bool JavascriptFunction::operator==( JavascriptFunction^ func1, JavascriptFunction^ func2 )
+bool JavascriptFunction::operator==(JavascriptFunction^ func1, JavascriptFunction^ func2)
 {
 	if(ReferenceEquals(func2, nullptr)) {
 		return false;
 	}
-	Handle<Function> jsFuncPtr1 = *(func1->mFuncHandle);
-	Handle<Function> jsFuncPtr2 = *(func2->mFuncHandle);
+	Handle<Function> jsFuncPtr1 = func1->mFuncHandle->Get(func1->mContext->GetCurrentIsolate());
+	Handle<Function> jsFuncPtr2 = func2->mFuncHandle->Get(func2->mContext->GetCurrentIsolate());
 
 	return jsFuncPtr1->Equals(jsFuncPtr2);
 }
 
-bool JavascriptFunction::Equals( JavascriptFunction^ other )
+bool JavascriptFunction::Equals(JavascriptFunction^ other)
 {
 	return this == other;
 }
 
-bool JavascriptFunction::Equals(Object^ other )
+bool JavascriptFunction::Equals(Object^ other)
 {
 	JavascriptFunction^ otherFunc = dynamic_cast<JavascriptFunction^>(other);
 	return (otherFunc && this->Equals(otherFunc));

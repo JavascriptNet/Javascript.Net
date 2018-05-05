@@ -172,6 +172,8 @@ internal:
 	
 	static v8::Isolate *GetCurrentIsolate();
 
+	Handle<v8::Object> GetGlobal();
+
     v8::Locker *Enter([System::Runtime::InteropServices::Out] JavascriptContext^% old_context);
 
 	void Exit(v8::Locker *locker, JavascriptContext^ old_context);
