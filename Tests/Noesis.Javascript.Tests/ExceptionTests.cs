@@ -1,4 +1,6 @@
 ﻿using System;
+using System.Globalization;
+using System.Threading;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using FluentAssertions;
 
@@ -13,6 +15,7 @@ namespace Noesis.Javascript.Tests
         public void SetUp()
         {
             _context = new JavascriptContext();
+            Thread.CurrentThread.CurrentUICulture = new CultureInfo("en-US");
         }
 
         [TestCleanup]
