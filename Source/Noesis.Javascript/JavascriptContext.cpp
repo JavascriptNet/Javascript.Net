@@ -157,6 +157,7 @@ JavascriptContext::JavascriptContext()
 	mExternals = gcnew System::Collections::Generic::Dictionary<System::Object ^, WrappedJavascriptExternal>();
 	HandleScope scope(isolate);
 	mContext = new Persistent<Context>(isolate, Context::New(isolate));
+	mIsDisposed = false;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -173,6 +174,7 @@ JavascriptContext::~JavascriptContext()
 	}
 	if (isolate != NULL)
 		isolate->Dispose();
+	mIsDisposed = true;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -353,6 +355,13 @@ v8::Isolate *
 JavascriptContext::GetCurrentIsolate()
 {
 	return sCurrentContext->isolate;
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+
+bool JavascriptContext::IsDisposed()
+{
+	return mIsDisposed;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////

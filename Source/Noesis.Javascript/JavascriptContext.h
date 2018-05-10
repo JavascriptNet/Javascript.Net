@@ -181,7 +181,9 @@ internal:
 	JavascriptExternal* WrapObject(System::Object^ iObject);
 
 	Handle<ObjectTemplate> GetObjectWrapperTemplate();
-		
+
+	bool IsDisposed();
+
 	static void FatalErrorCallbackMember(const char* location, const char* message);
 
 	////////////////////////////////////////////////////////////
@@ -204,6 +206,8 @@ protected:
 	// collection of JavascriptExternal objects that won't be freed until
 	// the context is destroyed.
 	System::Collections::Generic::Dictionary<System::Object ^, WrappedJavascriptExternal> ^mExternals;
+
+	bool mIsDisposed;
 
 	// Keeping track of recursion.
 	[System::ThreadStaticAttribute] static JavascriptContext ^sCurrentContext;
