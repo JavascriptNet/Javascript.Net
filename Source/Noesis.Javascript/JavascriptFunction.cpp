@@ -26,8 +26,11 @@ JavascriptFunction::~JavascriptFunction()
 {
 	if(mFuncHandle) 
 	{
-		JavascriptScope scope(mContext);
-		mFuncHandle->Reset();
+		if (mContext && !mContext->IsDisposed())
+		{
+			JavascriptScope scope(mContext);
+			mFuncHandle->Reset();
+		}
 		delete mFuncHandle;
 		mFuncHandle = nullptr;
 	}
@@ -38,8 +41,11 @@ JavascriptFunction::!JavascriptFunction()
 {
 	if(mFuncHandle) 
 	{
-		JavascriptScope scope(mContext);
-		mFuncHandle->Reset();
+		if (mContext && !mContext->IsDisposed())
+		{
+			JavascriptScope scope(mContext);
+			mFuncHandle->Reset();
+		}
 		delete mFuncHandle;
 		mFuncHandle = nullptr;
 	}
