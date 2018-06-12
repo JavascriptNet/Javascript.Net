@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using FluentAssertions;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
@@ -60,6 +61,15 @@ namespace Noesis.Javascript.Tests
             var result = _context.Run("collection.Filter(x => x % 2 === 0)") as IEnumerable<int>;
             result.Should().NotBeNull();
             result.Should().BeEquivalentTo(2, 4);
+        }
+
+        [TestMethod]
+        public void ExceptionsAreHandledAndWrappedInAJavascriptExceptionObject()
+        {
+            var function = _context.Run("() => { throw new Error('test'); }") as JavascriptFunction;
+            function.Should().NotBeNull();
+            Action action = () => function.Call();
+            action.ShouldThrowExactly<JavascriptException>().WithMessage("Error: test");
         }
     }
 

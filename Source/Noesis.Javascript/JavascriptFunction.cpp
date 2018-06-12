@@ -1,6 +1,7 @@
 #include "JavascriptFunction.h"
 #include "JavascriptInterop.h"
 #include "JavascriptContext.h"
+#include "JavascriptException.h"
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -54,7 +55,8 @@ JavascriptFunction::!JavascriptFunction()
 System::Object^ JavascriptFunction::Call(... cli::array<System::Object^>^ args)
 {
 	JavascriptScope scope(mContext);
-	HandleScope handleScope(mContext->GetCurrentIsolate());
+	v8::Isolate* isolate = mContext->GetCurrentIsolate();
+	HandleScope handleScope(isolate);
 
 	Handle<v8::Object> global = mContext->GetGlobal();
 
@@ -65,7 +67,10 @@ System::Object^ JavascriptFunction::Call(... cli::array<System::Object^>^ args)
 		argv[i] = JavascriptInterop::ConvertToV8(args[i]);
 	}
 
-	Local<Value> retVal = mFuncHandle->Get(mContext->GetCurrentIsolate())->Call(global, argc, argv);
+	TryCatch tryCatch(isolate);
+	Local<Value> retVal = mFuncHandle->Get(isolate)->Call(global, argc, argv);
+	if (retVal.IsEmpty())
+		throw gcnew JavascriptException(tryCatch);
 
 	delete [] argv;
 	return JavascriptInterop::ConvertFromV8(retVal);
