@@ -52,7 +52,7 @@ using namespace System::Collections::Generic;
 Handle<ObjectTemplate>
 JavascriptInterop::NewObjectWrapperTemplate()
 {
-	Handle<ObjectTemplate> result = ObjectTemplate::New();
+	Handle<ObjectTemplate> result = ObjectTemplate::New(JavascriptContext::GetCurrentIsolate());
 	result->SetInternalFieldCount(1);
 	result->SetNamedPropertyHandler(Getter, Setter);
 	result->SetIndexedPropertyHandler(IndexGetter, IndexSetter);

@@ -272,7 +272,7 @@ JavascriptContext::Run(System::String^ iScript)
 	Local<Script> compiledScript = CompileScript(isolate, script);
 
 	{
-		TryCatch tryCatch;
+		TryCatch tryCatch(isolate);
 		ret = (*compiledScript)->Run();
 
 		if (ret.IsEmpty())
@@ -303,7 +303,7 @@ JavascriptContext::Run(System::String^ iScript, System::String^ iScriptResourceN
 	Local<Script> compiledScript = CompileScript(isolate, script, scriptResourceName);
 	
 	{
-		TryCatch tryCatch;
+		TryCatch tryCatch(isolate);
 		ret = (*compiledScript)->Run();
 
 		if (ret.IsEmpty())
@@ -405,7 +405,7 @@ JavascriptContext::Exit(v8::Locker *locker, JavascriptContext^ old_context)
 void
 JavascriptContext::Collect()
 {
-    while(!this->isolate->IdleNotification(1)) {};
+    while(!this->isolate->IdleNotificationDeadline(1)) {};
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -454,7 +454,7 @@ CompileScript(v8::Isolate *isolate, wchar_t const *source_code, wchar_t const *r
 
 	// compile
 	{
-		TryCatch tryCatch;
+		TryCatch tryCatch(isolate);
 
 		Local<Script> script;
 		if (resource_name == NULL)
