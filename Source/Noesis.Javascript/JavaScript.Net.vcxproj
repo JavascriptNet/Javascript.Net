@@ -162,6 +162,7 @@
     <ClInclude Include="JavascriptExternal.h" />
     <ClInclude Include="JavascriptFunction.h" />
     <ClInclude Include="JavascriptInterop.h" />
+    <ClInclude Include="JSEnumerable.h" />
     <ClInclude Include="SystemInterop.h" />
   </ItemGroup>
   <ItemGroup>
@@ -171,6 +172,7 @@
     <ClCompile Include="JavascriptExternal.cpp" />
     <ClCompile Include="JavascriptFunction.cpp" />
     <ClCompile Include="JavascriptInterop.cpp" />
+    <ClCompile Include="JSEnumerable.cpp" />
     <ClCompile Include="SystemInterop.cpp" />
   </ItemGroup>
   <ItemGroup>

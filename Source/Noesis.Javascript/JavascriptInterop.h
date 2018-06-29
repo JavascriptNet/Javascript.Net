@@ -112,6 +112,8 @@ private:
 
 	static void Setter(Local<String> iName, Local<Value> iValue, const PropertyCallbackInfo<Value>& iInfo);
 
+	static void Enumerator(const PropertyCallbackInfo<Array>& iInfo);
+
 	static void IndexGetter(uint32_t iIndex, const PropertyCallbackInfo<Value>& iInfo);
 
 	static void IndexSetter(uint32_t iIndex, Local<Value> iValue, const PropertyCallbackInfo<Value>& iInfo);

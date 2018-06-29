@@ -34,6 +34,7 @@
 #include "JavascriptException.h"
 #include "JavascriptExternal.h"
 #include "JavascriptFunction.h"
+#include "JSEnumerable.h"
 
 #include <string>
 
@@ -46,6 +47,7 @@ namespace Noesis { namespace Javascript {
 using namespace std;
 using namespace System::Collections;
 using namespace System::Collections::Generic;
+using namespace System::Reflection;
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -54,7 +56,7 @@ JavascriptInterop::NewObjectWrapperTemplate()
 {
 	Handle<ObjectTemplate> result = ObjectTemplate::New(JavascriptContext::GetCurrentIsolate());
 	result->SetInternalFieldCount(1);
-	result->SetNamedPropertyHandler(Getter, Setter);
+	result->SetNamedPropertyHandler(Getter, Setter, nullptr, nullptr, Enumerator);
 	result->SetIndexedPropertyHandler(IndexGetter, IndexSetter);
 	return result;
 }
@@ -575,6 +577,41 @@ JavascriptInterop::Setter(Local<String> iName, Local<Value> iValue, const Proper
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
+
+void JavascriptInterop::Enumerator(const PropertyCallbackInfo<Array>& iInfo)
+{
+	// Local<External> field = Local<External>::Cast(iInfo.Holder->GetInternalField(0)); Local / Handle ???
+	Handle<External> external = Handle<External>::Cast(iInfo.Holder()->GetInternalField(0));
+
+	JavascriptExternal* wrapper = (JavascriptExternal*)external->Value();
+
+	System::Object^ self = wrapper->GetObject();
+	System::Type^ type = self->GetType();
+
+	cli::array<PropertyInfo^>^ members = type->GetProperties(System::Reflection::BindingFlags::Public | System::Reflection::BindingFlags::Instance | System::Reflection::BindingFlags::DeclaredOnly);
+	
+	v8::Isolate* isolate = v8::Isolate::GetCurrent();
+	EscapableHandleScope handle_scope(isolate);
+	Local<Array> result_names = Array::New(isolate, members->Length);
+	
+	System::Collections::ArrayList^ memberList = gcnew  System::Collections::ArrayList();
+	
+	for each (PropertyInfo^ member in members)
+	{
+		if (member->GetCustomAttributes(JSEnumerable::typeid, false)->Length > 0) {
+			memberList->Add(member->Name);
+		}
+	}
+
+	for (int i = 0; i < memberList->Count; i++)
+	{
+		result_names->Set(i, JavascriptInterop::ConvertToV8(memberList[i]));
+	}
+
+	iInfo.GetReturnValue().Set<Array>(handle_scope.Escape(result_names));
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
 void
 JavascriptInterop::IndexGetter(uint32_t iIndex, const PropertyCallbackInfo<Value> &iInfo)
 {
