@@ -139,5 +139,38 @@ namespace Noesis.Javascript.Tests
             Action action = () => _context.Run("myObject.UnknownProperty");
             action.ShouldThrowExactly<JavascriptException>().Which.Message.Should().StartWith("Unknown member:");
         }
+
+        class ClassForTypeCoercion
+        {
+            public bool BooleanValue { get; set; }
+            public UriKind EnumeratedValue { get; set; }
+        }
+
+        [TestMethod]
+        public void TypeCoercionToBoolean()
+        {
+            var my_object = new ClassForTypeCoercion();
+            _context.SetParameter("my_object", my_object);
+            _context.Run("my_object.BooleanValue = true");
+            my_object.BooleanValue.Should().BeTrue();
+        }
+
+        [TestMethod]
+        public void TypeCoercionStringToEnum()
+        {
+            var my_object = new ClassForTypeCoercion();
+            _context.SetParameter("my_object", my_object);
+            _context.Run("my_object.EnumeratedValue = 'Absolute'");
+            my_object.EnumeratedValue.Should().Be(UriKind.Absolute);
+        }
+
+        [TestMethod]
+        public void TypeCoercionNumberToEnum()
+        {
+            var my_object = new ClassForTypeCoercion();
+            _context.SetParameter("my_object", my_object);
+            _context.Run("my_object.EnumeratedValue = 1.0");
+            my_object.EnumeratedValue.Should().Be(UriKind.Absolute);
+        }
     }
 }

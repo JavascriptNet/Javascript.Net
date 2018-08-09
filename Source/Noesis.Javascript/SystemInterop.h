@@ -50,6 +50,8 @@ public:
 
 	static bool ConvertToBoolean(System::Object^ iValue);
 
+	static System::Object^ ConvertToEnum(System::Type^ type, System::Object^ iValue);
+
 	static short ConvertToInt16(System::Object^ iValue);
 
 	static int ConvertToInt32(System::Object^ iValue);

@@ -54,7 +54,7 @@ SystemInterop::ConvertToType(System::Object^ iValue, System::Type^ iType)
 		if (iType == System::Boolean::typeid)
 			return ConvertToBoolean(iValue);		
 		if (iType == System::Int16::typeid)
-			return ConvertToInt16(iValue);	
+			return ConvertToInt16(iValue);
 		else if (iType == System::Int32::typeid)
 			return ConvertToInt32(iValue);
 		else if (iType == System::Single::typeid)
@@ -65,6 +65,8 @@ SystemInterop::ConvertToType(System::Object^ iValue, System::Type^ iType)
 			return ConvertToDecimal(iValue);
 		else if (iType == System::String::typeid)
 			return ConvertToString(iValue);
+		else if (iType->IsEnum)
+			return ConvertToEnum(iType, iValue);
 	}
 
 	return nullptr;
@@ -102,6 +104,32 @@ SystemInterop::ConvertToBoolean(System::Object^ iValue)
 	}
 
 	return false;
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+
+System::Object^
+SystemInterop::ConvertToEnum(System::Type^ enum_type, System::Object^ iValue)
+{
+	if (iValue == nullptr) {
+		return System::Enum::ToObject(enum_type, 0);
+	} else {
+		System::Type^ type = iValue->GetType();
+
+		int numeric_value;
+		if (type == System::String::typeid) {
+			return System::Enum::Parse(enum_type, (System::String^)iValue);
+		} else if (type == System::Int16::typeid
+			|| type == System::Int32::typeid
+			|| type == System::Single::typeid
+			|| type == System::Double::typeid
+			|| type == System::Decimal::typeid) {
+			numeric_value = System::Convert::ToInt32(iValue);
+			return System::Enum::ToObject(enum_type, numeric_value);
+		} else {
+			return System::Enum::ToObject(enum_type, 0);
+		}
+	}
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
