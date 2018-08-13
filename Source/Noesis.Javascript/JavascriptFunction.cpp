@@ -21,28 +21,15 @@ JavascriptFunction::JavascriptFunction(v8::Handle<v8::Object> iFunction, Javascr
 
 	mFuncHandle = new Persistent<Function>(context->GetCurrentIsolate(), Handle<Function>::Cast(iFunction));
 	mContext = context;
+
+	mContext->RegisterFunction(this);
 }
 
 JavascriptFunction::~JavascriptFunction()
 {
 	if(mFuncHandle) 
 	{
-		if (mContext && !mContext->IsDisposed())
-		{
-			JavascriptScope scope(mContext);
-			mFuncHandle->Reset();
-		}
-		delete mFuncHandle;
-		mFuncHandle = nullptr;
-	}
-	System::GC::SuppressFinalize(this);
-}
-
-JavascriptFunction::!JavascriptFunction() 
-{
-	if(mFuncHandle) 
-	{
-		if (mContext && !mContext->IsDisposed())
+		if (mContext)
 		{
 			JavascriptScope scope(mContext);
 			mFuncHandle->Reset();
