@@ -182,7 +182,7 @@ internal:
 
 	Handle<ObjectTemplate> GetObjectWrapperTemplate();
 
-	bool IsDisposed();
+	void RegisterFunction(System::Object^ f);
 
 	static void FatalErrorCallbackMember(const char* location, const char* message);
 
@@ -207,7 +207,9 @@ protected:
 	// the context is destroyed.
 	System::Collections::Generic::Dictionary<System::Object ^, WrappedJavascriptExternal> ^mExternals;
 
-	bool mIsDisposed;
+	// Stores every JavascriptFunction we create.  Ensures we dispose of them
+	// all.
+	System::Collections::Generic::List<System::Object ^> ^mFunctions;
 
 	// Keeping track of recursion.
 	[System::ThreadStaticAttribute] static JavascriptContext ^sCurrentContext;

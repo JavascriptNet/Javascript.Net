@@ -37,6 +37,7 @@
 #include "SystemInterop.h"
 #include "JavascriptException.h"
 #include "JavascriptExternal.h"
+#include "JavascriptFunction.h"
 #include "JavascriptInterop.h"
 
 using namespace msclr;
@@ -155,9 +156,9 @@ JavascriptContext::JavascriptContext()
     isolate->SetFatalErrorHandler(FatalErrorCallback);
 
 	mExternals = gcnew System::Collections::Generic::Dictionary<System::Object ^, WrappedJavascriptExternal>();
+	mFunctions = gcnew System::Collections::Generic::List<System::Object ^>();
 	HandleScope scope(isolate);
 	mContext = new Persistent<Context>(isolate, Context::New(isolate));
-	mIsDisposed = false;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -169,12 +170,14 @@ JavascriptContext::~JavascriptContext()
 		v8::Isolate::Scope isolate_scope(isolate);
 		for each (WrappedJavascriptExternal wrapped in mExternals->Values)
 			delete wrapped.Pointer;
+		for each (JavascriptFunction^ f in mFunctions)
+			delete f;
 		delete mContext;
 		delete mExternals;
+		delete mFunctions;
 	}
 	if (isolate != NULL)
 		isolate->Dispose();
-	mIsDisposed = true;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -359,13 +362,6 @@ JavascriptContext::GetCurrentIsolate()
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
-bool JavascriptContext::IsDisposed()
-{
-	return mIsDisposed;
-}
-
-////////////////////////////////////////////////////////////////////////////////////////////////////
-
 Handle<v8::Object> JavascriptContext::GetGlobal()
 {
 	return mContext->Get(this->GetCurrentIsolate())->Global();
@@ -435,6 +431,14 @@ JavascriptContext::GetObjectWrapperTemplate()
 	if (objectWrapperTemplate == NULL)
 		objectWrapperTemplate = new Persistent<ObjectTemplate>(isolate, JavascriptInterop::NewObjectWrapperTemplate());
 	return Local<ObjectTemplate>::New(isolate, *objectWrapperTemplate);
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+
+void
+JavascriptContext::RegisterFunction(System::Object^ f)
+{
+	mFunctions->Add(f);
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
