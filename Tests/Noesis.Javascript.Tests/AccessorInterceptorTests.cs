@@ -1,6 +1,8 @@
 ﻿using Microsoft.VisualStudio.TestTools.UnitTesting;
 using FluentAssertions;
 using System;
+using System.Collections.Generic;
+using Noesis.Javascript.Tests.Proxy;
 
 namespace Noesis.Javascript.Tests
 {
@@ -51,6 +53,27 @@ namespace Noesis.Javascript.Tests
             _context.SetParameter("myObject", new ClassWithIndexer { Value = "Value"});
 
             _context.Run("myObject[99] == 'Value 99'").Should().BeOfType<bool>().Which.Should().BeTrue();
+        }
+
+        class ClassWithDictionary
+        {
+            public JavaScriptDictionary<string, object> prop { get; set; }
+        }
+
+        [TestMethod]
+        public void AccessingDictionaryInManagedObject()
+        {
+            var dict = new Dictionary<string, object> { { "bar", "33" }, { "baz", true } };
+            ClassWithDictionary testObj = new ClassWithDictionary() { prop = new JavaScriptDictionary<string, object>(dict) };
+
+            _context.SetParameter("test", testObj);
+            var result = _context.Run(@"test.prop.foo = 42; test.prop.baz = false;");
+            var testObjResult = (ClassWithDictionary)_context.GetParameter("test");
+
+            testObjResult.prop.Count.Should().Be(3);
+            testObjResult.prop["foo"].Should().Be(42);
+            testObjResult.prop["bar"].Should().Be("33");
+            testObjResult.prop["baz"].Should().Be(false);
         }
 
         class ClassWithProperty
