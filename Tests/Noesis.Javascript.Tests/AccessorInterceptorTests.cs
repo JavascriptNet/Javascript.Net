@@ -2,7 +2,6 @@
 using FluentAssertions;
 using System;
 using System.Collections.Generic;
-using Noesis.Javascript.Tests.Proxy;
 
 namespace Noesis.Javascript.Tests
 {
@@ -57,26 +56,90 @@ namespace Noesis.Javascript.Tests
 
         class ClassWithDictionary
         {
-            public JavaScriptDictionary<string, object> prop { get; set; }
+            public DictionaryLike prop { get; set; }
         }
 
-        [TestMethod]
+
+		class DictionaryLike
+		{
+			public Dictionary<string, object> internalDict { get; set; }
+
+			public DictionaryLike(Dictionary<string, object> internalDict = null)
+			{
+				this.internalDict = internalDict ?? new Dictionary<string, object>();
+			}
+			
+			public object this[string key]
+			{
+				get => internalDict[key];
+				set => internalDict[key] = value;
+			}
+		}
+
+		[TestMethod]
         public void AccessingDictionaryInManagedObject()
         {
             var dict = new Dictionary<string, object> { { "bar", "33" }, { "baz", true } };
-            ClassWithDictionary testObj = new ClassWithDictionary() { prop = new JavaScriptDictionary<string, object>(dict) };
+            ClassWithDictionary testObj = new ClassWithDictionary() { prop = new DictionaryLike(dict) };
 
             _context.SetParameter("test", testObj);
-            var result = _context.Run(@"test.prop.foo = 42; test.prop.baz = false;");
-            var testObjResult = (ClassWithDictionary)_context.GetParameter("test");
+            var result = _context.Run(@"test.prop.foo = 42;
+test.prop.baz = false;
+var complex = {};
+complex.v0 = test.prop.foo
+test.prop.complex = complex;");
 
-            testObjResult.prop.Count.Should().Be(3);
-            testObjResult.prop["foo"].Should().Be(42);
-            testObjResult.prop["bar"].Should().Be("33");
-            testObjResult.prop["baz"].Should().Be(false);
-        }
+            testObj.prop.internalDict.Count.Should().Be(4);
+            testObj.prop.internalDict["foo"].Should().Be(42);
+            testObj.prop.internalDict["bar"].Should().Be("33");
+            testObj.prop.internalDict["baz"].Should().Be(false);
+			testObj.prop.internalDict["complex"].Should().BeOfType<Dictionary<string, object>>();
+			((Dictionary<string,object>)testObj.prop.internalDict["complex"])["v0"].Should().Be(42);
+		}
+		
+		[TestMethod]
+		public void AccessingDictionaryDirectlyInManagedObject()
+		{
+			var dict = new Dictionary<string, object>() { { "bar", "33" }, { "baz", true } };
 
-        class ClassWithProperty
+			_context.SetParameter("test", dict);
+			var result = _context.Run(@"test.foo = 42; test.baz = false;");
+			var testObjResult = (Dictionary<string, object>)_context.GetParameter("test");
+
+			testObjResult.Count.Should().Be(3);
+			testObjResult["foo"].Should().Be(42);
+			testObjResult["bar"].Should().Be("33");
+			testObjResult["baz"].Should().Be(false);
+		}
+
+
+		[TestMethod]
+		public void AccessingDictionaryOverObjectInManagedObject()
+		{
+			DictionaryLike testObj = new DictionaryLike();
+			testObj.internalDict["foo"] = 42;
+
+			_context.SetParameter("test", testObj);
+			var result = _context.Run(@"test.foo;");
+			
+			result.Should().Be(42);
+			testObj.internalDict.Count.Should().Be(1);
+			testObj.internalDict["foo"].Should().Be(42);
+		}
+
+		[TestMethod]
+		public void AccessingDictionaryOverObjectInManagedObject2()
+		{
+			DictionaryLike testObj = new DictionaryLike();
+			
+			_context.SetParameter("test", testObj);
+			var result = _context.Run(@"test.foo = 'bar';");
+			
+			testObj.internalDict.Count.Should().Be(1);
+			testObj.internalDict["foo"].Should().Be("bar");
+		}
+
+		class ClassWithProperty
         {
             public string MyProperty { get; set; }
         }

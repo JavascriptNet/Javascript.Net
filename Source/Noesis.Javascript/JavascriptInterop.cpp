@@ -621,17 +621,6 @@ JavascriptInterop::Setter(Local<String> iName, Local<Value> iValue, const Proper
 	Handle<External> external = Handle<External>::Cast(iInfo.Holder()->GetInternalField(0));
 	JavascriptExternal* wrapper = (JavascriptExternal*) external->Value();
 
-	System::Object^ self = wrapper->GetObject();
-	System::Type^ type = self->GetType();
-	if (type->IsGenericType && type->GetInterface(System::Collections::Generic::IDictionary::typeid->Name) != nullptr)
-	{
-		// set property for c# dictionary object
-		System::Collections::Generic::IDictionary<System::String^, System::Object^>^ dict = (System::Collections::Generic::IDictionary<System::String^, System::Object^>^)self;
-		System::String^ key = gcnew System::String((wchar_t*)*String::Value(iName));
-		System::Object^ value = ConvertFromV8(iValue);
-		dict[key] = value;
-	}
-
 	// set property
 	iInfo.GetReturnValue().Set(wrapper->SetProperty(name, iValue));
 }
