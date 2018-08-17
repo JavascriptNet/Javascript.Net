@@ -131,30 +131,45 @@ JavascriptExternal::GetProperty(wstring iName, Handle<Value> &result)
 	PropertyInfo^ propertyInfo = type->GetProperty(gcnew System::String(iName.c_str()));
 
 	v8::Isolate *isolate = JavascriptContext::GetCurrentIsolate();
-	if (propertyInfo == nullptr)
-		return false;
-	else {
-		try
+	try
+	{
+		if (propertyInfo == nullptr)
 		{
-			if (!propertyInfo->CanRead)
+			//may have an indexer
+			PropertyInfo^ indexerInfo = type->GetProperty("Item", System::Object::typeid, gcnew cli::array<System::Type^> { System::String::typeid });
+			if (indexerInfo == nullptr)
+			{
+				return false;
+			}
+			if (!indexerInfo->CanRead)
 			{
 				result = isolate->ThrowException(JavascriptInterop::ConvertToV8("Property " + gcnew System::String(iName.c_str()) + " may not be read."));
 			}
 			else
 			{
-				result = JavascriptInterop::ConvertToV8(propertyInfo->GetValue(self, nullptr));
+				result = JavascriptInterop::ConvertToV8(indexerInfo->GetValue(self, gcnew cli::array<System::String^> { gcnew System::String(iName.c_str()) }));
 			}
+			return true;
 		}
-		catch(System::Reflection::TargetInvocationException^ exception)
+
+		if (!propertyInfo->CanRead)
 		{
-			result = JavascriptInterop::HandleTargetInvocationException(exception);
+			result = isolate->ThrowException(JavascriptInterop::ConvertToV8("Property " + gcnew System::String(iName.c_str()) + " may not be read."));
 		}
-		catch(System::Exception^ exception)
+		else
 		{
-			result = isolate->ThrowException(JavascriptInterop::ConvertToV8(exception));
+			result = JavascriptInterop::ConvertToV8(propertyInfo->GetValue(self, nullptr));
 		}
-		return true;
 	}
+	catch (System::Reflection::TargetInvocationException^ exception)
+	{
+		result = JavascriptInterop::HandleTargetInvocationException(exception);
+	}
+	catch (System::Exception^ exception)
+	{
+		result = isolate->ThrowException(JavascriptInterop::ConvertToV8(exception));
+	}
+	return true;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -212,47 +227,61 @@ JavascriptExternal::SetProperty(wstring iName, Handle<Value> iValue)
 	PropertyInfo^ propertyInfo = type->GetProperty(gcnew System::String(iName.c_str()));
 
 	v8::Isolate *isolate = JavascriptContext::GetCurrentIsolate();
-	if (propertyInfo == nullptr)
-	{
-		if ((mOptions & SetParameterOptions::RejectUnknownProperties) == SetParameterOptions::RejectUnknownProperties)
-			return isolate->ThrowException(JavascriptInterop::ConvertToV8("Unknown member: " + gcnew System::String(iName.c_str())));
-	}
-	else
-	{
-		try
-		{
-			System::Object^ value = JavascriptInterop::ConvertFromV8(iValue);
-			if (value != nullptr) {
-				System::Type^ valueType = value->GetType();			
-				System::Type^ propertyType = propertyInfo->PropertyType;
-				
-				// attempt conversion if assigned value is of wrong type
-				if (propertyType != valueType && !propertyType->IsAssignableFrom(valueType))
-					value = SystemInterop::ConvertToType(value, propertyType);
-			}
 
-			if (!propertyInfo->CanWrite)
+	try
+	{
+		if (propertyInfo == nullptr)
+		{
+			//may have an indexer
+			PropertyInfo^ indexerInfo = type->GetProperty("Item", System::Object::typeid, gcnew cli::array<System::Type^> { System::String::typeid });
+			if (indexerInfo == nullptr)
+			{
+				if ((mOptions & SetParameterOptions::RejectUnknownProperties) == SetParameterOptions::RejectUnknownProperties)
+					return isolate->ThrowException(JavascriptInterop::ConvertToV8("Unknown member: " + gcnew System::String(iName.c_str())));
+				return Handle<Value>();
+			}
+			if (!indexerInfo->CanWrite)
 			{
 				return isolate->ThrowException(JavascriptInterop::ConvertToV8("Property " + gcnew System::String(iName.c_str()) + " may not be set."));
 			}
 			else
 			{
-				propertyInfo->SetValue(self, value, nullptr);
-				// We used to convert and return propertyInfo->GetValue() here.
-				// I don't know why we did, but I stopped it because CanRead
-				// might be false, which should not stop us _setting_.
-				// Also it wastes precious CPU time.
-				return iValue;
+				indexerInfo->SetValue(self, JavascriptInterop::ConvertFromV8(iValue), gcnew cli::array<System::String^> { gcnew System::String(iName.c_str()) });
 			}
+			return iValue;
 		}
-		catch(System::Reflection::TargetInvocationException^ exception)
+
+		System::Object^ value = JavascriptInterop::ConvertFromV8(iValue);
+		if (value != nullptr) {
+			System::Type^ valueType = value->GetType();
+			System::Type^ propertyType = propertyInfo->PropertyType;
+
+			// attempt conversion if assigned value is of wrong type
+			if (propertyType != valueType && !propertyType->IsAssignableFrom(valueType))
+				value = SystemInterop::ConvertToType(value, propertyType);
+		}
+
+		if (!propertyInfo->CanWrite)
 		{
-			return JavascriptInterop::HandleTargetInvocationException(exception);
+			return isolate->ThrowException(JavascriptInterop::ConvertToV8("Property " + gcnew System::String(iName.c_str()) + " may not be set."));
 		}
-		catch(System::Exception^ exception)
+		else
 		{
-			return isolate->ThrowException(JavascriptInterop::ConvertToV8(exception));
+			propertyInfo->SetValue(self, value, nullptr);
+			// We used to convert and return propertyInfo->GetValue() here.
+			// I don't know why we did, but I stopped it because CanRead
+			// might be false, which should not stop us _setting_.
+			// Also it wastes precious CPU time.
+			return iValue;
 		}
+	}
+	catch (System::Reflection::TargetInvocationException^ exception)
+	{
+		return JavascriptInterop::HandleTargetInvocationException(exception);
+	}
+	catch (System::Exception^ exception)
+	{
+		return isolate->ThrowException(JavascriptInterop::ConvertToV8(exception));
 	}
 
 	return Handle<Value>();
