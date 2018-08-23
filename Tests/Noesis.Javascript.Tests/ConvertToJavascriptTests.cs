@@ -39,6 +39,14 @@ namespace Noesis.Javascript.Tests
         }
 
         [TestMethod]
+        public void SetDecimal()
+        {
+            _context.SetParameter("val", 125.25m);
+
+            _context.Run("val === 125.25").Should().BeOfType<bool>().Which.Should().BeTrue();
+        }
+
+        [TestMethod]
         public void SetInteger()
         {
             _context.SetParameter("val", 600);
@@ -225,5 +233,23 @@ namespace Noesis.Javascript.Tests
 
             _context.Run("val == 'B'").Should().BeOfType<bool>().Which.Should().BeTrue();
         }        
+
+        [TestMethod]
+        public void SetNullableFloatToNull()
+        {
+            float? val = null;
+            _context.SetParameter("val", val);
+
+            _context.Run("val === null").Should().BeOfType<bool>().Which.Should().BeTrue();
+        }
+
+        [TestMethod]
+        public void SetNullableFloatToValue()
+        {
+            float? val = 125.25f;
+            _context.SetParameter("val", val);
+
+            _context.Run("val == 125.25").Should().BeOfType<bool>().Which.Should().BeTrue();
+        }
     }
 }
