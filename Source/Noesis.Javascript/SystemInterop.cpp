@@ -44,6 +44,10 @@ SystemInterop::ConvertToType(System::Object^ iValue, System::Type^ iType)
 	if (iValue != nullptr)
 	{
 		System::Type^ type = iValue->GetType();
+        System::Type^ potentiallyUnderlyingType = System::Nullable::GetUnderlyingType(iType);
+
+        if (potentiallyUnderlyingType != nullptr)
+            iType = potentiallyUnderlyingType;
 
 		if (type == iType || iType->IsAssignableFrom(type) || iType == System::Object::typeid)
 			return iValue;
