@@ -39,6 +39,7 @@
 #include "JavascriptExternal.h"
 #include "JavascriptFunction.h"
 #include "JavascriptInterop.h"
+#include "JavascriptStackFrame.h"
 
 using namespace msclr;
 using namespace v8::platform;
@@ -318,6 +319,38 @@ JavascriptContext::Run(System::String^ iScript, System::String^ iScriptResourceN
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
+static System::String^ v8StringToString(v8::Handle<v8::String> handle) {
+    if (handle.IsEmpty()) {
+        return nullptr;
+    }
+    return (System::String^)JavascriptInterop::ConvertFromV8(handle);
+}
+
+System::Collections::Generic::List<JavascriptStackFrame^>^
+JavascriptContext::GetCurrentStack(int maxDepth)
+{
+    auto stack = gcnew System::Collections::Generic::List<JavascriptStackFrame^>();
+    v8::Handle<v8::StackTrace> stackTrace = v8::StackTrace::CurrentStackTrace(
+        this->GetCurrentIsolate(), maxDepth, v8::StackTrace::kScriptName
+    );
+
+    for (int i = 0; i < stackTrace->GetFrameCount(); ++i) {
+        v8::Local<v8::StackFrame> frame = stackTrace->GetFrame(i);
+        JavascriptStackFrame^ managedFrame = gcnew JavascriptStackFrame();
+        managedFrame->LineNumber = frame->GetLineNumber();
+        managedFrame->Column = frame->GetColumn();
+        managedFrame->FunctionName = v8StringToString(frame->GetFunctionName());
+        managedFrame->ScriptName = v8StringToString(frame->GetScriptName());
+        managedFrame->ScriptNameOrSourceURL = v8StringToString(frame->GetScriptNameOrSourceURL());
+        managedFrame->IsEval = frame->IsEval();
+        managedFrame->IsConstructor = frame->IsConstructor();
+        managedFrame->IsWasm = frame->IsWasm();
+        stack->Add(managedFrame);
+    }
+    return stack;
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
 
 //void
 //JavascriptContext::SetStackLimit()

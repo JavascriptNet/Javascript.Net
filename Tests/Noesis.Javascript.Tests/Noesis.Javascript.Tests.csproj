@@ -79,6 +79,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="AccessorInterceptorTests.cs" />
+    <Compile Include="AccessToStackTraceTest.cs" />
     <Compile Include="ConvertFromJavascriptTests.cs" />
     <Compile Include="ConvertToJavascriptTests.cs" />
     <Compile Include="ExceptionTests.cs" />

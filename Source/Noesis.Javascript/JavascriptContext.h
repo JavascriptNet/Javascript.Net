@@ -34,6 +34,8 @@
 #include <string>
 #include <vector>
 
+#include "JavascriptStackFrame.h"
+
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
 namespace Noesis { namespace Javascript {
@@ -146,6 +148,8 @@ public:
 	virtual System::Object^ Run(System::String^ iScript, System::String^ iScriptResourceName);
 		
 	property static System::String^ V8Version { System::String^ get(); }
+
+    System::Collections::Generic::List<JavascriptStackFrame^>^ GetCurrentStack(int maxDepth);
 
 	void TerminateExecution();
 
