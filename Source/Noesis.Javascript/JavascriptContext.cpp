@@ -26,6 +26,7 @@
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
+#include <atomic>
 #include <msclr\lock.h>
 #include <vcclr.h>
 #include <msclr\marshal.h>
@@ -95,17 +96,20 @@ namespace Noesis { namespace Javascript {
 			strcpy_s(strrchr(icudtl_dat_path, '\\'), 12, "\\icudtl.dat");
 	}
 
+    std::atomic_flag initalized = ATOMIC_FLAG_INIT;
 	// This code didn't work in managed code, probably due to too-clever smart pointers.
 	void UnmanagedInitialisation()
 	{
-		// Get location of DLL so that v8 can use it to find its .bin files.
-		char dll_path[MAX_PATH], natives_blob_bin_path[MAX_PATH], snapshot_blob_bin_path[MAX_PATH], icudtl_dat_path[MAX_PATH];
-		GetPathsForInitialisation(dll_path, natives_blob_bin_path, snapshot_blob_bin_path, icudtl_dat_path);
-		v8::V8::InitializeICUDefaultLocation(dll_path, icudtl_dat_path);
-		v8::V8::InitializeExternalStartupData(natives_blob_bin_path, snapshot_blob_bin_path);
-		v8::Platform *platform = v8::platform::NewDefaultPlatform().release();
-		v8::V8::InitializePlatform(platform);
-		v8::V8::Initialize();
+        if (!initalized.test_and_set(std::memory_order_acquire)) {
+            // Get location of DLL so that v8 can use it to find its .bin files.
+            char dll_path[MAX_PATH], natives_blob_bin_path[MAX_PATH], snapshot_blob_bin_path[MAX_PATH], icudtl_dat_path[MAX_PATH];
+            GetPathsForInitialisation(dll_path, natives_blob_bin_path, snapshot_blob_bin_path, icudtl_dat_path);
+            v8::V8::InitializeICUDefaultLocation(dll_path, icudtl_dat_path);
+            v8::V8::InitializeExternalStartupData(natives_blob_bin_path, snapshot_blob_bin_path);
+            v8::Platform *platform = v8::platform::NewDefaultPlatform().release();
+            v8::V8::InitializePlatform(platform);
+            v8::V8::Initialize();
+        }
 	}
 #pragma managed(pop)
 
