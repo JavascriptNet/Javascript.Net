@@ -115,7 +115,8 @@ namespace Noesis { namespace Javascript {
 
 static JavascriptContext::JavascriptContext()
 {
-	UnmanagedInitialisation();
+    System::Threading::Mutex mutex(true, "FA12B681-E968-4D3A-833D-43B25865BEF1");
+    UnmanagedInitialisation();
 }
 
 
