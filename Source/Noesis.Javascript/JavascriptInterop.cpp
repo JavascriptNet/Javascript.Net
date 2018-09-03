@@ -354,10 +354,10 @@ JavascriptInterop::ConvertObjectFromV8(Handle<Object> iObject, ConvertedObjects 
 System::DateTime^
 JavascriptInterop::ConvertDateFromV8(Handle<Value> iValue)
 {
-	System::DateTime^ startDate = gcnew System::DateTime(1970, 1, 1);
+	System::DateTime^ startDate = gcnew System::DateTime(1970, 1, 1, 0, 0, 0, 0, System::DateTimeKind::Utc);
 	double milliseconds = iValue->NumberValue();
 	System::TimeSpan^ timespan = System::TimeSpan::FromMilliseconds(milliseconds);
-	return System::DateTime(timespan->Ticks + startDate->Ticks).ToLocalTime();
+    return System::DateTime(timespan->Ticks + startDate->Ticks).ToLocalTime();
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////

@@ -337,8 +337,8 @@ SystemInterop::ConvertToSystemString(std::string iString)
 double
 SystemInterop::ConvertFromSystemDateTime(System::DateTime^ iDateTime) 
 {
-    System::DateTime^ startDate = gcnew System::DateTime(1970, 1, 1);
-	System::TimeSpan^ timespan = *iDateTime - *startDate;
+    System::DateTime^ startDate = gcnew System::DateTime(1970, 1, 1, 0, 0, 0, 0, System::DateTimeKind::Utc);
+	System::TimeSpan^ timespan = iDateTime->ToUniversalTime() - *startDate;
 
 	return timespan->TotalMilliseconds;
 }
