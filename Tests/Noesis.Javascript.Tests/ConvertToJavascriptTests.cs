@@ -135,16 +135,6 @@ namespace Noesis.Javascript.Tests
         }
 
         [TestMethod]
-        public void SetDateTime()
-        {
-            _context.SetParameter("val", new DateTime(2010, 10, 10, 0, 0, 0, DateTimeKind.Utc));
-
-            _context.Run("val.getUTCFullYear()").Should().BeOfType<int>().Which.Should().Be(2010);
-            _context.Run("val.getUTCMonth()").Should().BeOfType<int>().Which.Should().Be(9);
-            _context.Run("val.getUTCDate()").Should().BeOfType<int>().Which.Should().Be(10);
-        }        
-        
-        [TestMethod]
         public void SetObject()
         {
             _context.SetParameter("val", new ConvertToJavascriptTests());

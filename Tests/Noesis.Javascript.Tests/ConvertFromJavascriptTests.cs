@@ -109,14 +109,6 @@ namespace Noesis.Javascript.Tests
         }
 
         [TestMethod]
-        public void ReadDate()
-        {
-            _context.Run("var myDate = new Date(2010,9,10)");
-
-            _context.GetParameter("myDate").Should().BeOfType<DateTime>().Which.Should().Be(new DateTime(2010, 10, 10));
-        }
-
-        [TestMethod]
         public void ReadObject()
         {
             _context.Run(@"var myObject = new Object();

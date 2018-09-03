@@ -91,6 +91,7 @@
     <Compile Include="MemoryLeakTests.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="MultipleAppDomainsTest.cs" />
+    <Compile Include="DateTest.cs" />
     <Compile Include="VersionStringTests.cs" />
   </ItemGroup>
   <ItemGroup>
