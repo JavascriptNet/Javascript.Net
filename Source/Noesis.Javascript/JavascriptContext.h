@@ -166,6 +166,8 @@ public:
 	delegate void FatalErrorHandler(System::String^ location, System::String^ message);
 	static void SetFatalErrorHandler(FatalErrorHandler^ handler);
 
+    static void SetFlags(System::String^ flags);
+
 	////////////////////////////////////////////////////////////
 	// Internal methods
 	////////////////////////////////////////////////////////////

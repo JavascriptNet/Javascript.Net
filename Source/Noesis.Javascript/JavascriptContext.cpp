@@ -30,6 +30,7 @@
 #include <msclr\lock.h>
 #include <vcclr.h>
 #include <msclr\marshal.h>
+#include <msclr\marshal_cppstd.h>
 #include <signal.h>
 #include "libplatform/libplatform.h"
 
@@ -193,6 +194,14 @@ void JavascriptContext::SetFatalErrorHandler(FatalErrorHandler^ handler)
 	if (handler == nullptr)
 		throw gcnew System::ArgumentNullException("handler");
 	fatalErrorHandler = handler;
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+
+void JavascriptContext::SetFlags(System::String^ flags)
+{
+    std::string convertedFlags = msclr::interop::marshal_as<std::string>(flags);
+    v8::V8::SetFlagsFromString(convertedFlags.c_str(), convertedFlags.length());
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
