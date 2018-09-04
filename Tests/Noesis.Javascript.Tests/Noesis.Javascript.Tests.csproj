@@ -84,6 +84,7 @@
     <Compile Include="ConvertToJavascriptTests.cs" />
     <Compile Include="ExceptionTests.cs" />
     <Compile Include="FatalErrorHandlerTests.cs" />
+    <Compile Include="FlagsTest.cs" />
     <Compile Include="InternationalizationTests.cs" />
     <Compile Include="IsolationTests.cs" />
     <Compile Include="JavascriptFunctionTests.cs" />
