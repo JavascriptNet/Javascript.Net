@@ -190,6 +190,15 @@ void JavascriptContext::SetFatalErrorHandler(FatalErrorHandler^ handler)
 
 void JavascriptContext::TerminateExecution()
 {
+	// For backwards compatibility.
+	TerminateExecution(false);
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+
+void JavascriptContext::TerminateExecution(bool terminate_subsequent_runs)
+{
+	terminateRuns = terminate_subsequent_runs;
 	isolate->TerminateExecution();
 }
 
@@ -262,6 +271,8 @@ JavascriptContext::Run(System::String^ iScript)
 {
 	if (iScript == nullptr)
 		throw gcnew System::ArgumentNullException("iScript");
+	if (terminateRuns)
+		throw gcnew JavascriptException(L"Execution terminated");
 	pin_ptr<const wchar_t> scriptPtr = PtrToStringChars(iScript);
 	wchar_t* script = (wchar_t*)scriptPtr;
 	JavascriptScope scope(this);
@@ -291,6 +302,8 @@ JavascriptContext::Run(System::String^ iScript, System::String^ iScriptResourceN
 		throw gcnew System::ArgumentNullException("iScript");
 	if (iScriptResourceName == nullptr)
 		throw gcnew System::ArgumentNullException("iScriptResourceName");
+	if (terminateRuns)
+		throw gcnew JavascriptException(L"Execution terminated");
 	pin_ptr<const wchar_t> scriptPtr = PtrToStringChars(iScript);
 	wchar_t* script = (wchar_t*)scriptPtr;
 	pin_ptr<const wchar_t> scriptResourceNamePtr = PtrToStringChars(iScriptResourceName);

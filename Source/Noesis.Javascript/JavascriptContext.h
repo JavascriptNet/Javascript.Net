@@ -149,6 +149,11 @@ public:
 
 	void TerminateExecution();
 
+	// terminate_subsequent_runs allows you to avoid the race condition
+	// that occurs if you haven't yet called Run(), and you
+	// know your context is being constructed for a single execution.
+	void TerminateExecution(bool terminate_subsequent_runs);
+
     bool IsExecutionTerminating();
 
 	void Collect();
@@ -208,6 +213,9 @@ protected:
 	System::Collections::Generic::Dictionary<System::Object ^, WrappedJavascriptExternal> ^mExternals;
 
 	bool mIsDisposed;
+
+	// See comment for TerminateExecution().
+	bool terminateRuns;
 
 	// Keeping track of recursion.
 	[System::ThreadStaticAttribute] static JavascriptContext ^sCurrentContext;

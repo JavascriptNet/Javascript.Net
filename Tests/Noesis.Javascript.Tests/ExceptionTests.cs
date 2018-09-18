@@ -3,6 +3,7 @@ using System.Globalization;
 using System.Threading;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using FluentAssertions;
+using System.Threading.Tasks;
 
 namespace Noesis.Javascript.Tests
 {
@@ -78,6 +79,18 @@ namespace Noesis.Javascript.Tests
         {
             Action action = () => _context.Run(null);
             action.ShouldThrowExactly<ArgumentNullException>();
+        }
+
+        [TestMethod]
+        public void TerminateExecutionHasNoRaceCondition()
+        {
+            var task = new Task(() => {
+                _context.Run("while (true) {}");
+            });
+            task.Start();
+            _context.TerminateExecution(true);
+            Action action = () => task.Wait(10 * 1000);
+            action.ShouldThrow<JavascriptException>("Because it was cancelled");
         }
     }
 }
