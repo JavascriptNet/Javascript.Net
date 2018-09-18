@@ -10,6 +10,12 @@ namespace Noesis.Javascript.Tests
     {
         private JavascriptContext _context;
 
+        private class TypedPropertiesClass
+        {
+            public Decimal decimalValue { get; set; }
+            public float? nullableFloat { get; set; }
+        }
+
         [TestInitialize]
         public void SetUp()
         {
@@ -28,6 +34,36 @@ namespace Noesis.Javascript.Tests
             _context.Run("var myFloat = 10.0125");
             
             _context.GetParameter("myFloat").Should().BeOfType<double>().Which.Should().Be(10.0125);
+        }
+
+        [TestMethod]
+        public void AssignNullToNullableFloat()
+        {
+            var obj = new TypedPropertiesClass();
+            _context.SetParameter("obj", obj);
+            _context.Run("obj.nullableFloat = null");
+
+            obj.nullableFloat.Should().Be(null);
+        }
+
+        [TestMethod]
+        public void AssignValueToNullableFloat()
+        {
+            var obj = new TypedPropertiesClass();
+            _context.SetParameter("obj", obj);
+            _context.Run("obj.nullableFloat = 123.45");
+
+            obj.nullableFloat.Should().Be(123.45f);
+        }
+
+        [TestMethod]
+        public void AssignToDecimal()
+        {
+            var obj = new TypedPropertiesClass();
+            _context.SetParameter("obj", obj);
+            _context.Run("obj.decimalValue = 123.45");
+
+            obj.decimalValue.Should().Be(123.45m);
         }
 
         [TestMethod]

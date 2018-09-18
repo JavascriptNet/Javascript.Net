@@ -79,15 +79,18 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="AccessorInterceptorTests.cs" />
+    <Compile Include="AccessToStackTraceTest.cs" />
     <Compile Include="ConvertFromJavascriptTests.cs" />
     <Compile Include="ConvertToJavascriptTests.cs" />
     <Compile Include="ExceptionTests.cs" />
     <Compile Include="FatalErrorHandlerTests.cs" />
+    <Compile Include="FlagsTest.cs" />
     <Compile Include="InternationalizationTests.cs" />
     <Compile Include="IsolationTests.cs" />
     <Compile Include="JavascriptFunctionTests.cs" />
     <Compile Include="MemoryLeakTests.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="MultipleAppDomainsTest.cs" />
     <Compile Include="VersionStringTests.cs" />
   </ItemGroup>
   <ItemGroup>

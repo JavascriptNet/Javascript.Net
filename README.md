@@ -63,6 +63,12 @@ The following warnings are expected:
 
 Also note that when using the DLL built from source, you will need to add a Post Build Step to your consuming project, which copies the v8 DLLs and .bin files into your output directory.  See Noesis.Javascript.Tests.csproj for an example, noting that it has some extra sections manually inserted to define `V8Platform`.
 
+
+Updating v8
+===========
+The log at https://docs.google.com/a/g7.org/document/d/1g8JFi8T_oAE_7uAri7Njtig7fKaPDfotU6huOa1alds/edit may help, if it is still being updated.
+
+
 Running Tests
 =============
 

@@ -34,6 +34,8 @@
 #include <string>
 #include <vector>
 
+#include "JavascriptStackFrame.h"
+
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
 namespace Noesis { namespace Javascript {
@@ -147,6 +149,8 @@ public:
 		
 	property static System::String^ V8Version { System::String^ get(); }
 
+    System::Collections::Generic::List<JavascriptStackFrame^>^ GetCurrentStack(int maxDepth);
+
 	void TerminateExecution();
 
 	// terminate_subsequent_runs allows you to avoid the race condition
@@ -166,6 +170,8 @@ public:
 	// Call this just once for the whole library.
 	delegate void FatalErrorHandler(System::String^ location, System::String^ message);
 	static void SetFatalErrorHandler(FatalErrorHandler^ handler);
+
+    static void SetFlags(System::String^ flags);
 
 	////////////////////////////////////////////////////////////
 	// Internal methods
@@ -187,7 +193,7 @@ internal:
 
 	Handle<ObjectTemplate> GetObjectWrapperTemplate();
 
-	bool IsDisposed();
+	void RegisterFunction(System::Object^ f);
 
 	static void FatalErrorCallbackMember(const char* location, const char* message);
 
@@ -212,7 +218,9 @@ protected:
 	// the context is destroyed.
 	System::Collections::Generic::Dictionary<System::Object ^, WrappedJavascriptExternal> ^mExternals;
 
-	bool mIsDisposed;
+	// Stores every JavascriptFunction we create.  Ensures we dispose of them
+	// all.
+	System::Collections::Generic::List<System::Object ^> ^mFunctions;
 
 	// See comment for TerminateExecution().
 	bool terminateRuns;

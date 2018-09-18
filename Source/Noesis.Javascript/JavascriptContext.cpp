@@ -26,9 +26,11 @@
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
+#include <atomic>
 #include <msclr\lock.h>
 #include <vcclr.h>
 #include <msclr\marshal.h>
+#include <msclr\marshal_cppstd.h>
 #include <signal.h>
 #include "libplatform/libplatform.h"
 
@@ -37,7 +39,9 @@
 #include "SystemInterop.h"
 #include "JavascriptException.h"
 #include "JavascriptExternal.h"
+#include "JavascriptFunction.h"
 #include "JavascriptInterop.h"
+#include "JavascriptStackFrame.h"
 
 using namespace msclr;
 using namespace v8::platform;
@@ -93,23 +97,27 @@ namespace Noesis { namespace Javascript {
 			strcpy_s(strrchr(icudtl_dat_path, '\\'), 12, "\\icudtl.dat");
 	}
 
+    std::atomic_flag initalized = ATOMIC_FLAG_INIT;
 	// This code didn't work in managed code, probably due to too-clever smart pointers.
 	void UnmanagedInitialisation()
 	{
-		// Get location of DLL so that v8 can use it to find its .bin files.
-		char dll_path[MAX_PATH], natives_blob_bin_path[MAX_PATH], snapshot_blob_bin_path[MAX_PATH], icudtl_dat_path[MAX_PATH];
-		GetPathsForInitialisation(dll_path, natives_blob_bin_path, snapshot_blob_bin_path, icudtl_dat_path);
-		v8::V8::InitializeICUDefaultLocation(dll_path, icudtl_dat_path);
-		v8::V8::InitializeExternalStartupData(natives_blob_bin_path, snapshot_blob_bin_path);
-		v8::Platform *platform = v8::platform::NewDefaultPlatform().release();
-		v8::V8::InitializePlatform(platform);
-		v8::V8::Initialize();
+        if (!initalized.test_and_set(std::memory_order_acquire)) {
+            // Get location of DLL so that v8 can use it to find its .bin files.
+            char dll_path[MAX_PATH], natives_blob_bin_path[MAX_PATH], snapshot_blob_bin_path[MAX_PATH], icudtl_dat_path[MAX_PATH];
+            GetPathsForInitialisation(dll_path, natives_blob_bin_path, snapshot_blob_bin_path, icudtl_dat_path);
+            v8::V8::InitializeICUDefaultLocation(dll_path, icudtl_dat_path);
+            v8::V8::InitializeExternalStartupData(natives_blob_bin_path, snapshot_blob_bin_path);
+            v8::Platform *platform = v8::platform::NewDefaultPlatform().release();
+            v8::V8::InitializePlatform(platform);
+            v8::V8::Initialize();
+        }
 	}
 #pragma managed(pop)
 
 static JavascriptContext::JavascriptContext()
 {
-	UnmanagedInitialisation();
+    System::Threading::Mutex mutex(true, "FA12B681-E968-4D3A-833D-43B25865BEF1");
+    UnmanagedInitialisation();
 }
 
 
@@ -155,9 +163,9 @@ JavascriptContext::JavascriptContext()
     isolate->SetFatalErrorHandler(FatalErrorCallback);
 
 	mExternals = gcnew System::Collections::Generic::Dictionary<System::Object ^, WrappedJavascriptExternal>();
+	mFunctions = gcnew System::Collections::Generic::List<System::Object ^>();
 	HandleScope scope(isolate);
 	mContext = new Persistent<Context>(isolate, Context::New(isolate));
-	mIsDisposed = false;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -169,12 +177,14 @@ JavascriptContext::~JavascriptContext()
 		v8::Isolate::Scope isolate_scope(isolate);
 		for each (WrappedJavascriptExternal wrapped in mExternals->Values)
 			delete wrapped.Pointer;
+		for each (JavascriptFunction^ f in mFunctions)
+			delete f;
 		delete mContext;
 		delete mExternals;
+		delete mFunctions;
 	}
 	if (isolate != NULL)
 		isolate->Dispose();
-	mIsDisposed = true;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -184,6 +194,14 @@ void JavascriptContext::SetFatalErrorHandler(FatalErrorHandler^ handler)
 	if (handler == nullptr)
 		throw gcnew System::ArgumentNullException("handler");
 	fatalErrorHandler = handler;
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+
+void JavascriptContext::SetFlags(System::String^ flags)
+{
+    std::string convertedFlags = msclr::interop::marshal_as<std::string>(flags);
+    v8::V8::SetFlagsFromString(convertedFlags.c_str(), convertedFlags.length());
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -328,6 +346,38 @@ JavascriptContext::Run(System::String^ iScript, System::String^ iScriptResourceN
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
+static System::String^ v8StringToString(v8::Handle<v8::String> handle) {
+    if (handle.IsEmpty()) {
+        return nullptr;
+    }
+    return (System::String^)JavascriptInterop::ConvertFromV8(handle);
+}
+
+System::Collections::Generic::List<JavascriptStackFrame^>^
+JavascriptContext::GetCurrentStack(int maxDepth)
+{
+    auto stack = gcnew System::Collections::Generic::List<JavascriptStackFrame^>();
+    v8::Handle<v8::StackTrace> stackTrace = v8::StackTrace::CurrentStackTrace(
+        this->GetCurrentIsolate(), maxDepth, v8::StackTrace::kScriptName
+    );
+
+    for (int i = 0; i < stackTrace->GetFrameCount(); ++i) {
+        v8::Local<v8::StackFrame> frame = stackTrace->GetFrame(i);
+        JavascriptStackFrame^ managedFrame = gcnew JavascriptStackFrame();
+        managedFrame->LineNumber = frame->GetLineNumber();
+        managedFrame->Column = frame->GetColumn();
+        managedFrame->FunctionName = v8StringToString(frame->GetFunctionName());
+        managedFrame->ScriptName = v8StringToString(frame->GetScriptName());
+        managedFrame->ScriptNameOrSourceURL = v8StringToString(frame->GetScriptNameOrSourceURL());
+        managedFrame->IsEval = frame->IsEval();
+        managedFrame->IsConstructor = frame->IsConstructor();
+        managedFrame->IsWasm = frame->IsWasm();
+        stack->Add(managedFrame);
+    }
+    return stack;
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
 
 //void
 //JavascriptContext::SetStackLimit()
@@ -368,13 +418,6 @@ v8::Isolate *
 JavascriptContext::GetCurrentIsolate()
 {
 	return sCurrentContext->isolate;
-}
-
-////////////////////////////////////////////////////////////////////////////////////////////////////
-
-bool JavascriptContext::IsDisposed()
-{
-	return mIsDisposed;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -448,6 +491,14 @@ JavascriptContext::GetObjectWrapperTemplate()
 	if (objectWrapperTemplate == NULL)
 		objectWrapperTemplate = new Persistent<ObjectTemplate>(isolate, JavascriptInterop::NewObjectWrapperTemplate());
 	return Local<ObjectTemplate>::New(isolate, *objectWrapperTemplate);
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+
+void
+JavascriptContext::RegisterFunction(System::Object^ f)
+{
+	mFunctions->Add(f);
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
