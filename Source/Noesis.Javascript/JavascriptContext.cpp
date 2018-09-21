@@ -166,6 +166,7 @@ JavascriptContext::JavascriptContext()
 	mFunctions = gcnew System::Collections::Generic::List<System::Object ^>();
 	HandleScope scope(isolate);
 	mContext = new Persistent<Context>(isolate, Context::New(isolate));
+    terminateRuns = false;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
