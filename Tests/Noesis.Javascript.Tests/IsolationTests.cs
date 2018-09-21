@@ -25,7 +25,7 @@ namespace Noesis.Javascript.Tests
             RunInstance();   // Second instance
             thread.Join();
 
-            timer.ElapsedMilliseconds.Should().BeLessThan(1500, "It took too long, they must not be running in parallel.");
+            timer.ElapsedMilliseconds.Should().BeLessThan(1999, "It took too long, they must not be running in parallel.");
         }
 
         static void RunInstance()
