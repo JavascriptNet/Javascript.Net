@@ -22,13 +22,29 @@ namespace Noesis.Javascript.Tests
         }
 
         [TestMethod]
-        public void SetDateTime()
+        public void SetDateTimeUtc()
         {
             _context.SetParameter("val", new DateTime(2010, 10, 10, 0, 0, 0, DateTimeKind.Utc));
 
             _context.Run("val.getUTCFullYear()").Should().BeOfType<int>().Which.Should().Be(2010);
             _context.Run("val.getUTCMonth()").Should().BeOfType<int>().Which.Should().Be(9);
             _context.Run("val.getUTCDate()").Should().BeOfType<int>().Which.Should().Be(10);
+            _context.Run("val.getUTCHours()").Should().BeOfType<int>().Which.Should().Be(0);
+            _context.Run("val.getUTCMinutes()").Should().BeOfType<int>().Which.Should().Be(0);
+            _context.Run("val.getUTCSeconds()").Should().BeOfType<int>().Which.Should().Be(0);
+        }
+
+        [TestMethod]
+        public void SetDateTimeLocal()
+        {
+            _context.SetParameter("val", new DateTime(2010, 10, 10, 0, 0, 0, DateTimeKind.Local));
+
+            _context.Run("val.getFullYear()").Should().BeOfType<int>().Which.Should().Be(2010);
+            _context.Run("val.getMonth()").Should().BeOfType<int>().Which.Should().Be(9);
+            _context.Run("val.getDate()").Should().BeOfType<int>().Which.Should().Be(10);
+            _context.Run("val.getHours()").Should().BeOfType<int>().Which.Should().Be(0);
+            _context.Run("val.getMinutes()").Should().BeOfType<int>().Which.Should().Be(0);
+            _context.Run("val.getSeconds()").Should().BeOfType<int>().Which.Should().Be(0);
         }
 
         [TestMethod]
