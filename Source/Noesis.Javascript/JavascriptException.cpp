@@ -45,8 +45,8 @@ JavascriptException::JavascriptException(TryCatch& iTryCatch): System::Exception
 	v8::Local<v8::Message> message = iTryCatch.Message();
 	if (!message.IsEmpty())
 	{
-		mSource = gcnew System::String((wchar_t*) *String::Value(message->GetScriptResourceName()));
-		mLine = message->GetLineNumber();
+		mSource = gcnew System::String((wchar_t*) *String::Value(JavascriptContext::GetCurrentIsolate(), message->GetScriptResourceName()));
+		mLine = message->GetLineNumber(JavascriptContext::GetCurrentIsolate()->GetCurrentContext()).ToChecked();
 		mStartColumn = message->GetStartColumn();
 		mEndColumn = message->GetEndColumn();
 	}
@@ -57,14 +57,14 @@ JavascriptException::JavascriptException(TryCatch& iTryCatch): System::Exception
 	//this->Data->Add("V8Exception", JavascriptInterop::ConvertFromV8(ex));
 	if (!message.IsEmpty())
 	{
-		v8::String::Utf8Value sourceline(message->GetSourceLine());
+		v8::String::Utf8Value sourceline(JavascriptContext::GetCurrentIsolate(), message->GetSourceLine(JavascriptContext::GetCurrentIsolate()->GetCurrentContext()).ToLocalChecked());
 		System::String^ sourceLineStr = gcnew System::String((const char*)*sourceline);
 		this->Data->Add("V8SourceLine", sourceLineStr);
 	}
-	v8::Local<v8::Value> stackTrace = iTryCatch.StackTrace();
+	v8::MaybeLocal<v8::Value> stackTrace = iTryCatch.StackTrace(JavascriptContext::GetCurrentIsolate()->GetCurrentContext());
 	if (!stackTrace.IsEmpty())
 	{
-		this->Data->Add("V8StackTrace", JavascriptInterop::ConvertFromV8(stackTrace));
+		this->Data->Add("V8StackTrace", JavascriptInterop::ConvertFromV8(stackTrace.ToLocalChecked()));
 	}
 }
 
@@ -133,7 +133,7 @@ JavascriptException::GetExceptionMessage(TryCatch& iTryCatch)
 			// but perhaps our copy of v8 is too old.
 			return gcnew System::String(L"Execution Terminated");
 		else
-			return gcnew System::String((wchar_t*) *String::Value(iTryCatch.Exception())) /*+ " (" + location + ")"*/;
+			return gcnew System::String((wchar_t*) *String::Value(JavascriptContext::GetCurrentIsolate(), iTryCatch.Exception())) /*+ " (" + location + ")"*/;
 	}
 }
 
