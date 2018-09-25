@@ -54,8 +54,13 @@ JavascriptInterop::NewObjectWrapperTemplate()
 {
 	Handle<ObjectTemplate> result = ObjectTemplate::New(JavascriptContext::GetCurrentIsolate());
 	result->SetInternalFieldCount(1);
-	result->SetNamedPropertyHandler(Getter, Setter);
-	result->SetIndexedPropertyHandler(IndexGetter, IndexSetter);
+
+    NamedPropertyHandlerConfiguration namedPropertyConfig((GenericNamedPropertyGetterCallback) Getter, (GenericNamedPropertySetterCallback) Setter, nullptr, nullptr, nullptr, Local<Value>(), PropertyHandlerFlags::kOnlyInterceptStrings);
+	result->SetHandler(namedPropertyConfig);
+
+    IndexedPropertyHandlerConfiguration indexedPropertyConfig((IndexedPropertyGetterCallback) IndexGetter, (IndexedPropertySetterCallback) IndexSetter);
+    result->SetHandler(indexedPropertyConfig);
+
 	return result;
 }
 
@@ -119,22 +124,22 @@ JavascriptInterop::ConvertFromV8(Handle<Value> iValue, ConvertedObjects &already
 	if (iValue->IsNull() || iValue->IsUndefined())
 		return nullptr;
 	if (iValue->IsBoolean())
-		return gcnew System::Boolean(iValue->BooleanValue());
+		return gcnew System::Boolean(iValue->BooleanValue(JavascriptContext::GetCurrentIsolate()->GetCurrentContext()).ToChecked());
 	if (iValue->IsInt32())
-		return gcnew System::Int32(iValue->Int32Value());
+		return gcnew System::Int32(iValue->Int32Value(JavascriptContext::GetCurrentIsolate()->GetCurrentContext()).ToChecked());
 	if (iValue->IsNumber())
-		return gcnew System::Double(iValue->NumberValue());
+		return gcnew System::Double(iValue->NumberValue(JavascriptContext::GetCurrentIsolate()->GetCurrentContext()).ToChecked());
 	if (iValue->IsString())
-		return gcnew System::String((wchar_t*)*String::Value(iValue->ToString()));
+		return gcnew System::String((wchar_t*)*String::Value(JavascriptContext::GetCurrentIsolate(), iValue->ToString(JavascriptContext::GetCurrentIsolate())));
 	if (iValue->IsArray())
 		return ConvertArrayFromV8(iValue, already_converted);
 	if (iValue->IsDate())
 		return ConvertDateFromV8(iValue);
 	if (iValue->IsFunction())
-		return gcnew JavascriptFunction(iValue->ToObject(), JavascriptContext::GetCurrent());
+		return gcnew JavascriptFunction(iValue->ToObject(JavascriptContext::GetCurrentIsolate()), JavascriptContext::GetCurrent());
 	if (iValue->IsObject())
 	{
-		Handle<Object> object = iValue->ToObject();
+		Handle<Object> object = iValue->ToObject(JavascriptContext::GetCurrentIsolate());
 
 		if (object->InternalFieldCount() > 0)
 			return UnwrapObject(iValue);
@@ -288,7 +293,7 @@ JavascriptInterop::UnwrapObject(Handle<Value> iValue)
 
 	if (iValue->IsObject())
 	{
-		Handle<Object> object = iValue->ToObject();
+		Handle<Object> object = iValue->ToObject(JavascriptContext::GetCurrentIsolate());
 
 		if (object->InternalFieldCount() > 0)
 		{
@@ -306,7 +311,7 @@ JavascriptInterop::UnwrapObject(Handle<Value> iValue)
 System::Object^
 JavascriptInterop::ConvertArrayFromV8(Handle<Value> iValue, ConvertedObjects &already_converted)
 {
-	v8::Handle<v8::Array> object = v8::Handle<v8::Array>::Cast(iValue->ToObject());
+	v8::Handle<v8::Array> object = v8::Handle<v8::Array>::Cast(iValue->ToObject(JavascriptContext::GetCurrentIsolate()));
 	int length = object->Length();
 	cli::array<System::Object^>^ results = gcnew cli::array<System::Object^>(length);
 
@@ -355,7 +360,7 @@ System::DateTime^
 JavascriptInterop::ConvertDateFromV8(Handle<Value> iValue)
 {
 	System::DateTime^ startDate = gcnew System::DateTime(1970, 1, 1, 0, 0, 0, 0, System::DateTimeKind::Utc);
-	double milliseconds = iValue->NumberValue();
+	double milliseconds = iValue->NumberValue(JavascriptContext::GetCurrentIsolate()->GetCurrentContext()).ToChecked();
 	System::TimeSpan^ timespan = System::TimeSpan::FromMilliseconds(milliseconds);
     return System::DateTime(timespan->Ticks + startDate->Ticks).ToLocalTime();
 }
@@ -511,7 +516,7 @@ JavascriptInterop::IsSystemObject(Handle<Value> iValue)
 {
 	if (iValue->IsObject())
 	{
-		Local<Object> object = iValue->ToObject();
+		Local<Object> object = iValue->ToObject(JavascriptContext::GetCurrentIsolate());
 		return (object->InternalFieldCount() > 0);
 	}
 
@@ -523,7 +528,7 @@ JavascriptInterop::IsSystemObject(Handle<Value> iValue)
 void
 JavascriptInterop::Getter(Local<String> iName, const PropertyCallbackInfo<Value>& iInfo)
 {
-	wstring name = (wchar_t*) *String::Value(iName);
+	wstring name = (wchar_t*) *String::Value(JavascriptContext::GetCurrentIsolate(), iName);
 	Handle<External> external = Handle<External>::Cast(iInfo.Holder()->GetInternalField(0));
 	JavascriptExternal* wrapper = (JavascriptExternal*) external->Value();
 	Handle<Function> function;
@@ -543,7 +548,7 @@ JavascriptInterop::Getter(Local<String> iName, const PropertyCallbackInfo<Value>
 	}
 
 	// map toString with ToString
-	if (wstring((wchar_t*) *String::Value(iName)) == L"toString")
+	if (wstring((wchar_t*) *String::Value(JavascriptContext::GetCurrentIsolate(), iName)) == L"toString")
 	{
 		function = wrapper->GetMethod(L"ToString");
 		if (!function.IsEmpty()) {
@@ -554,7 +559,7 @@ JavascriptInterop::Getter(Local<String> iName, const PropertyCallbackInfo<Value>
 
 	// member not found
 	if ((wrapper->GetOptions() & SetParameterOptions::RejectUnknownProperties) == SetParameterOptions::RejectUnknownProperties) {
-		iInfo.GetReturnValue().Set(JavascriptContext::GetCurrentIsolate()->ThrowException(JavascriptInterop::ConvertToV8("Unknown member: " + gcnew System::String((wchar_t*) *String::Value(iName)))));
+		iInfo.GetReturnValue().Set(JavascriptContext::GetCurrentIsolate()->ThrowException(JavascriptInterop::ConvertToV8("Unknown member: " + gcnew System::String((wchar_t*) *String::Value(JavascriptContext::GetCurrentIsolate(), iName)))));
 		return;
 	}
 	iInfo.GetReturnValue().Set(Handle<Value>());
@@ -565,7 +570,7 @@ JavascriptInterop::Getter(Local<String> iName, const PropertyCallbackInfo<Value>
 void
 JavascriptInterop::Setter(Local<String> iName, Local<Value> iValue, const PropertyCallbackInfo<Value>& iInfo)
 {
-	wstring name = (wchar_t*) *String::Value(iName);
+	wstring name = (wchar_t*) *String::Value(JavascriptContext::GetCurrentIsolate(), iName);
 	Handle<External> external = Handle<External>::Cast(iInfo.Holder()->GetInternalField(0));
 	JavascriptExternal* wrapper = (JavascriptExternal*) external->Value();
 	

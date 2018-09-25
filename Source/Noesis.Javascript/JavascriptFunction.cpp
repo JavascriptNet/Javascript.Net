@@ -71,7 +71,7 @@ bool JavascriptFunction::operator==(JavascriptFunction^ func1, JavascriptFunctio
 	Handle<Function> jsFuncPtr1 = func1->mFuncHandle->Get(func1->mContext->GetCurrentIsolate());
 	Handle<Function> jsFuncPtr2 = func2->mFuncHandle->Get(func2->mContext->GetCurrentIsolate());
 
-	return jsFuncPtr1->Equals(jsFuncPtr2);
+	return jsFuncPtr1->Equals(JavascriptContext::GetCurrentIsolate()->GetCurrentContext(), jsFuncPtr2).ToChecked();
 }
 
 bool JavascriptFunction::Equals(JavascriptFunction^ other)

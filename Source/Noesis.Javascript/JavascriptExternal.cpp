@@ -116,7 +116,7 @@ JavascriptExternal::GetMethod(wstring iName)
 Handle<Function>
 JavascriptExternal::GetMethod(Handle<String> iName)
 {
-	return GetMethod((wchar_t*) *String::Value(iName));
+	return GetMethod((wchar_t*) *String::Value(JavascriptContext::GetCurrentIsolate(), iName));
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////

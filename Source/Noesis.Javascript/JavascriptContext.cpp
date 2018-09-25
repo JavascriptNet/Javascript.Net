@@ -297,19 +297,19 @@ JavascriptContext::Run(System::String^ iScript)
 	JavascriptScope scope(this);
 	//SetStackLimit();
 	HandleScope handleScope(isolate);
-	Local<Value> ret;
+	MaybeLocal<Value> ret;
 	
 	Local<Script> compiledScript = CompileScript(isolate, script);
 
 	{
 		TryCatch tryCatch(isolate);
-		ret = (*compiledScript)->Run();
+		ret = (*compiledScript)->Run(this->GetCurrentIsolate()->GetCurrentContext());
 
 		if (ret.IsEmpty())
 			throw gcnew JavascriptException(tryCatch);
 	}
 	
-	return JavascriptInterop::ConvertFromV8(ret);
+	return JavascriptInterop::ConvertFromV8(ret.ToLocalChecked());
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -330,19 +330,19 @@ JavascriptContext::Run(System::String^ iScript, System::String^ iScriptResourceN
 	JavascriptScope scope(this);
 	//SetStackLimit();
 	HandleScope handleScope(isolate);
-	Local<Value> ret;	
+	MaybeLocal<Value> ret;	
 
 	Local<Script> compiledScript = CompileScript(isolate, script, scriptResourceName);
 	
 	{
 		TryCatch tryCatch(isolate);
-		ret = (*compiledScript)->Run();
+		ret = (*compiledScript)->Run(this->GetCurrentIsolate()->GetCurrentContext());
 
 		if (ret.IsEmpty())
 			throw gcnew JavascriptException(tryCatch);
 	}
 	
-	return JavascriptInterop::ConvertFromV8(ret);
+	return JavascriptInterop::ConvertFromV8(ret.ToLocalChecked());
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -363,7 +363,7 @@ JavascriptContext::GetCurrentStack(int maxDepth)
     );
 
     for (int i = 0; i < stackTrace->GetFrameCount(); ++i) {
-        v8::Local<v8::StackFrame> frame = stackTrace->GetFrame(i);
+        v8::Local<v8::StackFrame> frame = stackTrace->GetFrame(this->GetCurrentIsolate(), i);
         JavascriptStackFrame^ managedFrame = gcnew JavascriptStackFrame();
         managedFrame->LineNumber = frame->GetLineNumber();
         managedFrame->Column = frame->GetColumn();
@@ -521,21 +521,22 @@ CompileScript(v8::Isolate *isolate, wchar_t const *source_code, wchar_t const *r
 	{
 		TryCatch tryCatch(isolate);
 
-		Local<Script> script;
+		MaybeLocal<Script> script;
 		if (resource_name == NULL)
 		{
-			script = Script::Compile(source);
+			script = Script::Compile(JavascriptContext::GetCurrentIsolate()->GetCurrentContext(), source);
 		}
 		else
 		{
 			Local<String> resource = String::NewFromTwoByte(isolate, (uint16_t const *)resource_name, v8::NewStringType::kNormal).ToLocalChecked();
-			script = Script::Compile(source, resource);
+            ScriptOrigin *origin = new ScriptOrigin(resource);
+			script = Script::Compile(JavascriptContext::GetCurrentIsolate()->GetCurrentContext(), source, origin);
 		}
 
 		if (script.IsEmpty())
 			throw gcnew JavascriptException(tryCatch);
 
-		return script;
+		return script.ToLocalChecked();
 	}
 }
 
