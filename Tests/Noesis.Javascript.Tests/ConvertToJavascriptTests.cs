@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using FluentAssertions;
+using System.Text.RegularExpressions;
 
 namespace Noesis.Javascript.Tests
 {
@@ -132,6 +133,31 @@ namespace Noesis.Javascript.Tests
             _context.SetParameter("val", true);
 
             _context.Run("val === true").Should().BeOfType<bool>().Which.Should().BeTrue();
+        }
+
+        [TestMethod]
+        public void SetRegexWithoutECMAScriptFlagThrowsException()
+        {
+            Action action = () => _context.SetParameter("val", new Regex("abc"));
+            action.ShouldThrow<Exception>().WithMessage("Only regular expressions with the ECMAScript option can be converted.");
+        }
+
+        [TestMethod]
+        public void SetRegexWithECMAScriptFlagOnly()
+        {
+            _context.SetParameter("val", new Regex("abc", RegexOptions.ECMAScript));
+
+            _context.Run("val.source === 'abc'").Should().BeOfType<bool>().Which.Should().BeTrue();
+            _context.Run("val.flags === ''").Should().BeOfType<bool>().Which.Should().BeTrue();
+        }
+
+        [TestMethod]
+        public void SetRegexWithFlags()
+        {
+            _context.SetParameter("val", new Regex("abc", RegexOptions.ECMAScript | RegexOptions.IgnoreCase | RegexOptions.Multiline));
+
+            _context.Run("val.source === 'abc'").Should().BeOfType<bool>().Which.Should().BeTrue();
+            _context.Run("val.flags === 'im'").Should().BeOfType<bool>().Which.Should().BeTrue();
         }
 
         [TestMethod]

@@ -215,6 +215,8 @@ JavascriptInterop::ConvertToV8(System::Object^ iObject)
 		}
 		if (type->IsArray)
 			return ConvertFromSystemArray(safe_cast<System::Array^>(iObject));
+        if (type == System::Text::RegularExpressions::Regex::typeid)
+            return ConvertFromSystemRegex(safe_cast<System::Text::RegularExpressions::Regex^>(iObject));
 		if (System::Delegate::typeid->IsAssignableFrom(type))
 			return ConvertFromSystemDelegate(safe_cast<System::Delegate^>(iObject));
 	
@@ -404,6 +406,28 @@ JavascriptInterop::ConvertFromSystemArray(System::Array^ iArray)
 	}
 
 	return result;
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+
+Handle<Value>
+JavascriptInterop::ConvertFromSystemRegex(System::Text::RegularExpressions::Regex^ iRegex)
+{
+    using RegexOptions = System::Text::RegularExpressions::RegexOptions;
+    if (!iRegex->Options.HasFlag(RegexOptions::ECMAScript))
+        throw gcnew System::Exception("Only regular expressions with the ECMAScript option can be converted.");
+
+    v8::Isolate *isolate = JavascriptContext::GetCurrentIsolate();
+    Local<Context> context = isolate->GetCurrentContext();
+
+    Local<String> pattern = Handle<String>::Cast(ConvertToV8(iRegex->ToString()));
+    RegExp::Flags flags = RegExp::Flags::kNone;
+    if (iRegex->Options.HasFlag(RegexOptions::IgnoreCase))
+        flags = static_cast<RegExp::Flags>(flags | RegExp::Flags::kIgnoreCase);
+    if (iRegex->Options.HasFlag(RegexOptions::Multiline))
+        flags = static_cast<RegExp::Flags>(flags | RegExp::Flags::kMultiline);
+
+    return RegExp::New(context, pattern, flags).ToLocalChecked();
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
