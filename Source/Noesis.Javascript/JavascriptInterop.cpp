@@ -135,6 +135,8 @@ JavascriptInterop::ConvertFromV8(Handle<Value> iValue, ConvertedObjects &already
 		return ConvertArrayFromV8(iValue, already_converted);
 	if (iValue->IsDate())
 		return ConvertDateFromV8(iValue);
+    if (iValue->IsRegExp())
+        return ConvertRegexFromV8(iValue);
 	if (iValue->IsFunction())
 		return gcnew JavascriptFunction(iValue->ToObject(JavascriptContext::GetCurrentIsolate()), JavascriptContext::GetCurrent());
 	if (iValue->IsObject())
@@ -363,6 +365,25 @@ JavascriptInterop::ConvertDateFromV8(Handle<Value> iValue)
 	double milliseconds = iValue->NumberValue(JavascriptContext::GetCurrentIsolate()->GetCurrentContext()).ToChecked();
 	System::TimeSpan^ timespan = System::TimeSpan::FromMilliseconds(milliseconds);
     return System::DateTime(timespan->Ticks + startDate->Ticks).ToLocalTime();
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+
+System::Text::RegularExpressions::Regex^
+JavascriptInterop::ConvertRegexFromV8(Handle<Value> iValue)
+{
+    auto regexp = Handle<RegExp>::Cast(iValue->ToObject(JavascriptContext::GetCurrentIsolate()));
+    auto jsFlags = regexp->GetFlags();
+    auto jsPattern = regexp->GetSource();
+
+    using RegexOptions = System::Text::RegularExpressions::RegexOptions;
+    auto flags = RegexOptions::ECMAScript;
+    if (jsFlags & RegExp::Flags::kIgnoreCase)
+        flags = flags | RegexOptions::IgnoreCase;
+    if (jsFlags & RegExp::Flags::kMultiline)
+        flags = flags | RegexOptions::Multiline;
+    auto pattern = gcnew System::String((wchar_t*)*String::Value(JavascriptContext::GetCurrentIsolate(), jsPattern));
+    return gcnew System::Text::RegularExpressions::Regex(pattern, flags);
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////

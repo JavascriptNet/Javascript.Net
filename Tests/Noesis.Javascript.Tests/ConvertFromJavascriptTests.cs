@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using FluentAssertions;
+using System.Text.RegularExpressions;
 
 namespace Noesis.Javascript.Tests
 {
@@ -106,6 +107,24 @@ namespace Noesis.Javascript.Tests
             _context.Run("var myBool = true");
 
             _context.GetParameter("myBool").Should().BeOfType<bool>().Which.Should().BeTrue();
+        }
+
+        [TestMethod]
+        public void ReadRegExpLiteral()
+        {
+            _context.Run("var myRegExp = /abc/gim");
+
+            var regex = _context.GetParameter("myRegExp");
+            regex.Should().BeOfType<Regex>().Which.ShouldBeEquivalentTo(new Regex("abc", RegexOptions.ECMAScript | RegexOptions.IgnoreCase | RegexOptions.Multiline));
+        }
+
+        [TestMethod]
+        public void ReadRegExpObject()
+        {
+            _context.Run("var myRegExp = new RegExp('abc', 'gim')");
+
+            var regex = _context.GetParameter("myRegExp");
+            regex.Should().BeOfType<Regex>().Which.ShouldBeEquivalentTo(new Regex("abc", RegexOptions.ECMAScript | RegexOptions.IgnoreCase | RegexOptions.Multiline));
         }
 
         [TestMethod]
