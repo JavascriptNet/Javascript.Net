@@ -374,17 +374,19 @@ JavascriptInterop::ConvertDateFromV8(Handle<Value> iValue)
 System::Text::RegularExpressions::Regex^
 JavascriptInterop::ConvertRegexFromV8(Handle<Value> iValue)
 {
-    auto regexp = Handle<RegExp>::Cast(iValue->ToObject(JavascriptContext::GetCurrentIsolate()));
-    auto jsFlags = regexp->GetFlags();
-    auto jsPattern = regexp->GetSource();
-
     using RegexOptions = System::Text::RegularExpressions::RegexOptions;
-    auto flags = RegexOptions::ECMAScript;
+
+    Handle<RegExp> regexp = Handle<RegExp>::Cast(iValue->ToObject(JavascriptContext::GetCurrentIsolate()));
+    Local<String> jsPattern = regexp->GetSource();
+    RegExp::Flags jsFlags = regexp->GetFlags();
+
+    System::String^ pattern = safe_cast<System::String^>(ConvertFromV8(jsPattern));
+    RegexOptions flags = RegexOptions::ECMAScript;
     if (jsFlags & RegExp::Flags::kIgnoreCase)
         flags = flags | RegexOptions::IgnoreCase;
     if (jsFlags & RegExp::Flags::kMultiline)
         flags = flags | RegexOptions::Multiline;
-    auto pattern = gcnew System::String((wchar_t*)*String::Value(JavascriptContext::GetCurrentIsolate(), jsPattern));
+
     return gcnew System::Text::RegularExpressions::Regex(pattern, flags);
 }
 
