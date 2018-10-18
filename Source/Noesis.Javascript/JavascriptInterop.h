@@ -90,6 +90,8 @@ private:
 
 	static System::DateTime^ ConvertDateFromV8(Handle<Value> iValue);
 
+    static System::Text::RegularExpressions::Regex^ ConvertRegexFromV8(Handle<Value> iValue);
+
 	static v8::Handle<v8::Value> ConvertFromSystemArray(System::Array^ iArray);
 
 	static v8::Handle<v8::Value> ConvertFromSystemDictionary(System::Object^ iObject);
