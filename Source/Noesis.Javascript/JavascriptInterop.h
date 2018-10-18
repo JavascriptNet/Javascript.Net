@@ -94,6 +94,8 @@ private:
 
 	static v8::Handle<v8::Value> ConvertFromSystemArray(System::Array^ iArray);
 
+    static v8::Handle<v8::Value> ConvertFromSystemRegex(System::Text::RegularExpressions::Regex^ iRegex);
+
 	static v8::Handle<v8::Value> ConvertFromSystemDictionary(System::Object^ iObject);
 
 	static v8::Handle<v8::Value> ConvertFromSystemList(System::Object^ iObject);
