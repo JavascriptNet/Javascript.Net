@@ -741,6 +741,12 @@ JavascriptInterop::Invoker(const v8::FunctionCallbackInfo<Value>& iArgs)
 						}
 					}
 				}
+                for (int p = suppliedArguments->Length; p < arguments->Length; p++) // set default values if there are optional parameters
+                {
+                    System::Reflection::ParameterInfo^ parameter = parametersInfo[p];
+                    if (parameter->IsOptional && parameter->HasDefaultValue)
+                        arguments[p] = parameter->DefaultValue;
+                }
 
 				// skip if a conversion failed
 				if (failed > 0)
