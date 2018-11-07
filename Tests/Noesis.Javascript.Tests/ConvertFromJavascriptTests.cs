@@ -202,6 +202,16 @@ namespace Noesis.Javascript.Tests
         }
 
         [TestMethod]
+        public void MethodCallWithoutParameters_RedundantArgumentsAreIgnored()
+        {
+            var obj = new TypedPropertiesClass();
+            _context.SetParameter("obj", obj);
+            var result = _context.Run("obj.methodWithoutParameters(42)");
+
+            result.Should().Be(1);
+        }
+
+        [TestMethod]
         public void MethodCallWithParameter()
         {
             var obj = new TypedPropertiesClass();
