@@ -667,6 +667,17 @@ JavascriptInterop::IndexSetter(uint32_t iIndex, Local<Value> iValue, const Prope
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
+int CountMaximumNumberOfParameters(cli::array<System::Reflection::MemberInfo^>^ members)
+{
+    int maxParameters = 0;
+    for (int i = 0; i < members->Length; i++)
+    {
+        System::Reflection::MethodInfo^ method = (System::Reflection::MethodInfo^) members[i];
+        maxParameters = System::Math::Max(maxParameters, method->GetParameters()->Length);
+    }
+    return maxParameters;
+}
+
 void
 JavascriptInterop::Invoker(const v8::FunctionCallbackInfo<Value>& iArgs)
 {
@@ -692,12 +703,7 @@ JavascriptInterop::Invoker(const v8::FunctionCallbackInfo<Value>& iArgs)
 
 	if (members->Length > 0 && members[0]->MemberType == System::Reflection::MemberTypes::Method)
 	{
-        int maxParameters = 0;
-        for (int i = 0; i < members->Length; i++)
-        {
-            System::Reflection::MethodInfo^ method = (System::Reflection::MethodInfo^) members[i];
-            maxParameters = System::Math::Max(maxParameters, method->GetParameters()->Length);
-        }
+        int maxParameters = CountMaximumNumberOfParameters(members);
 
 		// parameters
 		suppliedArguments = gcnew cli::array<System::Object^>(maxParameters);
