@@ -36,7 +36,7 @@ namespace Noesis.Javascript.Tests
                 return s;
             }
 
-            public string methodWithRequiredAndDefaultParameters(int i, string s = "", bool b = true)
+            public string methodWithRequiredAndDefaultParameters(int i, string s = "abc", bool b = true)
             {
                 return String.Format("i: {0}, s: {1}, b: {2}", i, s, b);
             }
@@ -258,7 +258,7 @@ namespace Noesis.Javascript.Tests
             _context.SetParameter("obj", obj);
             var result = _context.Run("obj.methodWithRequiredAndDefaultParameters(1)");
 
-            result.Should().Be("i: 1, s: , b: True");
+            result.Should().Be("i: 1, s: abc, b: True");
         }
 
         [TestMethod]
@@ -269,6 +269,17 @@ namespace Noesis.Javascript.Tests
             var result = _context.Run("obj.methodWithRequiredAndDefaultParameters(1, 'test', false)");
 
             result.Should().Be("i: 1, s: test, b: False");
+        }
+
+        [TestMethod]
+        [Ignore]
+        public void MethodCallWithRequiredAndDefaultParameters_PassingOnlyOneOptionalActualParameterLeavingTheMiddleOneUndefined()
+        {
+            var obj = new TypedPropertiesClass();
+            _context.SetParameter("obj", obj);
+            var result = _context.Run("obj.methodWithRequiredAndDefaultParameters(1, undefined, false)");
+
+            result.Should().Be("i: 1, s: abc, b: False");
         }
     }
 }
