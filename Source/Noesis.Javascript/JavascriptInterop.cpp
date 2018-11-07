@@ -719,7 +719,8 @@ JavascriptInterop::Invoker(const v8::FunctionCallbackInfo<Value>& iArgs)
 				arguments = gcnew cli::array<System::Object^>(parametersInfo->Length);  // trailing parameters will be null
 				for (int p = 0; p < suppliedArguments->Length; p++)
 				{
-					System::Type^ paramType = parametersInfo[p]->ParameterType;
+                    System::Reflection::ParameterInfo^ parameter = parametersInfo[p];
+					System::Type^ paramType = parameter->ParameterType;
 
 					if (suppliedArguments[p] != nullptr)
 					{
@@ -740,9 +741,15 @@ JavascriptInterop::Invoker(const v8::FunctionCallbackInfo<Value>& iArgs)
 							}
 						}
 					}
+                    else if (parameter->IsOptional && parameter->HasDefaultValue && iArgs[p]->IsUndefined())
+                    {
+                        // pass default value if parameter is optional and undefined was supplied as an argument
+                        arguments[p] = parameter->DefaultValue;
+                    }
 				}
-                for (int p = suppliedArguments->Length; p < arguments->Length; p++) // set default values if there are optional parameters
+                for (int p = suppliedArguments->Length; p < arguments->Length; p++)
                 {
+                    // pass default values if there are optional parameters
                     System::Reflection::ParameterInfo^ parameter = parametersInfo[p];
                     if (parameter->IsOptional && parameter->HasDefaultValue)
                         arguments[p] = parameter->DefaultValue;

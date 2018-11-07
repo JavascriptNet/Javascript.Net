@@ -272,7 +272,16 @@ namespace Noesis.Javascript.Tests
         }
 
         [TestMethod]
-        [Ignore]
+        public void MethodCallWithRequiredAndDefaultParameters_PassingUndefinedForAllOptionalActualParameter()
+        {
+            var obj = new TypedPropertiesClass();
+            _context.SetParameter("obj", obj);
+            var result = _context.Run("obj.methodWithRequiredAndDefaultParameters(1, undefined, undefined)");
+
+            result.Should().Be("i: 1, s: abc, b: True");
+        }
+
+        [TestMethod]
         public void MethodCallWithRequiredAndDefaultParameters_PassingOnlyOneOptionalActualParameterLeavingTheMiddleOneUndefined()
         {
             var obj = new TypedPropertiesClass();
