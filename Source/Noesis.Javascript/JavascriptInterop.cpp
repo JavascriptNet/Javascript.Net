@@ -692,10 +692,17 @@ JavascriptInterop::Invoker(const v8::FunctionCallbackInfo<Value>& iArgs)
 
 	if (members->Length > 0 && members[0]->MemberType == System::Reflection::MemberTypes::Method)
 	{
+        int maxParameters = 0;
+        for (int i = 0; i < members->Length; i++)
+        {
+            System::Reflection::MethodInfo^ method = (System::Reflection::MethodInfo^) members[i];
+            maxParameters = System::Math::Max(maxParameters, method->GetParameters()->Length);
+        }
+
 		// parameters
-		suppliedArguments = gcnew cli::array<System::Object^>(iArgs.Length());
+		suppliedArguments = gcnew cli::array<System::Object^>(maxParameters);
 		ConvertedObjects already_converted;
-		for (int i = 0; i < iArgs.Length(); i++)
+		for (int i = 0; i < maxParameters; i++)
 			suppliedArguments[i] = ConvertFromV8(iArgs[i], already_converted);
 		
 		// look for best matching method
@@ -710,7 +717,7 @@ JavascriptInterop::Invoker(const v8::FunctionCallbackInfo<Value>& iArgs)
             // not detect where nulls have been supplied (or insufficient parameters
             // have been supplied), but the corresponding parameter cannot accept
             // a null.  This will trigger an exception during invocation.
-			if (iArgs.Length() <= parametersInfo->Length)
+			if (suppliedArguments->Length <= parametersInfo->Length)
 			{
 				int match = 0;
 				int failed = 0;
