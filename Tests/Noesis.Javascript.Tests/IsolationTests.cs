@@ -3,6 +3,7 @@ using System.Diagnostics;
 using System.Linq;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using FluentAssertions;
+using System;
 
 namespace Noesis.Javascript.Tests
 {
@@ -14,29 +15,29 @@ namespace Noesis.Javascript.Tests
     public class IsolationTests
     {
         [TestMethod]
-        public void RunIsolatesTest()
+        public void IsolatesRunSimultaneously()
         {
-
-            Stopwatch timer = new Stopwatch();
-            timer.Start();
-
-            Thread thread = new Thread(RunInstance);
-            thread.Start();  // First instance
-            RunInstance();   // Second instance
-            thread.Join();
-
-            timer.ElapsedMilliseconds.Should().BeLessThan(1999, "It took too long, they must not be running in parallel.");
+            var thread1_started = new EventWaitHandle(false, EventResetMode.ManualReset);
+            var thread2_started = new EventWaitHandle(false, EventResetMode.ManualReset);
+            Thread thread1 = new Thread(() => RunAndCallbackIntoCsharp(() => {
+                thread1_started.Set();
+                thread2_started.WaitOne();
+            }));
+            Thread thread2 = new Thread(() => RunAndCallbackIntoCsharp(() => {
+                thread2_started.Set();
+                thread1_started.WaitOne();
+            }));
+            thread1.Start();
+            thread2.Start();
+            thread1.Join();
+            thread2.Join();
         }
 
-        static void RunInstance()
+        static void RunAndCallbackIntoCsharp(Action run_in_javascript_thread)
         {
             using (JavascriptContext context = new JavascriptContext()) {
-                int i = (int)context.Run(@"
-var started = new Date();
-var i = 0;
-while (new Date().getTime() - started.getTime() < 1000)
-    i ++;
-i;");
+                context.SetParameter("csharp_code", run_in_javascript_thread);
+                context.Run("csharp_code();");
             }
         }
 
