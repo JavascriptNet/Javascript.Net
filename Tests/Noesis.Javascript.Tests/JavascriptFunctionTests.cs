@@ -27,7 +27,7 @@ namespace Noesis.Javascript.Tests
         public void GetFunctionExpressionFromJsContext()
         {
             _context.Run("a = function(a, b) { return a + b; }");
-            
+
             JavascriptFunction funcObj = _context.GetParameter("a") as JavascriptFunction;
             funcObj.Should().NotBeNull();
             funcObj.Call(1, 2).Should().BeOfType<int>().Which.Should().Be(3);
@@ -37,7 +37,7 @@ namespace Noesis.Javascript.Tests
         public void GetNamedFunctionFromJsContext()
         {
             _context.Run("function test(a, b) { return a + b; }");
-            
+
             JavascriptFunction funcObj = _context.GetParameter("test") as JavascriptFunction;
             funcObj.Should().NotBeNull();
             funcObj.Call(1, 2).Should().BeOfType<int>().Which.Should().Be(3);
@@ -47,7 +47,7 @@ namespace Noesis.Javascript.Tests
         public void GetArrowFunctionExpressionFromJsContext()
         {
             _context.Run("a = (a, b) => a + b");
-            
+
             JavascriptFunction funcObj = _context.GetParameter("a") as JavascriptFunction;
             funcObj.Should().NotBeNull();
             funcObj.Call(1, 2).Should().BeOfType<int>().Which.Should().Be(3);
@@ -57,7 +57,7 @@ namespace Noesis.Javascript.Tests
         public void PassFunctionToMethodInManagedObjectAndUseItToFilterAList()
         {
             _context.SetParameter("collection", new CollectionWrapper());
-            
+
             var result = _context.Run("collection.Filter(x => x % 2 === 0)") as IEnumerable<int>;
             result.Should().NotBeNull();
             result.Should().BeEquivalentTo(2, 4);
@@ -70,6 +70,21 @@ namespace Noesis.Javascript.Tests
             function.Should().NotBeNull();
             Action action = () => function.Call();
             action.ShouldThrowExactly<JavascriptException>().WithMessage("Error: test");
+        }
+    }
+
+    [TestClass]
+    public class JavascriptFunctionTestsWithoutAutomaticContext
+    {
+        [TestMethod]
+        public void CannotUseAFunctionWhenItsContextIsDisposed()
+        {
+            JavascriptFunction function;
+            using (var context = new JavascriptContext()) {
+                function = context.Run("() => { throw new Error('test'); }") as JavascriptFunction;
+            }
+            Action action = () => function.Call();
+            action.ShouldThrowExactly<JavascriptException>().WithMessage("This function's owning JavascriptContext has been disposed");
         }
     }
 

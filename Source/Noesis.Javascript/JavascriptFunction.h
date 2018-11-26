@@ -17,7 +17,9 @@ namespace Noesis { namespace Javascript {
 //////////////////////////////////////////////////////////////////////////
 // JavascriptFunction
 //
-// Wraps around JS function object and allow calling it in later time
+// Wraps around a JS function when passed back to C#, allowing it to be
+// called from C#.  Callers must not dispose of their JavascriptContext
+// while they still have references to JavascriptFunctions.
 //////////////////////////////////////////////////////////////////////////
 public ref class JavascriptFunction
 {
