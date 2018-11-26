@@ -26,6 +26,7 @@ public ref class JavascriptFunction
 public:
 	JavascriptFunction(v8::Handle<v8::Object> iFunction, JavascriptContext^ context);
 	~JavascriptFunction();
+    !JavascriptFunction();
 
 	System::Object^ Call(... cli::array<System::Object^>^ args);
 

@@ -86,6 +86,15 @@ namespace Noesis.Javascript.Tests
             Action action = () => function.Call();
             action.ShouldThrowExactly<JavascriptException>().WithMessage("This function's owning JavascriptContext has been disposed");
         }
+
+        [TestMethod]
+        public void DisposingAFunction()
+        {
+            using (var context = new JavascriptContext()) {
+                var function = context.Run("() => { throw new Error('test'); }") as JavascriptFunction;
+                function.Dispose();
+            }
+        }
     }
 
     class CollectionWrapper

@@ -163,7 +163,7 @@ JavascriptContext::JavascriptContext()
     isolate->SetFatalErrorHandler(FatalErrorCallback);
 
 	mExternals = gcnew System::Collections::Generic::Dictionary<System::Object ^, WrappedJavascriptExternal>();
-	mFunctions = gcnew System::Collections::Generic::List<System::Object ^>();
+	mFunctions = gcnew System::Collections::Generic::HashSet<System::WeakReference ^>();
 	HandleScope scope(isolate);
 	mContext = new Persistent<Context>(isolate, Context::New(isolate));
     terminateRuns = false;
@@ -178,8 +178,11 @@ JavascriptContext::~JavascriptContext()
 		v8::Isolate::Scope isolate_scope(isolate);
 		for each (WrappedJavascriptExternal wrapped in mExternals->Values)
 			delete wrapped.Pointer;
-		for each (JavascriptFunction^ f in mFunctions)
-			delete f;
+        for each (System::WeakReference^ f in mFunctions) {
+            JavascriptFunction ^function = safe_cast<JavascriptFunction ^>(f->Target);
+            if (function != nullptr)
+                delete function;
+        }
 		delete mContext;
 		delete mExternals;
 		delete mFunctions;
@@ -499,7 +502,9 @@ JavascriptContext::GetObjectWrapperTemplate()
 void
 JavascriptContext::RegisterFunction(System::Object^ f)
 {
-	mFunctions->Add(f);
+    // Note that while we do store WeakReferences, we never clean up this hashtable,
+    // so it will just grow and grow.
+	mFunctions->Add(gcnew System::WeakReference(f));
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
