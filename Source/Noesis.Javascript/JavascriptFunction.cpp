@@ -31,12 +31,17 @@ JavascriptFunction::~JavascriptFunction()
 	{
 		if (mContext)
 		{
-			JavascriptScope scope(mContext);
+            JavascriptScope scope(mContext);
 			mFuncHandle->Reset();
 		}
 		delete mFuncHandle;
 		mFuncHandle = nullptr;
 	}
+}
+
+JavascriptFunction::!JavascriptFunction()
+{
+    delete this;
 }
 
 System::Object^ JavascriptFunction::Call(... cli::array<System::Object^>^ args)
