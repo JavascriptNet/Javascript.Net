@@ -75,14 +75,17 @@ System::Object^ JavascriptFunction::Call(... cli::array<System::Object^>^ args)
 
 bool JavascriptFunction::operator==(JavascriptFunction^ func1, JavascriptFunction^ func2)
 {
+    bool func1_null = func1 == nullptr,
+         func2_null = func2 == nullptr;
+    if (func1_null != func2_null)
+		return false;
+    if (func1_null && func2_null)
+        return true;
     if (func1->mFuncHandle == nullptr)
         throw gcnew JavascriptException(L"'func1's owning JavascriptContext has been disposed");
     if (func2->mFuncHandle == nullptr)
         throw gcnew JavascriptException(L"'func2's owning JavascriptContext has been disposed");
 
-    if(ReferenceEquals(func2, nullptr)) {
-		return false;
-	}
 	Handle<Function> jsFuncPtr1 = func1->mFuncHandle->Get(func1->mContext->GetCurrentIsolate());
 	Handle<Function> jsFuncPtr2 = func2->mFuncHandle->Get(func2->mContext->GetCurrentIsolate());
 
@@ -98,8 +101,10 @@ bool JavascriptFunction::Equals(Object^ other)
 {
     if (mFuncHandle == nullptr)
         throw gcnew JavascriptException(L"This function's owning JavascriptContext has been disposed");
-    
     JavascriptFunction^ otherFunc = dynamic_cast<JavascriptFunction^>(other);
+    if (otherFunc != nullptr && otherFunc->mFuncHandle == nullptr)
+        throw gcnew JavascriptException(L"This function's owning JavascriptContext has been disposed");
+
 	return (otherFunc && this->Equals(otherFunc));
 }
 

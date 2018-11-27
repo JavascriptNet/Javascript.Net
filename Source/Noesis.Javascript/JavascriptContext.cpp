@@ -163,7 +163,7 @@ JavascriptContext::JavascriptContext()
     isolate->SetFatalErrorHandler(FatalErrorCallback);
 
 	mExternals = gcnew System::Collections::Generic::Dictionary<System::Object ^, WrappedJavascriptExternal>();
-	mFunctions = gcnew System::Collections::Generic::HashSet<System::WeakReference ^>();
+	mFunctions = gcnew System::Collections::Generic::List<System::WeakReference ^>();
 	HandleScope scope(isolate);
 	mContext = new Persistent<Context>(isolate, Context::New(isolate));
     terminateRuns = false;
@@ -205,7 +205,7 @@ void JavascriptContext::SetFatalErrorHandler(FatalErrorHandler^ handler)
 void JavascriptContext::SetFlags(System::String^ flags)
 {
     std::string convertedFlags = msclr::interop::marshal_as<std::string>(flags);
-    v8::V8::SetFlagsFromString(convertedFlags.c_str(), convertedFlags.length());
+    v8::V8::SetFlagsFromString(convertedFlags.c_str(), (int)convertedFlags.length());
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
