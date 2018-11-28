@@ -34,6 +34,18 @@ namespace Noesis.Javascript.Tests
         }
 
         [TestMethod]
+        public void EqualsOperatorWorksWithFunctionObjects()
+        {
+            _context.Run("a = function(a, b) { return a + b; }");
+
+            JavascriptFunction funcObj = _context.GetParameter("a") as JavascriptFunction;
+            (funcObj == null).Should().BeFalse();
+            (funcObj != null).Should().BeTrue();
+            (null == funcObj).Should().BeFalse();
+            (null != funcObj).Should().BeTrue();
+        }
+
+        [TestMethod]
         public void GetNamedFunctionFromJsContext()
         {
             _context.Run("function test(a, b) { return a + b; }");

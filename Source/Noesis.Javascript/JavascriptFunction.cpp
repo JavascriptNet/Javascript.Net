@@ -75,8 +75,8 @@ System::Object^ JavascriptFunction::Call(... cli::array<System::Object^>^ args)
 
 bool JavascriptFunction::operator==(JavascriptFunction^ func1, JavascriptFunction^ func2)
 {
-    bool func1_null = func1 == nullptr,
-         func2_null = func2 == nullptr;
+    bool func1_null = ReferenceEquals(func1, nullptr),
+         func2_null = ReferenceEquals(func2, nullptr);
     if (func1_null != func2_null)
 		return false;
     if (func1_null && func2_null)
