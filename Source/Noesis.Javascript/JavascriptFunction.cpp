@@ -39,11 +39,6 @@ JavascriptFunction::~JavascriptFunction()
 	}
 }
 
-JavascriptFunction::!JavascriptFunction()
-{
-    delete this;
-}
-
 System::Object^ JavascriptFunction::Call(... cli::array<System::Object^>^ args)
 {
     if (mFuncHandle == nullptr)
