@@ -33,9 +33,9 @@ public:
 	bool Equals(JavascriptFunction^ other);
 	
 	virtual bool Equals(Object^ other) override;
-
-private:
+internal:
     v8::Persistent<v8::Function>* mFuncHandle;
+private:
 	JavascriptContext^ mContext;
 };
 

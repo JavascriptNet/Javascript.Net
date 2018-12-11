@@ -183,6 +183,7 @@ JavascriptContext::~JavascriptContext()
             if (function != nullptr)
                 delete function;
         }
+        mFunctions->Clear();
 		delete mContext;
 		delete mExternals;
 		delete mFunctions;
@@ -502,8 +503,18 @@ JavascriptContext::GetObjectWrapperTemplate()
 void
 JavascriptContext::RegisterFunction(System::Object^ f)
 {
-    // Note that while we do store WeakReferences, we never clean up this hashtable,
-    // so it will just grow and grow.
+    if (mFunctions->Count > 100)
+    {
+        for (int i = mFunctions->Count - 1; i >= 0; i--)
+        {
+            auto weakReference = mFunctions[i];
+            auto f = safe_cast<JavascriptFunction^>(weakReference->Target);
+            if (!weakReference->IsAlive || f == nullptr || f->mFuncHandle == nullptr)
+            {
+                mFunctions->RemoveAt(i);
+            }
+        }
+    }
 	mFunctions->Add(gcnew System::WeakReference(f));
 }
 

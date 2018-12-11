@@ -11,17 +11,33 @@ namespace Noesis.Javascript.Tests
         [TestMethod]
         public void RunMemoryLeakTest()
         {
-            MemoryUsageLoadInstance();
+            MemoryLeakTest(MemoryUsageLoadInstance);
+        }
+
+        [TestMethod]
+        public void RunFunctionMemoryLeakTest()
+        {
+            using (JavascriptContext ctx = new JavascriptContext())
+            {
+                MemoryLeakTest(() => FunctionMemoryUsageLoadInstance(ctx), iterations: 10000, maxMemoryIncreaseInMB: 5);
+            }
+        }
+
+        private static void MemoryLeakTest(Action test, uint iterations = 20, uint maxMemoryIncreaseInMB = 1)
+        {
+            test();
             long mem = Process.GetCurrentProcess().PrivateMemorySize64;
 
-            for (int i = 0; i < 20; i++) {
-                MemoryUsageLoadInstance();
+            for (int i = 0; i < iterations; i++)
+            {
+                test();
             }
             GC.Collect();
+            GC.WaitForPendingFinalizers();
             GC.Collect();
             decimal diffMBytes = (Process.GetCurrentProcess().PrivateMemorySize64 - mem) / 1048576m;
 
-            diffMBytes.Should().BeLessThan(1, String.Format("{0:0.00}MB left allocated", diffMBytes));
+            diffMBytes.Should().BeLessThan(maxMemoryIncreaseInMB, String.Format("{0:0.00}MB left allocated", diffMBytes));
         }
 
         private static void MemoryUsageLoadInstance()
@@ -35,6 +51,12 @@ buffer[i] = 'new string';
 }
 ");
             }
+        }
+
+        private static void FunctionMemoryUsageLoadInstance(JavascriptContext ctx)
+        {
+            using (var function = ctx.Run(@"() => { return 1; }") as JavascriptFunction)
+                function.Call();
         }
     }
 }
