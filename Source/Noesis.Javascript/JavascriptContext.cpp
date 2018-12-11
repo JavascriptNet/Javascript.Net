@@ -183,6 +183,7 @@ JavascriptContext::~JavascriptContext()
             if (function != nullptr)
                 delete function;
         }
+        mExternals->Clear();
         mFunctions->Clear();
 		delete mContext;
 		delete mExternals;
@@ -266,8 +267,20 @@ JavascriptContext::SetParameter(System::String^ iName, System::Object^ iObject, 
 		}
 	}
 
+    Local<Context> localContext = Local<Context>::New(isolate, *mContext);
 	v8::Local<v8::String> key = String::NewFromTwoByte(isolate, (uint16_t*)name, v8::NewStringType::kNormal).ToLocalChecked();
-	Local<Context>::New(isolate, *mContext)->Global()->Set(isolate->GetCurrentContext(), key, value).ToChecked();
+    auto globalValue = localContext->Global()->Get(localContext, key);
+    if (!globalValue.IsEmpty())
+    {
+        auto managedValue = JavascriptInterop::ConvertFromV8(globalValue.ToLocalChecked());
+        if (managedValue != nullptr && mExternals->ContainsKey(managedValue))
+        {
+            auto external = mExternals[managedValue];
+            delete external.Pointer;
+            mExternals->Remove(managedValue);
+        }
+    }
+	localContext->Global()->Set(isolate->GetCurrentContext(), key, value).ToChecked();
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
