@@ -59,6 +59,10 @@ JavascriptExternal::JavascriptExternal(System::Object^ iObject)
 
 JavascriptExternal::~JavascriptExternal()
 {
+    for each (WrappedMethod wrapped in mMethods->Values)
+        delete wrapped.Pointer;
+    mMethods->Clear();
+    delete mMethods;
 	mObjectHandle.Free();
 }
 
