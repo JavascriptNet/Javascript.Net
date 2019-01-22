@@ -71,7 +71,7 @@ class JavascriptInterop
 	////////////////////////////////////////////////////////////
 public:
 
-	static Handle<ObjectTemplate> NewObjectWrapperTemplate();
+	static void InitObjectWrapperTemplate(Handle<ObjectTemplate> &object);
 
 	static System::Object^ ConvertFromV8(Handle<Value> iValue);
 
@@ -82,6 +82,8 @@ public:
 	static void Invoker(const v8::FunctionCallbackInfo<Value>& iArgs);
 
 	static Handle<Value> HandleTargetInvocationException(System::Reflection::TargetInvocationException^ exception);
+
+    static v8::Handle<v8::FunctionTemplate> GetFunctionTemplateFromSystemDelegate(System::Delegate^ iDelegate);
 
 private:
 	static System::Object^ ConvertFromV8(Handle<Value> iValue, ConvertedObjects &already_converted);
