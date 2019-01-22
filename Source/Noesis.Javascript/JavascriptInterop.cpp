@@ -49,19 +49,15 @@ using namespace System::Collections::Generic;
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
-Handle<ObjectTemplate>
-JavascriptInterop::NewObjectWrapperTemplate()
+void JavascriptInterop::InitObjectWrapperTemplate(Handle<ObjectTemplate> &object)
 {
-	Handle<ObjectTemplate> result = ObjectTemplate::New(JavascriptContext::GetCurrentIsolate());
-	result->SetInternalFieldCount(1);
+    object->SetInternalFieldCount(1);
 
     NamedPropertyHandlerConfiguration namedPropertyConfig((GenericNamedPropertyGetterCallback) Getter, (GenericNamedPropertySetterCallback) Setter, nullptr, nullptr, nullptr, Local<Value>(), PropertyHandlerFlags::kOnlyInterceptStrings);
-	result->SetHandler(namedPropertyConfig);
+    object->SetHandler(namedPropertyConfig);
 
     IndexedPropertyHandlerConfiguration indexedPropertyConfig((IndexedPropertyGetterCallback) IndexGetter, (IndexedPropertySetterCallback) IndexSetter);
-    result->SetHandler(indexedPropertyConfig);
-
-	return result;
+    object->SetHandler(indexedPropertyConfig);
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -271,9 +267,10 @@ JavascriptInterop::WrapObject(System::Object^ iObject)
 
 	if (context != nullptr)
 	{
-		Handle<ObjectTemplate> templ = context->GetObjectWrapperTemplate();
+		Handle<FunctionTemplate> templ = context->GetObjectWrapperConstructorTemplate(iObject->GetType());
 		v8::Isolate *isolate = JavascriptContext::GetCurrentIsolate();
-		Handle<Object> object = templ->NewInstance(isolate->GetCurrentContext()).ToLocalChecked();
+        Handle<ObjectTemplate> instanceTemplate = templ->InstanceTemplate();
+		Handle<Object> object = instanceTemplate->NewInstance(isolate->GetCurrentContext()).ToLocalChecked();
 		object->SetInternalField(0, External::New(isolate, context->WrapObject(iObject)));
 
 		return object;
@@ -475,15 +472,22 @@ JavascriptInterop::ConvertFromSystemList(System::Object^ iObject)
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
+v8::Handle<v8::FunctionTemplate>
+JavascriptInterop::GetFunctionTemplateFromSystemDelegate(System::Delegate^ iDelegate)
+{
+    JavascriptContext^ context = JavascriptContext::GetCurrent();
+    v8::Isolate *isolate = JavascriptContext::GetCurrentIsolate();
+    v8::Handle<v8::External> external = v8::External::New(isolate, context->WrapObject(iDelegate));
+
+    return v8::FunctionTemplate::New(isolate, DelegateInvoker, external);
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+
 v8::Handle<v8::Value>
 JavascriptInterop::ConvertFromSystemDelegate(System::Delegate^ iDelegate) 
 {
-	JavascriptContext^ context = JavascriptContext::GetCurrent();
-	v8::Isolate *isolate = JavascriptContext::GetCurrentIsolate();
-	v8::Handle<v8::External> external = v8::External::New(isolate, context->WrapObject(iDelegate));
-
-	v8::Handle<v8::FunctionTemplate> method = v8::FunctionTemplate::New(isolate, DelegateInvoker, external);
-	return method->GetFunction();
+	return GetFunctionTemplateFromSystemDelegate(iDelegate)->GetFunction();
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////

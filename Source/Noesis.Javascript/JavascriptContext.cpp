@@ -114,6 +114,15 @@ namespace Noesis { namespace Javascript {
 	}
 #pragma managed(pop)
 
+v8::Local<v8::String> ToV8String(Isolate* isolate, System::String^ value) {
+    if (value == nullptr)
+        throw gcnew System::ArgumentNullException("value");
+    pin_ptr<const wchar_t> namePtr = PtrToStringChars(value);
+    wchar_t* name = (wchar_t*)namePtr;
+
+    return String::NewFromTwoByte(isolate, (uint16_t*)name, v8::NewStringType::kNormal).ToLocalChecked();
+}
+
 static JavascriptContext::JavascriptContext()
 {
     System::Threading::Mutex mutex(true, "FA12B681-E968-4D3A-833D-43B25865BEF1");
@@ -163,6 +172,7 @@ JavascriptContext::JavascriptContext()
     isolate->SetFatalErrorHandler(FatalErrorCallback);
 
 	mExternals = gcnew System::Collections::Generic::Dictionary<System::Object ^, WrappedJavascriptExternal>();
+    mTypeToConstructorMapping = gcnew System::Collections::Generic::Dictionary<System::Type ^, System::IntPtr>();
 	mFunctions = gcnew System::Collections::Generic::List<System::WeakReference ^>();
 	HandleScope scope(isolate);
 	mContext = new Persistent<Context>(isolate, Context::New(isolate));
@@ -183,8 +193,12 @@ JavascriptContext::~JavascriptContext()
             if (function != nullptr)
                 delete function;
         }
+        for each (System::IntPtr p in mTypeToConstructorMapping->Values) {
+            delete (void *)p;
+        }
 		delete mContext;
 		delete mExternals;
+        delete mTypeToConstructorMapping;
 		delete mFunctions;
 	}
 	if (isolate != NULL)
@@ -244,10 +258,6 @@ JavascriptContext::SetParameter(System::String^ iName, System::Object^ iObject)
 void
 JavascriptContext::SetParameter(System::String^ iName, System::Object^ iObject, SetParameterOptions options)
 {
-	if (iName == nullptr)
-		throw gcnew System::ArgumentNullException("iName");
-	pin_ptr<const wchar_t> namePtr = PtrToStringChars(iName);
-	wchar_t* name = (wchar_t*) namePtr;
 	JavascriptScope scope(this);
 	v8::Isolate *isolate = JavascriptContext::GetCurrentIsolate();
 	HandleScope handleScope(isolate);
@@ -265,8 +275,23 @@ JavascriptContext::SetParameter(System::String^ iName, System::Object^ iObject, 
 		}
 	}
 
-	v8::Local<v8::String> key = String::NewFromTwoByte(isolate, (uint16_t*)name, v8::NewStringType::kNormal).ToLocalChecked();
+    v8::Local<v8::String> key = ToV8String(isolate, iName);
 	Local<Context>::New(isolate, *mContext)->Global()->Set(isolate->GetCurrentContext(), key, value).ToChecked();
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+
+
+void JavascriptContext::SetConstructor(System::String^ name, System::Type^ associatedType, System::Delegate^ constructor)
+{
+    JavascriptScope scope(this);
+    v8::Isolate *isolate = JavascriptContext::GetCurrentIsolate();
+    HandleScope handleScope(isolate);
+
+    Handle<FunctionTemplate> functionTemplate = JavascriptInterop::GetFunctionTemplateFromSystemDelegate(constructor);
+    JavascriptInterop::InitObjectWrapperTemplate(functionTemplate->InstanceTemplate());
+    mTypeToConstructorMapping[associatedType] = System::IntPtr(new Persistent<FunctionTemplate>(isolate, functionTemplate));
+    Local<Context>::New(isolate, *mContext)->Global()->Set(isolate->GetCurrentContext(), ToV8String(isolate, name), functionTemplate->GetFunction());
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -489,12 +514,18 @@ JavascriptContext::WrapObject(System::Object^ iObject)
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
-Handle<ObjectTemplate>
-JavascriptContext::GetObjectWrapperTemplate()
+Handle<FunctionTemplate>
+JavascriptContext::GetObjectWrapperConstructorTemplate(System::Type ^type)
 {
-	if (objectWrapperTemplate == NULL)
-		objectWrapperTemplate = new Persistent<ObjectTemplate>(isolate, JavascriptInterop::NewObjectWrapperTemplate());
-	return Local<ObjectTemplate>::New(isolate, *objectWrapperTemplate);
+    System::IntPtr ptrToConstructor;
+    if (!mTypeToConstructorMapping->TryGetValue(type, ptrToConstructor)) {
+        Local<FunctionTemplate> constructor = FunctionTemplate::New(GetCurrentIsolate());
+        JavascriptInterop::InitObjectWrapperTemplate(constructor->InstanceTemplate());
+        mTypeToConstructorMapping[type] = System::IntPtr(new Persistent<FunctionTemplate>(isolate, constructor));
+        return constructor;
+    }
+    Persistent<FunctionTemplate> *constructor = (Persistent<FunctionTemplate> *)(void *)ptrToConstructor;
+	return constructor->Get(isolate);
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
