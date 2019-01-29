@@ -54,5 +54,13 @@ namespace Noesis.Javascript.Tests
             _context.Invoking(x => x.Run("test instanceof Test"))
                 .ShouldThrow<JavascriptException>().WithMessage("ReferenceError: Test is not defined");
         }
+
+        [TestMethod]
+        public void ExtensionMethodIsPossible()
+        {
+            _context.SetConstructor("Test", typeof(TestClass), new Func<TestClass>(() => new TestClass()));
+            _context.Run("Test.prototype.fooDuplicated = function() { return this.foo * 2; }");
+            _context.Run("let x = new Test(); x.foo = 4; x.fooDuplicated() == 8").Should().Be(true);
+        }
     }
 }
