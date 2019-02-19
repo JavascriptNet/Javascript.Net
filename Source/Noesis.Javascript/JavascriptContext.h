@@ -141,6 +141,7 @@ public:
 
 	void SetParameter(System::String^ iName, System::Object^ iObject, SetParameterOptions options);
 
+    generic <typename AssociatedType> void SetConstructor(System::String^ name, System::Delegate^ constructor);
     void SetConstructor(System::String^ name, System::Type^ associatedType, System::Delegate^ constructor);
 
 	System::Object^ GetParameter(System::String^ iName);

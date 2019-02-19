@@ -29,6 +29,13 @@ namespace Noesis.Javascript.Tests
         }
 
         [TestMethod]
+        public void RegisterConstructorUsingGenericTest()
+        {
+            _context.SetConstructor<TestClass>("Test", new Func<TestClass>(() => new TestClass()));
+            _context.Run("(new Test()) instanceof Test").Should().Be(true);
+        }
+
+        [TestMethod]
         public void RegisteredConstructorInstanceOfWorksWithCSharpObjectTest()
         {
             _context.SetConstructor("Test", typeof(TestClass), new Func<TestClass>(() => new TestClass()));
