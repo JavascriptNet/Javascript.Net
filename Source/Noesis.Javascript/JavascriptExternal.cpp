@@ -331,6 +331,49 @@ JavascriptExternal::SetProperty(uint32_t iIndex, Handle<Value> iValue)
 	return Handle<Value>();
 }
 
+Handle<Function> JavascriptExternal::GetIterator()
+{
+    auto isolate = JavascriptContext::GetCurrentIsolate();
+    if (mIterator != nullptr)
+        return Local<Function>::New(isolate, *mIterator);
+
+    auto self = mObjectHandle.Target;
+    auto context = JavascriptContext::GetCurrent();
+    auto external = External::New(isolate, context->WrapObject(self));
+    auto functionTemplate = FunctionTemplate::New(isolate, JavascriptExternal::IteratorCallback, external);
+    auto function = functionTemplate->GetFunction();
+    mIterator = std::make_unique<Persistent<Function>>(isolate, function);
+    return function;
+}
+
+void JavascriptExternal::IteratorCallback(const v8::FunctionCallbackInfo<Value>& iArgs)
+{
+    auto isolate = iArgs.GetIsolate();
+    auto enumerable = (System::Collections::IEnumerable^) JavascriptInterop::UnwrapObject(Handle<External>::Cast(iArgs.Data()));
+    auto enumerator = enumerable->GetEnumerator();
+    auto context = JavascriptContext::GetCurrent();
+    auto external = External::New(isolate, context->WrapObject(enumerator));
+
+    auto iterator = ObjectTemplate::New(isolate);
+    auto functionTemplate = FunctionTemplate::New(isolate, JavascriptExternal::IteratorNextCallback, external);
+    iterator->Set(String::NewFromUtf8(isolate, "next"), functionTemplate);
+    iArgs.GetReturnValue().Set(iterator->NewInstance());
+}
+
+void JavascriptExternal::IteratorNextCallback(const v8::FunctionCallbackInfo<Value>& iArgs)
+{
+    auto isolate = iArgs.GetIsolate();
+    auto enumerator = (System::Collections::IEnumerator^) JavascriptInterop::UnwrapObject(Handle<External>::Cast(iArgs.Data()));
+    auto done = !enumerator->MoveNext();
+
+    auto resultTemplate = ObjectTemplate::New(isolate);
+    auto result = resultTemplate->NewInstance();
+    result->Set(String::NewFromUtf8(isolate, "done"), JavascriptInterop::ConvertToV8(done));
+    if (!done)
+        result->Set(String::NewFromUtf8(isolate, "value"), JavascriptInterop::ConvertToV8(enumerator->Current));
+    iArgs.GetReturnValue().Set(result);
+}
+
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
 } } // namespace Noesis::Javascript

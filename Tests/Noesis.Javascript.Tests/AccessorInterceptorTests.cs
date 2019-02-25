@@ -2,6 +2,7 @@
 using FluentAssertions;
 using System;
 using System.Collections.Generic;
+using System.Collections;
 
 namespace Noesis.Javascript.Tests
 {
@@ -257,6 +258,265 @@ test.prop.complex = complex;");
             _context.SetParameter("my_object", my_object);
             _context.Run("my_object.EnumeratedValue = 1.0");
             my_object.EnumeratedValue.Should().Be(UriKind.Absolute);
+        }
+
+        class ClassWithEnumerableProperty
+        {
+            public ClassWithEnumerableProperty()
+            {
+                ComplexItems = new HashSet<ClassWithDecimalProperty>
+                {
+                    new ClassWithDecimalProperty { D = 1 },
+                    new ClassWithDecimalProperty { D = 2 },
+                    new ClassWithDecimalProperty { D = 3 },
+                };
+            }
+
+            public IEnumerable<int> Items
+            {
+                get
+                {
+                    yield return 1;
+                    yield return 2;
+                    yield return 3;
+                }
+            }
+
+            public IEnumerable<int> EmptyItems
+            {
+                get { return new HashSet<int>(); }
+            }
+
+			public IEnumerable<ClassWithDecimalProperty> ComplexItems { get; }
+		}
+
+        [TestMethod]
+        public void IEnumerableProperty_CallingSymbolIteratorFunction_ReturnsACorrectIterator()
+        {
+            var enumerable = new ClassWithEnumerableProperty();
+            _context.SetParameter("enumerable", enumerable);
+            var result = _context.Run(@"
+var iterator = enumerable.Items[Symbol.iterator]();
+var next = iterator.next();
+next;
+");
+            result.Should().BeAssignableTo(typeof(Dictionary<string, object>));
+            var iteratorResult = (Dictionary<string, object>) result;
+            iteratorResult.ContainsKey("done").Should().Be(true);
+            iteratorResult.ContainsKey("value").Should().Be(true);
+            iteratorResult["done"].Should().Be(false);
+            iteratorResult["value"].Should().Be(1);
+        }
+
+        [TestMethod]
+        public void IEnumerableComplexObjectProperty_CallingSymbolIteratorFunction_ReturnsACorrectIterator()
+        {
+            var enumerable = new ClassWithEnumerableProperty();
+            _context.SetParameter("enumerable", enumerable);
+            var result = _context.Run(@"
+var iterator = enumerable.ComplexItems[Symbol.iterator]();
+var next = iterator.next();
+next;
+");
+            result.Should().BeAssignableTo(typeof(Dictionary<string, object>));
+            var iteratorResult = (Dictionary<string, object>) result;
+            iteratorResult.ContainsKey("done").Should().Be(true);
+            iteratorResult.ContainsKey("value").Should().Be(true);
+            iteratorResult["done"].Should().Be(false);
+            iteratorResult["value"].Should().BeAssignableTo(typeof(ClassWithDecimalProperty));
+            var value = (ClassWithDecimalProperty) iteratorResult["value"];
+            value.D.Should().Be(1);
+        }
+
+        [TestMethod]
+        public void IEnumerableProperty_IteratingUsingNextFunction_ReturnsCorrectSuccessiveResults()
+        {
+            var enumerable = new ClassWithEnumerableProperty();
+            _context.SetParameter("enumerable", enumerable);
+            var result = _context.Run(@"
+function assert(expected, actual) {
+    for (let prop in expected) {
+        if (!(prop in actual))
+            throw new Error(`Property ${prop} not available on ${JSON.stringify(actual)}`);
+        if (expected[prop] !== actual[prop])
+            throw new Error(`Expected ${prop} to be ${expected[prop]} but was ${actual[prop]}`);
+    }
+}
+var iterator = enumerable.Items[Symbol.iterator]();
+var next = iterator.next();
+assert({ done: false, value: 1 }, next);
+next = iterator.next();
+assert({ done: false, value: 2 }, next);
+next = iterator.next();
+assert({ done: false, value: 3 }, next);
+next = iterator.next();
+assert({ done: true }, next);
+next = iterator.next();
+assert({ done: true }, next);
+");
+        }
+
+        [TestMethod]
+        public void IEnumerableProperty_CallingIteratorFunctionAgainAfterIterating_SequenceStartsFromBeginning()
+        {
+            var enumerable = new ClassWithEnumerableProperty();
+            _context.SetParameter("enumerable", enumerable);
+            var result = _context.Run(@"
+function assert(expected, actual) {
+    for (let prop in expected) {
+        if (!(prop in actual))
+            throw new Error(`Property ${prop} not available on ${JSON.stringify(actual)}`);
+        if (expected[prop] !== actual[prop])
+            throw new Error(`Expected ${prop} to be ${expected[prop]} but was ${actual[prop]}`);
+    }
+}
+var iterator = enumerable.Items[Symbol.iterator]();
+var next = iterator.next();
+assert({ done: false, value: 1 }, next);
+next = iterator.next();
+assert({ done: false, value: 2 }, next);
+next = iterator.next();
+assert({ done: false, value: 3 }, next);
+next = iterator.next();
+assert({ done: true }, next);
+
+iterator = enumerable.Items[Symbol.iterator]();
+next = iterator.next();
+assert({ done: false, value: 1 }, next);
+");
+        }
+
+        [TestMethod]
+        public void IEnumerableComplexObjectProperty_CallingSymbolIteratorFunctionTwice_SequenceStartsFromBeginning()
+        {
+            var enumerable = new ClassWithEnumerableProperty();
+            _context.SetParameter("enumerable", enumerable);
+            var result = _context.Run(@"
+var iterator = enumerable.ComplexItems[Symbol.iterator]();
+iterator.next();
+iterator.next();
+
+iterator = enumerable.ComplexItems[Symbol.iterator]();
+var next = iterator.next();
+next;
+");
+            result.Should().BeAssignableTo(typeof(Dictionary<string, object>));
+            var iteratorResult = (Dictionary<string, object>) result;
+            iteratorResult.ContainsKey("done").Should().Be(true);
+            iteratorResult.ContainsKey("value").Should().Be(true);
+            iteratorResult["done"].Should().Be(false);
+            iteratorResult["value"].Should().BeAssignableTo(typeof(ClassWithDecimalProperty));
+            var value = (ClassWithDecimalProperty) iteratorResult["value"];
+            value.D.Should().Be(1);
+        }
+
+        [TestMethod]
+        public void IEnumerableProperty_IteratingAnEmptyCollection_ReturnsCorrectObjectWithDoneEqualToTrue()
+        {
+            var enumerable = new ClassWithEnumerableProperty();
+            _context.SetParameter("enumerable", enumerable);
+            var result = _context.Run(@"
+function assert(expected, actual) {
+    for (let prop in expected) {
+        if (!(prop in actual))
+            throw new Error(`Property ${prop} not available on ${JSON.stringify(actual)}`);
+        if (expected[prop] !== actual[prop])
+            throw new Error(`Expected ${prop} to be ${expected[prop]} but was ${actual[prop]}`);
+    }
+}
+var iterator = enumerable.EmptyItems[Symbol.iterator]();
+var next = iterator.next();
+assert({ done: true }, next);
+");
+        }
+
+        [TestMethod]
+        public void IEnumerableProperty_UsingForOfLoopToIterate_ReturnsCorrectResult()
+        {
+            var enumerable = new ClassWithEnumerableProperty();
+            _context.SetParameter("enumerable", enumerable);
+            var result = _context.Run(@"
+let result = 0;
+for (const item of enumerable.Items)
+    result += item;
+result;
+");
+            result.Should().Be(6);
+        }
+
+        [TestMethod]
+        public void IEnumerableProperty_UsingForOfLoopTwice_ReturnsCorrectResult()
+        {
+            var enumerable = new ClassWithEnumerableProperty();
+            _context.SetParameter("enumerable", enumerable);
+            var result = _context.Run(@"
+let result = 0;
+for (const item of enumerable.Items)
+    result += item;
+result = 0;
+for (const item of enumerable.Items)
+    result += item;
+result;
+");
+            result.Should().Be(6);
+        }
+
+        [TestMethod]
+        public void IEnumerableProperty_UsingForOfLoopToIterateComplexObjects_ReturnsCorrectResult()
+        {
+            var enumerable = new ClassWithEnumerableProperty();
+            _context.SetParameter("enumerable", enumerable);
+            var result = _context.Run(@"
+let result = 0;
+for (const item of enumerable.ComplexItems)
+    result += item.D;
+result;
+");
+            result.Should().Be(6);
+        }
+
+        [TestMethod]
+        public void IEnumerableProperty_UsingSpreadOperator_ReturnsCorrectArray()
+        {
+            var enumerable = new ClassWithEnumerableProperty();
+            _context.SetParameter("enumerable", enumerable);
+            var result = _context.Run(@"[...enumerable.Items];");
+            result.ShouldBeEquivalentTo(new int[] { 1, 2, 3 });
+        }
+
+        [TestMethod]
+        public void IEnumerableComplexObjectProperty_UsingSpreadOperator_ReturnsCorrectArray()
+        {
+            var enumerable = new ClassWithEnumerableProperty();
+            _context.SetParameter("enumerable", enumerable);
+            var result = _context.Run(@"[...enumerable.ComplexItems]");
+            result.ShouldBeEquivalentTo(new ClassWithDecimalProperty[] 
+            {
+                new ClassWithDecimalProperty { D = 1 },
+                new ClassWithDecimalProperty { D = 2 },
+                new ClassWithDecimalProperty { D = 3 },
+            });
+        }
+
+        [TestMethod]
+        public void IEnumerableComplexObjectProperty_UsingSpreadOperator_CanUseArrayOperationsCorrectly()
+        {
+            var enumerable = new ClassWithEnumerableProperty();
+            _context.SetParameter("enumerable", enumerable);
+            var result = _context.Run(@"
+const array = [...enumerable.ComplexItems];
+array.map(x => x.D).join(', ');
+");
+            result.Should().Be("1, 2, 3");
+        }
+
+        [TestMethod]
+        public void PropertyThatIsNotIEnumerable_CallingSymbolIteratorFunction_ThrowsExceptionBecauseItIsUndefined()
+        {
+            var enumerable = new ClassWithEnumerableProperty();
+            _context.SetParameter("enumerable", enumerable);
+            Action action = () => _context.Run(@"enumerable[Symbol.iterator]()");
+            action.ShouldThrow<JavascriptException>("TypeError: enumerable[Symbol.iterator] is not a function");
         }
     }
 }
