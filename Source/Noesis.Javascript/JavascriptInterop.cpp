@@ -53,7 +53,7 @@ void JavascriptInterop::InitObjectWrapperTemplate(Handle<ObjectTemplate> &object
 {
     object->SetInternalFieldCount(1);
 
-    NamedPropertyHandlerConfiguration namedPropertyConfig((GenericNamedPropertyGetterCallback) Getter, (GenericNamedPropertySetterCallback) Setter, nullptr, nullptr, nullptr, Local<Value>(), PropertyHandlerFlags::kOnlyInterceptStrings);
+    NamedPropertyHandlerConfiguration namedPropertyConfig((GenericNamedPropertyGetterCallback) Getter, (GenericNamedPropertySetterCallback) Setter, nullptr, nullptr, nullptr);
     object->SetHandler(namedPropertyConfig);
 
     IndexedPropertyHandlerConfiguration indexedPropertyConfig((IndexedPropertyGetterCallback) IndexGetter, (IndexedPropertySetterCallback) IndexSetter);
@@ -577,40 +577,57 @@ JavascriptInterop::IsSystemObject(Handle<Value> iValue)
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
 void
-JavascriptInterop::Getter(Local<String> iName, const PropertyCallbackInfo<Value>& iInfo)
+JavascriptInterop::Getter(Local<Name> iName, const PropertyCallbackInfo<Value>& iInfo)
 {
-	wstring name = (wchar_t*) *String::Value(JavascriptContext::GetCurrentIsolate(), iName);
+    Isolate* isolate = iInfo.GetIsolate();
 	Handle<External> external = Handle<External>::Cast(iInfo.Holder()->GetInternalField(0));
 	JavascriptExternal* wrapper = (JavascriptExternal*) external->Value();
 	Handle<Function> function;
 	Handle<Value> value;
 
-	// get method
-	function = wrapper->GetMethod(name);
-	if (!function.IsEmpty()) {
-		iInfo.GetReturnValue().Set(function);  // good value or exception
-		return;
-	}
+    if (iName->IsString())
+    {
+        wstring name = (wchar_t*)*String::Value(isolate, iName);
 
-	// As for GetMethod().
-	if (wrapper->GetProperty(name, value)) {
-		iInfo.GetReturnValue().Set(value);  // good value or exception
-		return;
-	}
+        // get method
+        function = wrapper->GetMethod(name);
+        if (!function.IsEmpty()) {
+            iInfo.GetReturnValue().Set(function);  // good value or exception
+            return;
+        }
 
-	// map toString with ToString
-	if (wstring((wchar_t*) *String::Value(JavascriptContext::GetCurrentIsolate(), iName)) == L"toString")
-	{
-		function = wrapper->GetMethod(L"ToString");
-		if (!function.IsEmpty()) {
-			iInfo.GetReturnValue().Set(function);
-			return;
-		}
-	}
+        // As for GetMethod().
+        if (wrapper->GetProperty(name, value)) {
+            iInfo.GetReturnValue().Set(value);  // good value or exception
+            return;
+        }
+
+        // map toString with ToString
+        if (name == L"toString")
+        {
+            function = wrapper->GetMethod(L"ToString");
+            if (!function.IsEmpty()) {
+                iInfo.GetReturnValue().Set(function);
+                return;
+            }
+        }
+    }
+    else
+    {
+        // iterator symbol
+        if (iName == Symbol::GetIterator(isolate))
+        {
+            if (System::Collections::IEnumerable::typeid->IsAssignableFrom(wrapper->GetObject()->GetType()))
+                iInfo.GetReturnValue().Set(wrapper->GetIterator());
+            else
+                iInfo.GetReturnValue().Set(Undefined(isolate));
+            return;
+        }
+    }
 
 	// member not found
 	if ((wrapper->GetOptions() & SetParameterOptions::RejectUnknownProperties) == SetParameterOptions::RejectUnknownProperties) {
-		iInfo.GetReturnValue().Set(JavascriptContext::GetCurrentIsolate()->ThrowException(JavascriptInterop::ConvertToV8("Unknown member: " + gcnew System::String((wchar_t*) *String::Value(JavascriptContext::GetCurrentIsolate(), iName)))));
+		iInfo.GetReturnValue().Set(isolate->ThrowException(JavascriptInterop::ConvertToV8("Unknown member: " + gcnew System::String((wchar_t*) *String::Value(JavascriptContext::GetCurrentIsolate(), iName)))));
 		return;
 	}
 	iInfo.GetReturnValue().Set(Handle<Value>());

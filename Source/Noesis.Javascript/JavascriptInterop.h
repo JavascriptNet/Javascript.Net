@@ -114,7 +114,7 @@ private:
 
 	static Handle<Object> WrapFunction(System::Object^ iObject, System::String^ iName);
 
-	static void Getter(Local<String> iName, const PropertyCallbackInfo<Value>& iInfo);
+	static void Getter(Local<Name> iName, const PropertyCallbackInfo<Value>& iInfo);
 
 	static void Setter(Local<String> iName, Local<Value> iValue, const PropertyCallbackInfo<Value>& iInfo);
 
