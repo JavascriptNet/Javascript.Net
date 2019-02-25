@@ -292,10 +292,12 @@ void JavascriptContext::SetConstructor(System::String^ name, System::Type^ assoc
     v8::Isolate *isolate = JavascriptContext::GetCurrentIsolate();
     HandleScope handleScope(isolate);
 
+    Local<String> className = ToV8String(isolate, name);
     Handle<FunctionTemplate> functionTemplate = JavascriptInterop::GetFunctionTemplateFromSystemDelegate(constructor);
+    functionTemplate->SetClassName(className);
     JavascriptInterop::InitObjectWrapperTemplate(functionTemplate->InstanceTemplate());
     mTypeToConstructorMapping[associatedType] = System::IntPtr(new Persistent<FunctionTemplate>(isolate, functionTemplate));
-    Local<Context>::New(isolate, *mContext)->Global()->Set(isolate->GetCurrentContext(), ToV8String(isolate, name), functionTemplate->GetFunction());
+    Local<Context>::New(isolate, *mContext)->Global()->Set(isolate->GetCurrentContext(), className, functionTemplate->GetFunction());
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
