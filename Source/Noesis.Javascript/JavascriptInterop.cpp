@@ -130,7 +130,7 @@ JavascriptInterop::ConvertFromV8(Handle<Value> iValue, ConvertedObjects &already
 	if (iValue->IsArray())
 		return ConvertArrayFromV8(iValue, already_converted);
 	if (iValue->IsDate())
-		return ConvertDateFromV8(iValue);
+		return ConvertDateFromV8(iValue.As<Date>());
     if (iValue->IsRegExp())
         return ConvertRegexFromV8(iValue);
 	if (iValue->IsFunction())
@@ -199,8 +199,8 @@ JavascriptInterop::ConvertToV8(System::Object^ iObject)
 					return v8::Number::New(isolate, safe_cast<float>(iObject));
 				if (type == System::Decimal::typeid)
 					return v8::Number::New(isolate, (double)safe_cast<System::Decimal>(iObject));
-				if (type == System::DateTime::typeid)
-					return v8::Date::New(isolate->GetCurrentContext(), SystemInterop::ConvertFromSystemDateTime(safe_cast<System::DateTime^>(iObject))).ToLocalChecked();
+                if (type == System::DateTime::typeid)
+                    return ConvertDateTimeToV8(safe_cast<System::DateTime^>(iObject));
 			}
 		}
 		if (type == System::String::typeid)
@@ -357,13 +357,73 @@ JavascriptInterop::ConvertObjectFromV8(Handle<Object> iObject, ConvertedObjects 
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
-System::DateTime^
-JavascriptInterop::ConvertDateFromV8(Handle<Value> iValue)
+/*
+ * We need to be very careful with date conversions because C# does not use the IANA timezone database
+ * to determine offsets from UTC / daylight savings time. However, V8 does use the IANA timezone
+ * database which lead to discrepancies in the date conversion.
+ *
+ * Example:
+ * Germany did not observe daylight savings time from 1950-1979 and therefore observed UTC+1
+ * throughout the whole year. However, C# thinks Germany did observe daylight savings time
+ * and assumes incorrectly that Germany observed UTC+2 during the summer time.
+ *
+ * V8
+ * new Date(1978, 5, 15) // "Thu Jun 15 1978 00:00:00 GMT+0100 (Mitteleuropäische Normalzeit)"
+ *
+ * C#
+ * If we get the ticks since 1970-01-01 from V8 to construct a UTC DateTime object we get
+ * "1978-06-14 23:00:00" which is correct. A subsequent call to .ToLocalTime() on that date object
+ * yields "1978-06-15 01:00:00" which is wrong; it should be "1978-06-15 00:00:00"!
+ *
+ * The same problem exists in the other direction.
+ *
+ * We therefore construct date objects directly from the date components we get from V8 and vice versa.
+ */
+
+double GetDateComponent(Isolate* isolate, Handle<Date> date, const char* component)
 {
-	System::DateTime^ startDate = gcnew System::DateTime(1970, 1, 1, 0, 0, 0, 0, System::DateTimeKind::Utc);
-	double milliseconds = iValue->NumberValue(JavascriptContext::GetCurrentIsolate()->GetCurrentContext()).ToChecked();
-	System::TimeSpan^ timespan = System::TimeSpan::FromMilliseconds(milliseconds);
-    return System::DateTime(timespan->Ticks + startDate->Ticks).ToLocalTime();
+    auto getComponent = date->Get(isolate->GetCurrentContext(), String::NewFromUtf8(isolate, component)).ToLocalChecked().As<Function>();
+    auto componentValue = getComponent->Call(date, 0, nullptr);
+    return componentValue->NumberValue(isolate->GetCurrentContext()).ToChecked();
+}
+
+void SetDateComponent(Isolate* isolate, Handle<Date> date, const char* component, double value)
+{
+    auto getComponent = date->Get(isolate->GetCurrentContext(), String::NewFromUtf8(isolate, component)).ToLocalChecked().As<Function>();
+    Handle<Value> parameters[] = { JavascriptInterop::ConvertToV8(value) };
+    getComponent->Call(date, 1, parameters);
+}
+
+System::DateTime^ JavascriptInterop::ConvertDateFromV8(Handle<Date> date)
+{
+    auto isolate = JavascriptContext::GetCurrentIsolate();
+    auto year = GetDateComponent(isolate, date, "getFullYear");
+    auto month = GetDateComponent(isolate, date, "getMonth") + 1;
+    auto day = GetDateComponent(isolate, date, "getDate");
+    auto hour = GetDateComponent(isolate, date, "getHours");
+    auto minute = GetDateComponent(isolate, date, "getMinutes");
+    auto second = GetDateComponent(isolate, date, "getSeconds");
+    auto millisecond = GetDateComponent(isolate, date, "getMilliseconds");
+    return gcnew System::DateTime(year, month, day, hour, minute, second, millisecond, System::DateTimeKind::Local);
+}
+
+Handle<Date> JavascriptInterop::ConvertDateTimeToV8(System::DateTime^ dateTime)
+{
+    auto isolate = JavascriptContext::GetCurrentIsolate();
+    EscapableHandleScope handleScope(isolate);
+
+    auto date = v8::Date::New(isolate->GetCurrentContext(), SystemInterop::ConvertFromSystemDateTime(dateTime)).ToLocalChecked().As<Date>();
+    if (dateTime->Kind == System::DateTimeKind::Utc)
+        return handleScope.Escape(date);
+
+    SetDateComponent(isolate, date, "setFullYear", dateTime->Year);
+    SetDateComponent(isolate, date, "setMonth", dateTime->Month - 1);
+    SetDateComponent(isolate, date, "setDate", dateTime->Day);
+    SetDateComponent(isolate, date, "setHours", dateTime->Hour);
+    SetDateComponent(isolate, date, "setMinutes", dateTime->Minute);
+    SetDateComponent(isolate, date, "setSeconds", dateTime->Second);
+    SetDateComponent(isolate, date, "setMilliseconds", dateTime->Millisecond);
+    return handleScope.Escape(date);
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
