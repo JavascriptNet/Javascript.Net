@@ -88,5 +88,67 @@ namespace Noesis.Javascript.Tests
             DateTime dateAsReportedByV8 = (DateTime)_context.Run("new Date(2010, 9, 10)");
             dateAsReportedByV8.Should().Be(new DateTime(2010, 10, 10));
         }
+
+        [TestMethod]
+        public void SetDateTimeUtc_DateWhereTimezoneDatabaseIsImportant()
+        {
+            _context.SetParameter("val", new DateTime(1978, 6, 15, 0, 0, 0, DateTimeKind.Utc));
+
+            _context.Run("val.getUTCFullYear()").Should().BeOfType<int>().Which.Should().Be(1978);
+            _context.Run("val.getUTCMonth()").Should().BeOfType<int>().Which.Should().Be(5);
+            _context.Run("val.getUTCDate()").Should().BeOfType<int>().Which.Should().Be(15);
+            _context.Run("val.getUTCHours()").Should().BeOfType<int>().Which.Should().Be(0);
+            _context.Run("val.getUTCMinutes()").Should().BeOfType<int>().Which.Should().Be(0);
+            _context.Run("val.getUTCSeconds()").Should().BeOfType<int>().Which.Should().Be(0);
+        }
+
+        [TestMethod]
+        public void SetDateTimeLocal_DateWhereTimezoneDatabaseIsImportant()
+        {
+            _context.SetParameter("val", new DateTime(1978, 6, 15, 0, 0, 0, DateTimeKind.Local));
+
+            _context.Run("val.getFullYear()").Should().BeOfType<int>().Which.Should().Be(1978);
+            _context.Run("val.getMonth()").Should().BeOfType<int>().Which.Should().Be(5);
+            _context.Run("val.getDate()").Should().BeOfType<int>().Which.Should().Be(15);
+            _context.Run("val.getHours()").Should().BeOfType<int>().Which.Should().Be(0);
+            _context.Run("val.getMinutes()").Should().BeOfType<int>().Which.Should().Be(0);
+            _context.Run("val.getSeconds()").Should().BeOfType<int>().Which.Should().Be(0);
+        }
+
+        [TestMethod]
+        [Ignore]
+        public void SetAndReadDateTimeUtc_DateWhereTimezoneDatabaseIsImportant()
+        {
+            var dateTime = new DateTime(1978, 6, 15, 0, 0, 0, DateTimeKind.Utc);
+            _context.SetParameter("val", dateTime);
+
+            var dateFromV8 = (DateTime) _context.Run("val");
+            dateFromV8.ToUniversalTime().Should().Be(dateTime); // this cannot work without an external dependency like NodaTime
+        }
+
+        [TestMethod]
+        public void SetAndReadDateTimeLocal_DateWhereTimezoneDatabaseIsImportant()
+        {
+            var dateTime = new DateTime(1978, 6, 15, 0, 0, 0, DateTimeKind.Local);
+            _context.SetParameter("val", dateTime);
+
+            _context.Run("val").Should().Be(dateTime);
+        }
+
+        [TestMethod]
+        public void SetAndReadDateTimeUnspecified_DateWhereTimezoneDatabaseIsImportant()
+        {
+            var dateTime = new DateTime(1978, 6, 15);
+            _context.SetParameter("val", dateTime);
+
+            _context.Run("val").Should().Be(dateTime);
+        }
+
+        [TestMethod]
+        public void CreateFixedDateInJavaScript_DateWhereTimezoneDatabaseIsImportant()
+        {
+            DateTime dateAsReportedByV8 = (DateTime) _context.Run("new Date(1978, 5, 15)");
+            dateAsReportedByV8.Should().Be(new DateTime(1978, 6, 15));
+        }
     }
 }

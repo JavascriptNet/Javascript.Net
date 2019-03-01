@@ -90,7 +90,9 @@ private:
 
 	static System::Object^ ConvertObjectFromV8(Handle<Object> iObject, ConvertedObjects &already_converted);
 
-	static System::DateTime^ ConvertDateFromV8(Handle<Value> iValue);
+	static System::DateTime^ ConvertDateFromV8(Handle<Date> iValue);
+
+    static Handle<Date> ConvertDateTimeToV8(System::DateTime^ dateTime);
 
     static System::Text::RegularExpressions::Regex^ ConvertRegexFromV8(Handle<Value> iValue);
 
