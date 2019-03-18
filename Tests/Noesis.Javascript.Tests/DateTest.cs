@@ -1,6 +1,8 @@
 ﻿using System;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using FluentAssertions;
+using System.Collections.Generic;
+using System.Linq;
 
 namespace Noesis.Javascript.Tests
 {
@@ -115,11 +117,30 @@ namespace Noesis.Javascript.Tests
             _context.Run("val.getSeconds()").Should().BeOfType<int>().Which.Should().Be(0);
         }
 
-        [TestMethod]
-        [Ignore]
+        //[TestMethod]
         public void SetAndReadDateTimeUtc_DateWhereTimezoneDatabaseIsImportant()
         {
             var dateTime = new DateTime(1978, 6, 15, 0, 0, 0, DateTimeKind.Utc);
+            _context.SetParameter("val", dateTime);
+
+            var dateFromV8 = (DateTime) _context.Run("val");
+            dateFromV8.ToUniversalTime().Should().Be(dateTime); // this cannot work without an external dependency like NodaTime
+        }
+
+        //[TestMethod]
+        public void SetAndReadDateTimeUtc_EdgeCaseOfAMonthWith30Days()
+        {
+            var dateTime = new DateTime(1967, 4, 1, 0, 0, 0, DateTimeKind.Utc);
+            _context.SetParameter("val", dateTime);
+
+            var dateFromV8 = (DateTime) _context.Run("val");
+            dateFromV8.ToUniversalTime().Should().Be(dateTime); // this cannot work without an external dependency like NodaTime
+        }
+
+        //[TestMethod]
+        public void SetAndReadDateTimeUtc_LeapYear()
+        {
+            var dateTime = new DateTime(1972, 2, 29, 0, 0, 0, DateTimeKind.Utc);
             _context.SetParameter("val", dateTime);
 
             var dateFromV8 = (DateTime) _context.Run("val");
@@ -136,9 +157,45 @@ namespace Noesis.Javascript.Tests
         }
 
         [TestMethod]
+        public void SetAndReadDateTimeLocal_EdgeCaseOfAMonthWith30Days()
+        {
+            var dateTime = new DateTime(1967, 4, 1, 0, 0, 0, DateTimeKind.Local);
+            _context.SetParameter("val", dateTime);
+
+            _context.Run("val").Should().Be(dateTime);
+        }
+
+        [TestMethod]
+        public void SetAndReadDateTimeLocal_LeapYear()
+        {
+            var dateTime = new DateTime(1972, 2, 29, 0, 0, 0, DateTimeKind.Local);
+            _context.SetParameter("val", dateTime);
+
+            _context.Run("val").Should().Be(dateTime);
+        }
+
+        [TestMethod]
         public void SetAndReadDateTimeUnspecified_DateWhereTimezoneDatabaseIsImportant()
         {
             var dateTime = new DateTime(1978, 6, 15);
+            _context.SetParameter("val", dateTime);
+
+            _context.Run("val").Should().Be(dateTime);
+        }
+
+        [TestMethod]
+        public void SetAndReadDateTimeUnspecified_EdgeCaseOfAMonthWith30Days()
+        {
+            var dateTime = new DateTime(1967, 4, 1);
+            _context.SetParameter("val", dateTime);
+
+            _context.Run("val").Should().Be(dateTime);
+        }
+
+        [TestMethod]
+        public void SetAndReadDateTimeUnspecified_LeapYear()
+        {
+            var dateTime = new DateTime(1972, 2, 29);
             _context.SetParameter("val", dateTime);
 
             _context.Run("val").Should().Be(dateTime);
@@ -149,6 +206,28 @@ namespace Noesis.Javascript.Tests
         {
             DateTime dateAsReportedByV8 = (DateTime) _context.Run("new Date(1978, 5, 15)");
             dateAsReportedByV8.Should().Be(new DateTime(1978, 6, 15));
+        }
+
+        [TestMethod]
+        public void SetAndReadDateTimeLocal_DateRange()
+        {
+            var startDate = new DateTime(1900, 1, 1, 0, 0, 0, DateTimeKind.Local);
+            var endDate = new DateTime(2100, 1, 1, 0, 0, 0, DateTimeKind.Local);
+            var totalDays = (endDate - startDate).TotalDays;
+
+            var errorDates = new List<string>();
+
+            for (var i = 0; i < totalDays; i++)
+            {
+                var date = startDate.AddDays(i);
+                _context.SetParameter("val", date);
+                var result = (DateTime) _context.Run("val");
+                if (result != date)
+                    errorDates.Add($"Expected {date}, but got {result}");
+            }
+
+            if (errorDates.Any())
+                Assert.Fail(string.Join("\n", errorDates));
         }
     }
 }

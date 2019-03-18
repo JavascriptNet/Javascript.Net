@@ -387,13 +387,6 @@ double GetDateComponent(Isolate* isolate, Handle<Date> date, const char* compone
     return componentValue->NumberValue(isolate->GetCurrentContext()).ToChecked();
 }
 
-void SetDateComponent(Isolate* isolate, Handle<Date> date, const char* component, double value)
-{
-    auto getComponent = date->Get(isolate->GetCurrentContext(), String::NewFromUtf8(isolate, component)).ToLocalChecked().As<Function>();
-    Handle<Value> parameters[] = { JavascriptInterop::ConvertToV8(value) };
-    getComponent->Call(date, 1, parameters);
-}
-
 System::DateTime^ JavascriptInterop::ConvertDateFromV8(Handle<Date> date)
 {
     auto isolate = JavascriptContext::GetCurrentIsolate();
@@ -412,18 +405,22 @@ Handle<Date> JavascriptInterop::ConvertDateTimeToV8(System::DateTime^ dateTime)
     auto isolate = JavascriptContext::GetCurrentIsolate();
     EscapableHandleScope handleScope(isolate);
 
-    auto date = v8::Date::New(isolate->GetCurrentContext(), SystemInterop::ConvertFromSystemDateTime(dateTime)).ToLocalChecked().As<Date>();
     if (dateTime->Kind == System::DateTimeKind::Utc)
-        return handleScope.Escape(date);
+        return handleScope.Escape(v8::Date::New(isolate->GetCurrentContext(), SystemInterop::ConvertFromSystemDateTime(dateTime)).ToLocalChecked().As<Date>());
 
-    SetDateComponent(isolate, date, "setFullYear", dateTime->Year);
-    SetDateComponent(isolate, date, "setMonth", dateTime->Month - 1);
-    SetDateComponent(isolate, date, "setDate", dateTime->Day);
-    SetDateComponent(isolate, date, "setHours", dateTime->Hour);
-    SetDateComponent(isolate, date, "setMinutes", dateTime->Minute);
-    SetDateComponent(isolate, date, "setSeconds", dateTime->Second);
-    SetDateComponent(isolate, date, "setMilliseconds", dateTime->Millisecond);
-    return handleScope.Escape(date);
+    auto year = JavascriptInterop::ConvertToV8(dateTime->Year);
+    auto month = JavascriptInterop::ConvertToV8(dateTime->Month - 1);
+    auto day = JavascriptInterop::ConvertToV8(dateTime->Day);
+    auto hour = JavascriptInterop::ConvertToV8(dateTime->Hour);
+    auto minute = JavascriptInterop::ConvertToV8(dateTime->Minute);
+    auto second = JavascriptInterop::ConvertToV8(dateTime->Second);
+    auto millisecond = JavascriptInterop::ConvertToV8(dateTime->Millisecond);
+
+    auto globalObj = isolate->GetCurrentContext()->Global();
+    auto dateConstructor = Local<Function>::Cast(globalObj->Get(String::NewFromUtf8(isolate, "Date")));
+    Handle<Value> parameters[] = { year, month, day, hour, minute, second, millisecond };
+
+    return handleScope.Escape(dateConstructor->NewInstance(isolate->GetCurrentContext(), 7, parameters).ToLocalChecked().As<Date>());
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
