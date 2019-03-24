@@ -333,7 +333,7 @@ JavascriptInterop::ConvertObjectFromV8(Handle<Object> iObject, ConvertedObjects 
 	System::Object ^converted_object = already_converted.GetConverted(iObject);
 	if (converted_object == nullptr) {
 		v8::Isolate *isolate = JavascriptContext::GetCurrentIsolate();
-		v8::Local<v8::Array> names = iObject->GetPropertyNames();
+		v8::Local<v8::Array> names = iObject->GetPropertyNames(isolate->GetCurrentContext()).ToLocalChecked();
 
 		unsigned int length = names->Length();
 		Dictionary<System::String^, System::Object^>^ results = gcnew Dictionary<System::String^, System::Object^>(length);
@@ -382,8 +382,9 @@ JavascriptInterop::ConvertObjectFromV8(Handle<Object> iObject, ConvertedObjects 
 
 double GetDateComponent(Isolate* isolate, Handle<Date> date, const char* component)
 {
-    auto getComponent = date->Get(isolate->GetCurrentContext(), String::NewFromUtf8(isolate, component)).ToLocalChecked().As<Function>();
-    auto componentValue = getComponent->Call(date, 0, nullptr);
+    auto context = isolate->GetCurrentContext();
+    auto getComponent = date->Get(context, String::NewFromUtf8(isolate, component)).ToLocalChecked().As<Function>();
+    auto componentValue = getComponent->Call(context, date, 0, nullptr).ToLocalChecked();
     return componentValue->NumberValue(isolate->GetCurrentContext()).ToChecked();
 }
 
@@ -544,7 +545,8 @@ JavascriptInterop::GetFunctionTemplateFromSystemDelegate(System::Delegate^ iDele
 v8::Handle<v8::Value>
 JavascriptInterop::ConvertFromSystemDelegate(System::Delegate^ iDelegate) 
 {
-	return GetFunctionTemplateFromSystemDelegate(iDelegate)->GetFunction();
+    auto context = JavascriptContext::GetCurrentIsolate()->GetCurrentContext();
+	return GetFunctionTemplateFromSystemDelegate(iDelegate)->GetFunction(context).ToLocalChecked();
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
