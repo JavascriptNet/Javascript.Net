@@ -49,7 +49,7 @@ using namespace System::Collections::Generic;
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
-void JavascriptInterop::InitObjectWrapperTemplate(Handle<ObjectTemplate> &object)
+void JavascriptInterop::InitObjectWrapperTemplate(Local<ObjectTemplate> &object)
 {
     object->SetInternalFieldCount(1);
 
@@ -106,7 +106,7 @@ ConvertedObjects::GetConverted(v8::Local<v8::Object> o)
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
 System::Object^
-JavascriptInterop::ConvertFromV8(Handle<Value> iValue)
+JavascriptInterop::ConvertFromV8(Local<Value> iValue)
 {
 	ConvertedObjects already_converted;
 	return ConvertFromV8(iValue, already_converted);
@@ -115,7 +115,7 @@ JavascriptInterop::ConvertFromV8(Handle<Value> iValue)
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
 System::Object^
-JavascriptInterop::ConvertFromV8(Handle<Value> iValue, ConvertedObjects &already_converted)
+JavascriptInterop::ConvertFromV8(Local<Value> iValue, ConvertedObjects &already_converted)
 {
 	if (iValue->IsNull() || iValue->IsUndefined())
 		return nullptr;
@@ -137,7 +137,7 @@ JavascriptInterop::ConvertFromV8(Handle<Value> iValue, ConvertedObjects &already
 		return gcnew JavascriptFunction(iValue->ToObject(JavascriptContext::GetCurrentIsolate()), JavascriptContext::GetCurrent());
 	if (iValue->IsObject())
 	{
-		Handle<Object> object = iValue->ToObject(JavascriptContext::GetCurrentIsolate());
+		Local<Object> object = iValue->ToObject(JavascriptContext::GetCurrentIsolate());
 
 		if (object->InternalFieldCount() > 0)
 			return UnwrapObject(iValue);
@@ -150,7 +150,7 @@ JavascriptInterop::ConvertFromV8(Handle<Value> iValue, ConvertedObjects &already
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
-Handle<Value>
+Local<Value>
 JavascriptInterop::ConvertToV8(System::Object^ iObject)
 {
 	v8::Isolate *isolate = JavascriptContext::GetCurrentIsolate();
@@ -244,8 +244,8 @@ JavascriptInterop::ConvertToV8(System::Object^ iObject)
 			System::Exception ^exception = safe_cast<System::Exception^>(iObject);
 			pin_ptr<const wchar_t> valuePtr = PtrToStringChars(safe_cast<System::String^>(exception->Message));
 			wchar_t* value = (wchar_t*)valuePtr;
-			Handle<v8::Value> error = v8::Exception::Error(v8::String::NewFromTwoByte(isolate, (uint16_t*)value, v8::NewStringType::kNormal).ToLocalChecked());
-			Handle<v8::Object> error_o = v8::Handle<v8::Object>::Cast(error);
+			Local<v8::Value> error = v8::Exception::Error(v8::String::NewFromTwoByte(isolate, (uint16_t*)value, v8::NewStringType::kNormal).ToLocalChecked());
+			Local<v8::Object> error_o = v8::Local<v8::Object>::Cast(error);
 			Local<String> key = v8::String::NewFromUtf8(isolate, "InnerException", v8::NewStringType::kNormal).ToLocalChecked();
 			error_o->Set(isolate->GetCurrentContext(), key, WrapObject(iObject)).ToChecked();
 			return error_o;
@@ -259,18 +259,18 @@ JavascriptInterop::ConvertToV8(System::Object^ iObject)
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
-// TODO: should return Handle<External>
-Handle<Object>
+// TODO: should return Local<External>
+Local<Object>
 JavascriptInterop::WrapObject(System::Object^ iObject)
 {
 	JavascriptContext^ context = JavascriptContext::GetCurrent();
 
 	if (context != nullptr)
 	{
-		Handle<FunctionTemplate> templ = context->GetObjectWrapperConstructorTemplate(iObject->GetType());
+		Local<FunctionTemplate> templ = context->GetObjectWrapperConstructorTemplate(iObject->GetType());
 		v8::Isolate *isolate = JavascriptContext::GetCurrentIsolate();
-        Handle<ObjectTemplate> instanceTemplate = templ->InstanceTemplate();
-		Handle<Object> object = instanceTemplate->NewInstance(isolate->GetCurrentContext()).ToLocalChecked();
+        Local<ObjectTemplate> instanceTemplate = templ->InstanceTemplate();
+		Local<Object> object = instanceTemplate->NewInstance(isolate->GetCurrentContext()).ToLocalChecked();
 		object->SetInternalField(0, External::New(isolate, context->WrapObject(iObject)));
 
 		return object;
@@ -281,24 +281,24 @@ JavascriptInterop::WrapObject(System::Object^ iObject)
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
-// TODO: should use Handle<External> iExternal
+// TODO: should use Local<External> iExternal
 System::Object^
-JavascriptInterop::UnwrapObject(Handle<Value> iValue)
+JavascriptInterop::UnwrapObject(Local<Value> iValue)
 {
 	 if (iValue->IsExternal())
 	{
-		Handle<External> external = Handle<External>::Cast(iValue);
+		Local<External> external = Local<External>::Cast(iValue);
 		JavascriptExternal* wrapper = (JavascriptExternal*) external->Value();
 		return wrapper->GetObject();
 	}
 
 	if (iValue->IsObject())
 	{
-		Handle<Object> object = iValue->ToObject(JavascriptContext::GetCurrentIsolate());
+		Local<Object> object = iValue->ToObject(JavascriptContext::GetCurrentIsolate());
 
 		if (object->InternalFieldCount() > 0)
 		{
-			Handle<External> external = Handle<External>::Cast(object->GetInternalField(0));
+			Local<External> external = Local<External>::Cast(object->GetInternalField(0));
 			JavascriptExternal* wrapper = (JavascriptExternal*) external->Value();
 			return wrapper->GetObject();
 		}
@@ -310,9 +310,9 @@ JavascriptInterop::UnwrapObject(Handle<Value> iValue)
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
 System::Object^
-JavascriptInterop::ConvertArrayFromV8(Handle<Value> iValue, ConvertedObjects &already_converted)
+JavascriptInterop::ConvertArrayFromV8(Local<Value> iValue, ConvertedObjects &already_converted)
 {
-	v8::Handle<v8::Array> object = v8::Handle<v8::Array>::Cast(iValue->ToObject(JavascriptContext::GetCurrentIsolate()));
+	v8::Local<v8::Array> object = v8::Local<v8::Array>::Cast(iValue->ToObject(JavascriptContext::GetCurrentIsolate()));
 	int length = object->Length();
 	cli::array<System::Object^>^ results = gcnew cli::array<System::Object^>(length);
 
@@ -328,7 +328,7 @@ JavascriptInterop::ConvertArrayFromV8(Handle<Value> iValue, ConvertedObjects &al
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
 System::Object^
-JavascriptInterop::ConvertObjectFromV8(Handle<Object> iObject, ConvertedObjects &already_converted)
+JavascriptInterop::ConvertObjectFromV8(Local<Object> iObject, ConvertedObjects &already_converted)
 {
 	System::Object ^converted_object = already_converted.GetConverted(iObject);
 	if (converted_object == nullptr) {
@@ -339,9 +339,9 @@ JavascriptInterop::ConvertObjectFromV8(Handle<Object> iObject, ConvertedObjects 
 		Dictionary<System::String^, System::Object^>^ results = gcnew Dictionary<System::String^, System::Object^>(length);
 		already_converted.AddConverted(iObject, results);
 		for (unsigned int i = 0; i < length; i++) {
-			v8::Handle<v8::Value> nameKey = v8::Uint32::New(isolate, i);
-			v8::Handle<v8::Value> propName = names->Get(nameKey);
-			v8::Handle<v8::Value> propValue = iObject->Get(propName);
+			v8::Local<v8::Value> nameKey = v8::Uint32::New(isolate, i);
+			v8::Local<v8::Value> propName = names->Get(nameKey);
+			v8::Local<v8::Value> propValue = iObject->Get(propName);
 
 			// Property "names" may be integers or other types.  However they will
 			// generally be strings so continuing to key this dictionary that way is 
@@ -380,7 +380,7 @@ JavascriptInterop::ConvertObjectFromV8(Handle<Object> iObject, ConvertedObjects 
  * We therefore construct date objects directly from the date components we get from V8 and vice versa.
  */
 
-double GetDateComponent(Isolate* isolate, Handle<Date> date, const char* component)
+double GetDateComponent(Isolate* isolate, Local<Date> date, const char* component)
 {
     auto context = isolate->GetCurrentContext();
     auto getComponent = date->Get(context, String::NewFromUtf8(isolate, component)).ToLocalChecked().As<Function>();
@@ -388,7 +388,7 @@ double GetDateComponent(Isolate* isolate, Handle<Date> date, const char* compone
     return componentValue->NumberValue(isolate->GetCurrentContext()).ToChecked();
 }
 
-System::DateTime^ JavascriptInterop::ConvertDateFromV8(Handle<Date> date)
+System::DateTime^ JavascriptInterop::ConvertDateFromV8(Local<Date> date)
 {
     auto isolate = JavascriptContext::GetCurrentIsolate();
     auto year = GetDateComponent(isolate, date, "getFullYear");
@@ -401,7 +401,7 @@ System::DateTime^ JavascriptInterop::ConvertDateFromV8(Handle<Date> date)
     return gcnew System::DateTime(year, month, day, hour, minute, second, millisecond, System::DateTimeKind::Local);
 }
 
-Handle<Date> JavascriptInterop::ConvertDateTimeToV8(System::DateTime^ dateTime)
+Local<Date> JavascriptInterop::ConvertDateTimeToV8(System::DateTime^ dateTime)
 {
     auto isolate = JavascriptContext::GetCurrentIsolate();
     EscapableHandleScope handleScope(isolate);
@@ -419,7 +419,7 @@ Handle<Date> JavascriptInterop::ConvertDateTimeToV8(System::DateTime^ dateTime)
 
     auto globalObj = isolate->GetCurrentContext()->Global();
     auto dateConstructor = Local<Function>::Cast(globalObj->Get(String::NewFromUtf8(isolate, "Date")));
-    Handle<Value> parameters[] = { year, month, day, hour, minute, second, millisecond };
+    Local<Value> parameters[] = { year, month, day, hour, minute, second, millisecond };
 
     return handleScope.Escape(dateConstructor->NewInstance(isolate->GetCurrentContext(), 7, parameters).ToLocalChecked().As<Date>());
 }
@@ -427,11 +427,11 @@ Handle<Date> JavascriptInterop::ConvertDateTimeToV8(System::DateTime^ dateTime)
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
 System::Text::RegularExpressions::Regex^
-JavascriptInterop::ConvertRegexFromV8(Handle<Value> iValue)
+JavascriptInterop::ConvertRegexFromV8(Local<Value> iValue)
 {
     using RegexOptions = System::Text::RegularExpressions::RegexOptions;
 
-    Handle<RegExp> regexp = Handle<RegExp>::Cast(iValue->ToObject(JavascriptContext::GetCurrentIsolate()));
+    Local<RegExp> regexp = Local<RegExp>::Cast(iValue->ToObject(JavascriptContext::GetCurrentIsolate()));
     Local<String> jsPattern = regexp->GetSource();
     RegExp::Flags jsFlags = regexp->GetFlags();
 
@@ -447,18 +447,18 @@ JavascriptInterop::ConvertRegexFromV8(Handle<Value> iValue)
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
-v8::Handle<v8::Value>
+v8::Local<v8::Value>
 JavascriptInterop::ConvertFromSystemArray(System::Array^ iArray) 
 {
 	int lenght = iArray->Length;
 	v8::Isolate *isolate = JavascriptContext::GetCurrentIsolate();
 	Local<Context> context = isolate->GetCurrentContext();
-	v8::Handle<v8::Array> result = v8::Array::New(isolate);
+	v8::Local<v8::Array> result = v8::Array::New(isolate);
 	
 	// Transform the .NET array into a Javascript array 
 	for (int i = 0; i < lenght; i++) 
 	{
-		v8::Handle<v8::Value> key = v8::Int32::New(isolate, i);
+		v8::Local<v8::Value> key = v8::Int32::New(isolate, i);
 		result->Set(context, key, ConvertToV8(iArray->GetValue(i))).ToChecked();
 	}
 
@@ -467,7 +467,7 @@ JavascriptInterop::ConvertFromSystemArray(System::Array^ iArray)
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
-Handle<Value>
+Local<Value>
 JavascriptInterop::ConvertFromSystemRegex(System::Text::RegularExpressions::Regex^ iRegex)
 {
     using RegexOptions = System::Text::RegularExpressions::RegexOptions;
@@ -477,7 +477,7 @@ JavascriptInterop::ConvertFromSystemRegex(System::Text::RegularExpressions::Rege
     v8::Isolate *isolate = JavascriptContext::GetCurrentIsolate();
     Local<Context> context = isolate->GetCurrentContext();
 
-    Local<String> pattern = Handle<String>::Cast(ConvertToV8(iRegex->ToString()));
+    Local<String> pattern = Local<String>::Cast(ConvertToV8(iRegex->ToString()));
     RegExp::Flags flags = RegExp::Flags::kNone;
     if (iRegex->Options.HasFlag(RegexOptions::IgnoreCase))
         flags = static_cast<RegExp::Flags>(flags | RegExp::Flags::kIgnoreCase);
@@ -489,18 +489,18 @@ JavascriptInterop::ConvertFromSystemRegex(System::Text::RegularExpressions::Rege
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
-v8::Handle<v8::Value>
+v8::Local<v8::Value>
 JavascriptInterop::ConvertFromSystemDictionary(System::Object^ iObject) 
 {
-	v8::Handle<v8::Object> object = v8::Object::New(JavascriptContext::GetCurrentIsolate());
+	v8::Local<v8::Object> object = v8::Object::New(JavascriptContext::GetCurrentIsolate());
 	System::Collections::IDictionary^ dictionary =  safe_cast<System::Collections::IDictionary^>(iObject);
 	v8::Isolate *isolate = JavascriptContext::GetCurrentIsolate();
 	Local<Context> context = isolate->GetCurrentContext();
 
 	for each(System::Object^ keyValue in dictionary->Keys) 
 	{
-		v8::Handle<v8::Value> key = ConvertToV8(keyValue);
-		v8::Handle<v8::Value> val = ConvertToV8(dictionary[keyValue]);
+		v8::Local<v8::Value> key = ConvertToV8(keyValue);
+		v8::Local<v8::Value> val = ConvertToV8(dictionary[keyValue]);
 		object->Set(context, key, val).ToChecked();
 	} 
 
@@ -511,17 +511,17 @@ JavascriptInterop::ConvertFromSystemDictionary(System::Object^ iObject)
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
-v8::Handle<v8::Value>
+v8::Local<v8::Value>
 JavascriptInterop::ConvertFromSystemList(System::Object^ iObject) 
 {
 	v8::Isolate *isolate = JavascriptContext::GetCurrentIsolate();
-	v8::Handle<v8::Array> object = v8::Array::New(isolate);
+	v8::Local<v8::Array> object = v8::Array::New(isolate);
 	System::Collections::IList^ list =  safe_cast<System::Collections::IList^>(iObject);
 
 	for(int i = 0; i < list->Count; i++) 
 	{
-		v8::Handle<v8::Value> key = v8::Int32::New(isolate, i);
-		v8::Handle<v8::Value> val = ConvertToV8(list[i]);
+		v8::Local<v8::Value> key = v8::Int32::New(isolate, i);
+		v8::Local<v8::Value> val = ConvertToV8(list[i]);
 		object->Set(key, val);
 	} 
 
@@ -530,19 +530,19 @@ JavascriptInterop::ConvertFromSystemList(System::Object^ iObject)
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
-v8::Handle<v8::FunctionTemplate>
+v8::Local<v8::FunctionTemplate>
 JavascriptInterop::GetFunctionTemplateFromSystemDelegate(System::Delegate^ iDelegate)
 {
     JavascriptContext^ context = JavascriptContext::GetCurrent();
     v8::Isolate *isolate = JavascriptContext::GetCurrentIsolate();
-    v8::Handle<v8::External> external = v8::External::New(isolate, context->WrapObject(iDelegate));
+    v8::Local<v8::External> external = v8::External::New(isolate, context->WrapObject(iDelegate));
 
     return v8::FunctionTemplate::New(isolate, DelegateInvoker, external);
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
-v8::Handle<v8::Value>
+v8::Local<v8::Value>
 JavascriptInterop::ConvertFromSystemDelegate(System::Delegate^ iDelegate) 
 {
     auto context = JavascriptContext::GetCurrentIsolate()->GetCurrentContext();
@@ -555,7 +555,7 @@ void
 JavascriptInterop::DelegateInvoker(const FunctionCallbackInfo<Value>& info)
 {
 	v8::Isolate *isolate = JavascriptContext::GetCurrentIsolate();
-	JavascriptExternal* wrapper = (JavascriptExternal*)v8::Handle<v8::External>::Cast(info.Data())->Value();
+	JavascriptExternal* wrapper = (JavascriptExternal*)v8::Local<v8::External>::Cast(info.Data())->Value();
 	System::Object^ object = wrapper->GetObject();
 
 	System::Delegate^ delegat = static_cast<System::Delegate^>(object);
@@ -622,7 +622,7 @@ JavascriptInterop::DelegateInvoker(const FunctionCallbackInfo<Value>& info)
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
 bool
-JavascriptInterop::IsSystemObject(Handle<Value> iValue)
+JavascriptInterop::IsSystemObject(Local<Value> iValue)
 {
 	if (iValue->IsObject())
 	{
@@ -639,10 +639,10 @@ void
 JavascriptInterop::Getter(Local<Name> iName, const PropertyCallbackInfo<Value>& iInfo)
 {
     Isolate* isolate = iInfo.GetIsolate();
-	Handle<External> external = Handle<External>::Cast(iInfo.Holder()->GetInternalField(0));
+	Local<External> external = Local<External>::Cast(iInfo.Holder()->GetInternalField(0));
 	JavascriptExternal* wrapper = (JavascriptExternal*) external->Value();
-	Handle<Function> function;
-	Handle<Value> value;
+	Local<Function> function;
+	Local<Value> value;
 
     if (iName->IsString())
     {
@@ -689,7 +689,7 @@ JavascriptInterop::Getter(Local<Name> iName, const PropertyCallbackInfo<Value>& 
 		iInfo.GetReturnValue().Set(isolate->ThrowException(JavascriptInterop::ConvertToV8("Unknown member: " + gcnew System::String((wchar_t*) *String::Value(JavascriptContext::GetCurrentIsolate(), iName)))));
 		return;
 	}
-	iInfo.GetReturnValue().Set(Handle<Value>());
+	iInfo.GetReturnValue().Set(Local<Value>());
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -698,7 +698,7 @@ void
 JavascriptInterop::Setter(Local<String> iName, Local<Value> iValue, const PropertyCallbackInfo<Value>& iInfo)
 {
 	wstring name = (wchar_t*) *String::Value(JavascriptContext::GetCurrentIsolate(), iName);
-	Handle<External> external = Handle<External>::Cast(iInfo.Holder()->GetInternalField(0));
+	Local<External> external = Local<External>::Cast(iInfo.Holder()->GetInternalField(0));
 	JavascriptExternal* wrapper = (JavascriptExternal*) external->Value();
 
 	// set property
@@ -710,9 +710,9 @@ JavascriptInterop::Setter(Local<String> iName, Local<Value> iValue, const Proper
 void
 JavascriptInterop::IndexGetter(uint32_t iIndex, const PropertyCallbackInfo<Value> &iInfo)
 {
-	Handle<External> external = Handle<External>::Cast(iInfo.Holder()->GetInternalField(0));
+	Local<External> external = Local<External>::Cast(iInfo.Holder()->GetInternalField(0));
 	JavascriptExternal* wrapper = (JavascriptExternal*) external->Value();
-	Handle<Value> value;
+	Local<Value> value;
 
 	// get property
 	value = wrapper->GetProperty(iIndex);
@@ -722,7 +722,7 @@ JavascriptInterop::IndexGetter(uint32_t iIndex, const PropertyCallbackInfo<Value
 	}
 
 	// member not found
-	iInfo.GetReturnValue().Set(Handle<Value>());
+	iInfo.GetReturnValue().Set(Local<Value>());
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -730,9 +730,9 @@ JavascriptInterop::IndexGetter(uint32_t iIndex, const PropertyCallbackInfo<Value
 void
 JavascriptInterop::IndexSetter(uint32_t iIndex, Local<Value> iValue, const PropertyCallbackInfo<Value> &iInfo)
 {
-	Handle<External> external = Handle<External>::Cast(iInfo.Holder()->GetInternalField(0));
+	Local<External> external = Local<External>::Cast(iInfo.Holder()->GetInternalField(0));
 	JavascriptExternal* wrapper = (JavascriptExternal*) external->Value();
-	Handle<Value> value;
+	Local<Value> value;
 
 	// get property
 	value = wrapper->SetProperty(iIndex, iValue);
@@ -742,7 +742,7 @@ JavascriptInterop::IndexSetter(uint32_t iIndex, Local<Value> iValue, const Prope
 	}
 
 	// member not found
-	iInfo.GetReturnValue().Set(Handle<Value>());
+	iInfo.GetReturnValue().Set(Local<Value>());
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -762,7 +762,7 @@ void
 JavascriptInterop::Invoker(const v8::FunctionCallbackInfo<Value>& iArgs)
 {
 	v8::Isolate *isolate = JavascriptContext::GetCurrentIsolate();
-	System::Object^ data = UnwrapObject(Handle<External>::Cast(iArgs.Data()));
+	System::Object^ data = UnwrapObject(Local<External>::Cast(iArgs.Data()));
 	System::Reflection::MethodInfo^ bestMethod;
 	cli::array<System::Object^>^ suppliedArguments;
 	cli::array<System::Object^>^ bestMethodArguments;
@@ -919,7 +919,7 @@ JavascriptInterop::Invoker(const v8::FunctionCallbackInfo<Value>& iArgs)
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
-Handle<Value>
+Local<Value>
 JavascriptInterop::HandleTargetInvocationException(System::Reflection::TargetInvocationException^ exception)
 {
     if (JavascriptContext::GetCurrent()->IsExecutionTerminating())
@@ -927,7 +927,7 @@ JavascriptInterop::HandleTargetInvocationException(System::Reflection::TargetInv
         // return here, to allow v8 to keep unwinding its stack.
         // That is, TerminateExecution terminates the whole stack,
         // not just until we notice it in C++ land.
-        return Handle<Value>();
+        return Local<Value>();
     else
 	    return JavascriptContext::GetCurrentIsolate()->ThrowException(JavascriptInterop::ConvertToV8(exception->InnerException));
 }

@@ -11,7 +11,7 @@ namespace Noesis { namespace Javascript {
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
-JavascriptFunction::JavascriptFunction(v8::Handle<v8::Object> iFunction, JavascriptContext^ context)
+JavascriptFunction::JavascriptFunction(v8::Local<v8::Object> iFunction, JavascriptContext^ context)
 {
 	if (!iFunction->IsFunction())
 		throw gcnew System::ArgumentException("Trying to use non-function as function");
@@ -19,7 +19,7 @@ JavascriptFunction::JavascriptFunction(v8::Handle<v8::Object> iFunction, Javascr
 	if(!context)
 		throw gcnew System::ArgumentException("Must provide a JavascriptContext");
 
-	mFuncHandle = new Persistent<Function>(context->GetCurrentIsolate(), Handle<Function>::Cast(iFunction));
+	mFuncHandle = new Persistent<Function>(context->GetCurrentIsolate(), Local<Function>::Cast(iFunction));
 	mContext = context;
 
 	mContext->RegisterFunction(this);
@@ -55,10 +55,10 @@ System::Object^ JavascriptFunction::Call(... cli::array<System::Object^>^ args)
 	v8::Isolate* isolate = mContext->GetCurrentIsolate();
 	HandleScope handleScope(isolate);
 
-	Handle<v8::Object> global = mContext->GetGlobal();
+	Local<v8::Object> global = mContext->GetGlobal();
 
 	int argc = args->Length;
-	Handle<v8::Value> *argv = new Handle<v8::Value>[argc];
+	Local<v8::Value> *argv = new Local<v8::Value>[argc];
 	for (int i = 0; i < argc; i++)
 	{
 		argv[i] = JavascriptInterop::ConvertToV8(args[i]);
@@ -86,8 +86,8 @@ bool JavascriptFunction::operator==(JavascriptFunction^ func1, JavascriptFunctio
     if (func2->mFuncHandle == nullptr)
         throw gcnew JavascriptException(L"'func2's owning JavascriptContext has been disposed");
 
-	Handle<Function> jsFuncPtr1 = func1->mFuncHandle->Get(func1->mContext->GetCurrentIsolate());
-	Handle<Function> jsFuncPtr2 = func2->mFuncHandle->Get(func2->mContext->GetCurrentIsolate());
+	Local<Function> jsFuncPtr1 = func1->mFuncHandle->Get(func1->mContext->GetCurrentIsolate());
+	Local<Function> jsFuncPtr2 = func2->mFuncHandle->Get(func2->mContext->GetCurrentIsolate());
 
 	return jsFuncPtr1->Equals(JavascriptContext::GetCurrentIsolate()->GetCurrentContext(), jsFuncPtr2).ToChecked();
 }

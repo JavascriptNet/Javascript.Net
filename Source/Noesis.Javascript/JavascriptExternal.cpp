@@ -72,7 +72,7 @@ JavascriptExternal::GetObject()
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
-Handle<Function>
+Local<Function>
 JavascriptExternal::GetMethod(wstring iName)
 {
 	v8::Isolate *isolate = JavascriptContext::GetCurrentIsolate();
@@ -95,9 +95,9 @@ JavascriptExternal::GetMethod(wstring iName)
 		if (members->Length > 0 && members[0]->MemberType == MemberTypes::Method)
 		{
 			JavascriptContext^ context = JavascriptContext::GetCurrent();
-			Handle<External> external = External::New(isolate, context->WrapObject(objectInfo));
-			Handle<FunctionTemplate> functionTemplate = FunctionTemplate::New(isolate, JavascriptInterop::Invoker, external);
-			Handle<Function> function = functionTemplate->GetFunction(isolate->GetCurrentContext()).ToLocalChecked();
+			Local<External> external = External::New(isolate, context->WrapObject(objectInfo));
+			Local<FunctionTemplate> functionTemplate = FunctionTemplate::New(isolate, JavascriptInterop::Invoker, external);
+			Local<Function> function = functionTemplate->GetFunction(isolate->GetCurrentContext()).ToLocalChecked();
 
 			Persistent<Function> *function_ptr = new Persistent<Function>(isolate, function);
 			WrappedMethod wrapped(function_ptr);
@@ -108,13 +108,13 @@ JavascriptExternal::GetMethod(wstring iName)
 	}
 	
 	// Wasn't an method
-	return  Handle<Function>();
+	return  Local<Function>();
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
-Handle<Function>
-JavascriptExternal::GetMethod(Handle<String> iName)
+Local<Function>
+JavascriptExternal::GetMethod(Local<String> iName)
 {
 	return GetMethod((wchar_t*) *String::Value(JavascriptContext::GetCurrentIsolate(), iName));
 }
@@ -124,7 +124,7 @@ JavascriptExternal::GetMethod(Handle<String> iName)
 // Returns false is no such property exists, otherwise check 'result'
 // for an empty value (exception) or the value (including null)
 bool
-JavascriptExternal::GetProperty(wstring iName, Handle<Value> &result)
+JavascriptExternal::GetProperty(wstring iName, Local<Value> &result)
 {
 	System::Object^ self = mObjectHandle.Target;
 	System::Type^ type = self->GetType();
@@ -174,7 +174,7 @@ JavascriptExternal::GetProperty(wstring iName, Handle<Value> &result)
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
-Handle<Value>
+Local<Value>
 JavascriptExternal::GetProperty(uint32_t iIndex)
 {
 	System::Object^ self = mObjectHandle.Target;
@@ -199,7 +199,7 @@ JavascriptExternal::GetProperty(uint32_t iIndex)
 			System::Reflection::PropertyInfo^ item_info = type->GetProperty("Item", gcnew cli::array<System::Type^> { int::typeid });
 			if (item_info == nullptr || item_info->GetIndexParameters()->Length != 1)
 				// No indexed property.
-				return Handle<Value>();  // v8 will return null
+				return Local<Value>();  // v8 will return null
 			System::Object^ object = type->InvokeMember("Item", System::Reflection::BindingFlags::GetProperty, nullptr, self, args,  nullptr);
 			return JavascriptInterop::ConvertToV8(object);
 		}
@@ -214,13 +214,13 @@ JavascriptExternal::GetProperty(uint32_t iIndex)
 	}
 
 	// No array or indexer, return null and throw an exception
-	return Handle<Value>();
+	return Local<Value>();
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
-Handle<Value>
-JavascriptExternal::SetProperty(wstring iName, Handle<Value> iValue)
+Local<Value>
+JavascriptExternal::SetProperty(wstring iName, Local<Value> iValue)
 {
 	System::Object^ self = mObjectHandle.Target;
 	System::Type^ type = self->GetType();
@@ -238,7 +238,7 @@ JavascriptExternal::SetProperty(wstring iName, Handle<Value> iValue)
 			{
 				if ((mOptions & SetParameterOptions::RejectUnknownProperties) == SetParameterOptions::RejectUnknownProperties)
 					return isolate->ThrowException(JavascriptInterop::ConvertToV8("Unknown member: " + gcnew System::String(iName.c_str())));
-				return Handle<Value>();
+				return Local<Value>();
 			}
 			if (!indexerInfo->CanWrite)
 			{
@@ -284,13 +284,13 @@ JavascriptExternal::SetProperty(wstring iName, Handle<Value> iValue)
 		return isolate->ThrowException(JavascriptInterop::ConvertToV8(exception));
 	}
 
-	return Handle<Value>();
+	return Local<Value>();
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
-Handle<Value>
-JavascriptExternal::SetProperty(uint32_t iIndex, Handle<Value> iValue)
+Local<Value>
+JavascriptExternal::SetProperty(uint32_t iIndex, Local<Value> iValue)
 {
 	System::Object^ self = mObjectHandle.Target;
 	System::Type^ type = self->GetType();
@@ -328,10 +328,10 @@ JavascriptExternal::SetProperty(uint32_t iIndex, Handle<Value> iValue)
 		}
 	}
 
-	return Handle<Value>();
+	return Local<Value>();
 }
 
-Handle<Function> JavascriptExternal::GetIterator()
+Local<Function> JavascriptExternal::GetIterator()
 {
     auto isolate = JavascriptContext::GetCurrentIsolate();
     if (mIterator != nullptr)
@@ -349,7 +349,7 @@ Handle<Function> JavascriptExternal::GetIterator()
 void JavascriptExternal::IteratorCallback(const v8::FunctionCallbackInfo<Value>& iArgs)
 {
     auto isolate = iArgs.GetIsolate();
-    auto enumerable = (System::Collections::IEnumerable^) JavascriptInterop::UnwrapObject(Handle<External>::Cast(iArgs.Data()));
+    auto enumerable = (System::Collections::IEnumerable^) JavascriptInterop::UnwrapObject(Local<External>::Cast(iArgs.Data()));
     auto enumerator = enumerable->GetEnumerator();
     auto context = JavascriptContext::GetCurrent();
     auto external = External::New(isolate, context->WrapObject(enumerator));
@@ -363,7 +363,7 @@ void JavascriptExternal::IteratorCallback(const v8::FunctionCallbackInfo<Value>&
 void JavascriptExternal::IteratorNextCallback(const v8::FunctionCallbackInfo<Value>& iArgs)
 {
     auto isolate = iArgs.GetIsolate();
-    auto enumerator = (System::Collections::IEnumerator^) JavascriptInterop::UnwrapObject(Handle<External>::Cast(iArgs.Data()));
+    auto enumerator = (System::Collections::IEnumerator^) JavascriptInterop::UnwrapObject(Local<External>::Cast(iArgs.Data()));
     auto done = !enumerator->MoveNext();
 
     auto resultTemplate = ObjectTemplate::New(isolate);
