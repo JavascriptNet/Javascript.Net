@@ -24,7 +24,7 @@ namespace Noesis { namespace Javascript {
 public ref class JavascriptFunction
 {
 public:
-	JavascriptFunction(v8::Handle<v8::Object> iFunction, JavascriptContext^ context);
+	JavascriptFunction(v8::Local<v8::Object> iFunction, JavascriptContext^ context);
 	~JavascriptFunction();
     !JavascriptFunction();
 

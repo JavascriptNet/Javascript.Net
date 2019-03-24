@@ -71,50 +71,50 @@ class JavascriptInterop
 	////////////////////////////////////////////////////////////
 public:
 
-	static void InitObjectWrapperTemplate(Handle<ObjectTemplate> &object);
+	static void InitObjectWrapperTemplate(Local<ObjectTemplate> &object);
 
-	static System::Object^ ConvertFromV8(Handle<Value> iValue);
+	static System::Object^ ConvertFromV8(Local<Value> iValue);
 
-	static Handle<Value> ConvertToV8(System::Object^ iObject);
+	static Local<Value> ConvertToV8(System::Object^ iObject);
 
-	static System::Object^ UnwrapObject(Handle<Value> iValue);
+	static System::Object^ UnwrapObject(Local<Value> iValue);
 
 	static void Invoker(const v8::FunctionCallbackInfo<Value>& iArgs);
 
-	static Handle<Value> HandleTargetInvocationException(System::Reflection::TargetInvocationException^ exception);
+	static Local<Value> HandleTargetInvocationException(System::Reflection::TargetInvocationException^ exception);
 
-    static v8::Handle<v8::FunctionTemplate> GetFunctionTemplateFromSystemDelegate(System::Delegate^ iDelegate);
+    static v8::Local<v8::FunctionTemplate> GetFunctionTemplateFromSystemDelegate(System::Delegate^ iDelegate);
 
 private:
-	static System::Object^ ConvertFromV8(Handle<Value> iValue, ConvertedObjects &already_converted);
+	static System::Object^ ConvertFromV8(Local<Value> iValue, ConvertedObjects &already_converted);
 
-	static System::Object^ ConvertObjectFromV8(Handle<Object> iObject, ConvertedObjects &already_converted);
+	static System::Object^ ConvertObjectFromV8(Local<Object> iObject, ConvertedObjects &already_converted);
 
-	static System::DateTime^ ConvertDateFromV8(Handle<Date> iValue);
+	static System::DateTime^ ConvertDateFromV8(Local<Date> iValue);
 
-    static Handle<Date> ConvertDateTimeToV8(System::DateTime^ dateTime);
+    static Local<Date> ConvertDateTimeToV8(System::DateTime^ dateTime);
 
-    static System::Text::RegularExpressions::Regex^ ConvertRegexFromV8(Handle<Value> iValue);
+    static System::Text::RegularExpressions::Regex^ ConvertRegexFromV8(Local<Value> iValue);
 
-	static v8::Handle<v8::Value> ConvertFromSystemArray(System::Array^ iArray);
+	static v8::Local<v8::Value> ConvertFromSystemArray(System::Array^ iArray);
 
-    static v8::Handle<v8::Value> ConvertFromSystemRegex(System::Text::RegularExpressions::Regex^ iRegex);
+    static v8::Local<v8::Value> ConvertFromSystemRegex(System::Text::RegularExpressions::Regex^ iRegex);
 
-	static v8::Handle<v8::Value> ConvertFromSystemDictionary(System::Object^ iObject);
+	static v8::Local<v8::Value> ConvertFromSystemDictionary(System::Object^ iObject);
 
-	static v8::Handle<v8::Value> ConvertFromSystemList(System::Object^ iObject);
+	static v8::Local<v8::Value> ConvertFromSystemList(System::Object^ iObject);
 
-	static v8::Handle<v8::Value> ConvertFromSystemDelegate(System::Delegate^ iDelegate);
+	static v8::Local<v8::Value> ConvertFromSystemDelegate(System::Delegate^ iDelegate);
 
 	static void DelegateInvoker(const FunctionCallbackInfo<Value>& info);
 
-	static bool IsSystemObject(Handle<Value> iValue);
+	static bool IsSystemObject(Local<Value> iValue);
 
-	static Handle<Object> WrapObject(System::Object^ iObject);
+	static Local<Object> WrapObject(System::Object^ iObject);
 
-	static System::Object^ ConvertArrayFromV8(Handle<Value> iValue, ConvertedObjects &already_converted);
+	static System::Object^ ConvertArrayFromV8(Local<Value> iValue, ConvertedObjects &already_converted);
 
-	static Handle<Object> WrapFunction(System::Object^ iObject, System::String^ iName);
+	static Local<Object> WrapFunction(System::Object^ iObject, System::String^ iName);
 
 	static void Getter(Local<Name> iName, const PropertyCallbackInfo<Value>& iInfo);
 

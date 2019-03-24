@@ -262,10 +262,10 @@ JavascriptContext::SetParameter(System::String^ iName, System::Object^ iObject, 
 	v8::Isolate *isolate = JavascriptContext::GetCurrentIsolate();
 	HandleScope handleScope(isolate);
 	
-	Handle<Value> value = JavascriptInterop::ConvertToV8(iObject);
+	Local<Value> value = JavascriptInterop::ConvertToV8(iObject);
 
 	if (options != SetParameterOptions::None) {
-		Handle<v8::Object> obj = value.As<v8::Object>();
+		Local<v8::Object> obj = value.As<v8::Object>();
 		if (!obj.IsEmpty()) {
 			Local<v8::External> wrap = obj->GetInternalField(0).As<v8::External>();
 			if (!wrap.IsEmpty()) {
@@ -294,7 +294,7 @@ void JavascriptContext::SetConstructor(System::String^ name, System::Type^ assoc
     Local<Context> context = isolate->GetCurrentContext();
 
     Local<String> className = ToV8String(isolate, name);
-    Handle<FunctionTemplate> functionTemplate = JavascriptInterop::GetFunctionTemplateFromSystemDelegate(constructor);
+    Local<FunctionTemplate> functionTemplate = JavascriptInterop::GetFunctionTemplateFromSystemDelegate(constructor);
     functionTemplate->SetClassName(className);
     JavascriptInterop::InitObjectWrapperTemplate(functionTemplate->InstanceTemplate());
     mTypeToConstructorMapping[associatedType] = System::IntPtr(new Persistent<FunctionTemplate>(isolate, functionTemplate));
@@ -382,7 +382,7 @@ JavascriptContext::Run(System::String^ iScript, System::String^ iScriptResourceN
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
-static System::String^ v8StringToString(v8::Handle<v8::String> handle) {
+static System::String^ v8StringToString(v8::Local<v8::String> handle) {
     if (handle.IsEmpty()) {
         return nullptr;
     }
@@ -393,7 +393,7 @@ System::Collections::Generic::List<JavascriptStackFrame^>^
 JavascriptContext::GetCurrentStack(int maxDepth)
 {
     auto stack = gcnew System::Collections::Generic::List<JavascriptStackFrame^>();
-    v8::Handle<v8::StackTrace> stackTrace = v8::StackTrace::CurrentStackTrace(
+    v8::Local<v8::StackTrace> stackTrace = v8::StackTrace::CurrentStackTrace(
         this->GetCurrentIsolate(), maxDepth, v8::StackTrace::kScriptName
     );
 
@@ -458,7 +458,7 @@ JavascriptContext::GetCurrentIsolate()
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
-Handle<v8::Object> JavascriptContext::GetGlobal()
+Local<v8::Object> JavascriptContext::GetGlobal()
 {
 	return mContext->Get(this->GetCurrentIsolate())->Global();
 }
@@ -521,7 +521,7 @@ JavascriptContext::WrapObject(System::Object^ iObject)
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
-Handle<FunctionTemplate>
+Local<FunctionTemplate>
 JavascriptContext::GetObjectWrapperConstructorTemplate(System::Type ^type)
 {
     System::IntPtr ptrToConstructor;

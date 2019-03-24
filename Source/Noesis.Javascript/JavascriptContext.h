@@ -186,7 +186,7 @@ internal:
 	
 	static v8::Isolate *GetCurrentIsolate();
 
-	Handle<v8::Object> GetGlobal();
+	Local<v8::Object> GetGlobal();
 
     v8::Locker *Enter([System::Runtime::InteropServices::Out] JavascriptContext^% old_context);
 
@@ -194,7 +194,7 @@ internal:
 
 	JavascriptExternal* WrapObject(System::Object^ iObject);
 
-	Handle<FunctionTemplate> GetObjectWrapperConstructorTemplate(System::Type ^type);
+	Local<FunctionTemplate> GetObjectWrapperConstructorTemplate(System::Type ^type);
 
 	void RegisterFunction(System::Object^ f);
 
