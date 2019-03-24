@@ -289,15 +289,16 @@ generic <typename AssociatedType> void JavascriptContext::SetConstructor(System:
 void JavascriptContext::SetConstructor(System::String^ name, System::Type^ associatedType, System::Delegate^ constructor)
 {
     JavascriptScope scope(this);
-    v8::Isolate *isolate = JavascriptContext::GetCurrentIsolate();
+    Isolate *isolate = JavascriptContext::GetCurrentIsolate();
     HandleScope handleScope(isolate);
+    Local<Context> context = isolate->GetCurrentContext();
 
     Local<String> className = ToV8String(isolate, name);
     Handle<FunctionTemplate> functionTemplate = JavascriptInterop::GetFunctionTemplateFromSystemDelegate(constructor);
     functionTemplate->SetClassName(className);
     JavascriptInterop::InitObjectWrapperTemplate(functionTemplate->InstanceTemplate());
     mTypeToConstructorMapping[associatedType] = System::IntPtr(new Persistent<FunctionTemplate>(isolate, functionTemplate));
-    Local<Context>::New(isolate, *mContext)->Global()->Set(isolate->GetCurrentContext(), className, functionTemplate->GetFunction());
+    Local<Context>::New(isolate, *mContext)->Global()->Set(context, className, functionTemplate->GetFunction(context).ToLocalChecked());
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////

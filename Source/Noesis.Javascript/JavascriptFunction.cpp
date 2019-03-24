@@ -65,12 +65,12 @@ System::Object^ JavascriptFunction::Call(... cli::array<System::Object^>^ args)
 	}
 
 	TryCatch tryCatch(isolate);
-	Local<Value> retVal = mFuncHandle->Get(isolate)->Call(global, argc, argv);
+	MaybeLocal<Value> retVal = mFuncHandle->Get(isolate)->Call(isolate->GetCurrentContext(), global, argc, argv);
 	if (retVal.IsEmpty())
 		throw gcnew JavascriptException(tryCatch);
 
 	delete [] argv;
-	return JavascriptInterop::ConvertFromV8(retVal);
+	return JavascriptInterop::ConvertFromV8(retVal.ToLocalChecked());
 }
 
 bool JavascriptFunction::operator==(JavascriptFunction^ func1, JavascriptFunction^ func2)

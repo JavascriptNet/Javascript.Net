@@ -97,7 +97,7 @@ JavascriptExternal::GetMethod(wstring iName)
 			JavascriptContext^ context = JavascriptContext::GetCurrent();
 			Handle<External> external = External::New(isolate, context->WrapObject(objectInfo));
 			Handle<FunctionTemplate> functionTemplate = FunctionTemplate::New(isolate, JavascriptInterop::Invoker, external);
-			Handle<Function> function = functionTemplate->GetFunction();
+			Handle<Function> function = functionTemplate->GetFunction(isolate->GetCurrentContext()).ToLocalChecked();
 
 			Persistent<Function> *function_ptr = new Persistent<Function>(isolate, function);
 			WrappedMethod wrapped(function_ptr);
@@ -341,7 +341,7 @@ Handle<Function> JavascriptExternal::GetIterator()
     auto context = JavascriptContext::GetCurrent();
     auto external = External::New(isolate, context->WrapObject(self));
     auto functionTemplate = FunctionTemplate::New(isolate, JavascriptExternal::IteratorCallback, external);
-    auto function = functionTemplate->GetFunction();
+    auto function = functionTemplate->GetFunction(isolate->GetCurrentContext()).ToLocalChecked();
     mIterator = std::make_unique<Persistent<Function>>(isolate, function);
     return function;
 }
@@ -357,7 +357,7 @@ void JavascriptExternal::IteratorCallback(const v8::FunctionCallbackInfo<Value>&
     auto iterator = ObjectTemplate::New(isolate);
     auto functionTemplate = FunctionTemplate::New(isolate, JavascriptExternal::IteratorNextCallback, external);
     iterator->Set(String::NewFromUtf8(isolate, "next"), functionTemplate);
-    iArgs.GetReturnValue().Set(iterator->NewInstance());
+    iArgs.GetReturnValue().Set(iterator->NewInstance(isolate->GetCurrentContext()).ToLocalChecked());
 }
 
 void JavascriptExternal::IteratorNextCallback(const v8::FunctionCallbackInfo<Value>& iArgs)
@@ -367,7 +367,7 @@ void JavascriptExternal::IteratorNextCallback(const v8::FunctionCallbackInfo<Val
     auto done = !enumerator->MoveNext();
 
     auto resultTemplate = ObjectTemplate::New(isolate);
-    auto result = resultTemplate->NewInstance();
+    auto result = resultTemplate->NewInstance(isolate->GetCurrentContext()).ToLocalChecked();
     result->Set(String::NewFromUtf8(isolate, "done"), JavascriptInterop::ConvertToV8(done));
     if (!done)
         result->Set(String::NewFromUtf8(isolate, "value"), JavascriptInterop::ConvertToV8(enumerator->Current));
