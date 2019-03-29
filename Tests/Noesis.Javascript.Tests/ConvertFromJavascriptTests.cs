@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using FluentAssertions;
 using System.Text.RegularExpressions;
+using System.Numerics;
 
 namespace Noesis.Javascript.Tests
 {
@@ -171,6 +172,28 @@ namespace Noesis.Javascript.Tests
 
             var regex = _context.GetParameter("myRegExp");
             regex.Should().BeOfType<Regex>().Which.ShouldBeEquivalentTo(new Regex("abc", RegexOptions.ECMAScript | RegexOptions.IgnoreCase | RegexOptions.Multiline));
+        }
+
+        [TestMethod]
+        public void ReadBigIntLiteral()
+        {
+            var bigInt = _context.Run("1n");
+            bigInt.Should().BeOfType<BigInteger>().Which.Should().Be(new BigInteger(1));
+        }
+
+        [TestMethod]
+        public void ReadBigIntObject()
+        {
+            var bigInt = _context.Run("BigInt(1)");
+            bigInt.Should().BeOfType<BigInteger>().Which.Should().Be(new BigInteger(1));
+        }
+
+        [TestMethod]
+        public void ReadLargeBigIntLiteral()
+        {
+            var bigInt = _context.Run("2n ** 222n");
+            var expected = BigInteger.Pow(new BigInteger(2), 222);
+            bigInt.Should().BeOfType<BigInteger>().Which.Should().Be(expected);
         }
 
         [TestMethod]

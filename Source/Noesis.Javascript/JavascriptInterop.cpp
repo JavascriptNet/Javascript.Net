@@ -142,6 +142,11 @@ JavascriptInterop::ConvertFromV8(Local<Value> iValue, ConvertedObjects &already_
         return ConvertRegexFromV8(iValue);
 	if (iValue->IsFunction())
 		return gcnew JavascriptFunction(iValue->ToObject(JavascriptContext::GetCurrentIsolate()), JavascriptContext::GetCurrent());
+    if (iValue->IsBigInt())
+    {
+        auto stringRepresentation = iValue->ToString(JavascriptContext::GetCurrentIsolate()->GetCurrentContext()).ToLocalChecked();
+        return System::Numerics::BigInteger::Parse(safe_cast<System::String^>(JavascriptInterop::ConvertFromV8(stringRepresentation, already_converted)));
+    }
 	if (iValue->IsObject())
 	{
 		Local<Object> object = iValue->ToObject(JavascriptContext::GetCurrentIsolate());
@@ -174,6 +179,13 @@ JavascriptInterop::ConvertToV8(System::Object^ iObject)
 				return v8::Number::New(isolate, safe_cast<double>(iObject));
 			if (type == System::Boolean::typeid)
 				return v8::Boolean::New(isolate, safe_cast<bool>(iObject));
+            if (type == System::Numerics::BigInteger::typeid)
+            {
+                auto globalObj = isolate->GetCurrentContext()->Global();
+                auto bigIntFunction = Local<Function>::Cast(globalObj->Get(String::NewFromUtf8(isolate, "BigInt")));
+                Local<Value> parameters[] = { ConvertToV8(safe_cast<System::Numerics::BigInteger>(iObject).ToString()) };
+                return bigIntFunction->Call(isolate->GetCurrentContext(), globalObj, 1, parameters).ToLocalChecked();
+            }
 			if (type->IsEnum)
 			{
 				// No equivalent to enum, so convert to a string.

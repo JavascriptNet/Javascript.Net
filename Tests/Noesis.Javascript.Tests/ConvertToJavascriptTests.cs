@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using FluentAssertions;
 using System.Text.RegularExpressions;
+using System.Numerics;
 
 namespace Noesis.Javascript.Tests
 {
@@ -174,6 +175,20 @@ namespace Noesis.Javascript.Tests
 
             _context.Run("val.source === 'abc'").Should().BeOfType<bool>().Which.Should().BeTrue();
             _context.Run("val.flags === 'im'").Should().BeOfType<bool>().Which.Should().BeTrue();
+        }
+
+        [TestMethod]
+        public void SetBigInt()
+        {
+            _context.SetParameter("val", new BigInteger(1));
+            _context.Run("val === 1n").Should().BeOfType<bool>().Which.Should().BeTrue();
+        }
+
+        [TestMethod]
+        public void SetLargeBigInt()
+        {
+            _context.SetParameter("val", BigInteger.Pow(new BigInteger(2), 222));
+            _context.Run("val === 2n ** 222n").Should().BeOfType<bool>().Which.Should().BeTrue();
         }
 
         [TestMethod]
