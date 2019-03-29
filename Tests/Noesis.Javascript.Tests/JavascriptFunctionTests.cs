@@ -83,6 +83,39 @@ namespace Noesis.Javascript.Tests
             Action action = () => function.Call();
             action.ShouldThrowExactly<JavascriptException>().WithMessage("Error: test");
         }
+
+        [TestMethod]
+        public void ToStringShouldReturnTheFunctionDefinition()
+        {
+            _context.Run("function test() { return 1; }");
+            var funcObj = _context.GetParameter("test") as JavascriptFunction;
+            funcObj.Should().NotBeNull();
+            funcObj.ToString().Should().Be("function test() { return 1; }");
+        }
+
+        [TestMethod]
+        public void ToStringShouldReturnTheFunctionDefinitionForAnArrowFunction()
+        {
+            _context.Run("var test = (a, b) => a + b");
+            var funcObj = _context.GetParameter("test") as JavascriptFunction;
+            funcObj.Should().NotBeNull();
+            funcObj.ToString().Should().Be("(a, b) => a + b");
+        }
+
+        [TestMethod]
+        public void ToStringShouldReturnTheFunctionDefinitionWithLineBreaks()
+        {
+            _context.Run(@"
+function test() {
+    return 1;
+}");
+            var funcObj = _context.GetParameter("test") as JavascriptFunction;
+            funcObj.Should().NotBeNull();
+            funcObj.ToString().Should().Be(@"
+function test() {
+    return 1;
+}".Trim());
+        }
     }
 
     [TestClass]

@@ -32,8 +32,9 @@ public:
 
 	static bool operator== (JavascriptFunction^ func1, JavascriptFunction^ func2);
 	bool Equals(JavascriptFunction^ other);
-	
 	virtual bool Equals(Object^ other) override;
+	
+    virtual System::String^ ToString() override;
 
 private:
 	v8::Persistent<v8::Function>* mFuncHandle;

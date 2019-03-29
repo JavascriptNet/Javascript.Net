@@ -108,6 +108,18 @@ bool JavascriptFunction::Equals(Object^ other)
 	return (otherFunc && this->Equals(otherFunc));
 }
 
+System::String^ JavascriptFunction::ToString()
+{
+    if (mFuncHandle == nullptr)
+        throw gcnew JavascriptException(L"This function's owning JavascriptContext has been disposed");
+   
+    JavascriptScope scope(mContext);
+    auto isolate = mContext->GetCurrentIsolate();
+    HandleScope handleScope(isolate);
+    auto asString = mFuncHandle->Get(isolate)->ToString(isolate->GetCurrentContext());
+    return safe_cast<System::String^>(JavascriptInterop::ConvertFromV8(asString.ToLocalChecked()));
+}
+
 } } // namespace Noesis::Javascript
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
