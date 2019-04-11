@@ -26,6 +26,11 @@ namespace Noesis.Javascript.Tests
                 return i + 1;
             }
 
+            public int methodWithEnumParameter(UriHostNameType t)
+            {
+                return (int)t;
+            }
+
             public string methodWithMultipleMixedParameters(int i, string s, bool b)
             {
                 return String.Format("i: {0}, s: {1}, b: {2}", i, s, b);
@@ -219,6 +224,25 @@ namespace Noesis.Javascript.Tests
             var result = _context.Run("obj.methodWithOneParameter(1)");
 
             result.Should().Be(2);
+        }
+
+        [TestMethod]
+        public void MethodCallWithEnumParameter()
+        {
+            var obj = new TypedPropertiesClass();
+            _context.SetParameter("obj", obj);
+            var result = _context.Run("obj.methodWithEnumParameter('IPv4')");
+            result.Should().Be((int)UriHostNameType.IPv4);
+        }
+
+        [TestMethod]
+        public void MethodCallWithBadEnumParameter()
+        {
+            var obj = new TypedPropertiesClass();
+            _context.SetParameter("obj", obj);
+            Action action = () => _context.Run("obj.methodWithEnumParameter('dog')");
+            action.ShouldThrow<JavascriptException>("'dog' is not a member of the required enum")
+                  .Which.Message.Should().Contain("Argument mismatch");
         }
 
         [TestMethod]

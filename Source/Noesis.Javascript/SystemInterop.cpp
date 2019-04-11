@@ -122,7 +122,11 @@ SystemInterop::ConvertToEnum(System::Type^ enum_type, System::Object^ iValue)
 
 		int numeric_value;
 		if (type == System::String::typeid) {
-			return System::Enum::Parse(enum_type, (System::String^)iValue);
+            try {
+                return System::Enum::Parse(enum_type, (System::String^)iValue);
+            } catch (System::ArgumentException ^) {
+                return nullptr;
+            }
 		} else if (type == System::Int16::typeid
 			|| type == System::Int32::typeid
 			|| type == System::Single::typeid
