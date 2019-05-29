@@ -118,7 +118,23 @@ namespace Noesis.Javascript.Tests
 
             _context.Run("val === 'A string from .NET'").Should().BeOfType<bool>().Which.Should().BeTrue();
         }
-        
+
+        [TestMethod]
+        public void SetStringWithZeroByte()
+        {
+            _context.SetParameter("val", "a\0b");
+
+            _context.Run("val === 'a\\0b'").Should().BeOfType<bool>().Which.Should().BeTrue();
+        }
+
+        [TestMethod]
+        public void SetStringWithMultipleZeroBytes()
+        {
+            _context.SetParameter("val", "a\0\0b");
+
+            _context.Run("val === 'a\\0\\0b'").Should().BeOfType<bool>().Which.Should().BeTrue();
+        }
+
         [TestMethod]
         public void SetArray()
         {
