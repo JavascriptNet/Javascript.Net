@@ -114,6 +114,22 @@ namespace Noesis.Javascript.Tests
         }
 
         [TestMethod]
+        public void ReadStringWithZeroByte()
+        {
+            _context.Run("var myString = 'a\\0b'");
+
+            _context.GetParameter("myString").Should().BeOfType<string>().Which.Should().Be("a\0b");
+        }
+
+        [TestMethod]
+        public void ReadStringWithMultipleZeroBytes()
+        {
+            _context.Run("var myString = 'a\\0\\0b'");
+
+            _context.GetParameter("myString").Should().BeOfType<string>().Which.Should().Be("a\0\0b");
+        }
+
+        [TestMethod]
         public void ReadArray()
         {
             _context.Run("var myArray = [11,22,33]");
