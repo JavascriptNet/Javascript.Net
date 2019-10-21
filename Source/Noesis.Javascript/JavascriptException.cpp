@@ -118,8 +118,10 @@ JavascriptException::GetExceptionMessage(TryCatch& iTryCatch)
 	{
 		if (iTryCatch.HasTerminated())
 			return gcnew System::String(L"Execution Terminated");
-		else
-			return gcnew System::String((wchar_t*) *String::Value(JavascriptContext::GetCurrentIsolate(), iTryCatch.Exception()));
+		
+        String::Value stringValue(JavascriptContext::GetCurrentIsolate(), iTryCatch.Exception());
+        // Using a constructor which takes a length makes sure that we don't discard zero bytes in the middle of the string
+        return gcnew System::String((wchar_t*)* stringValue, 0, stringValue.length());
 	}
 }
 
