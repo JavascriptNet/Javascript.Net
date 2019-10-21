@@ -109,31 +109,17 @@ JavascriptException::EndColumn::get()
 System::String^
 JavascriptException::GetExceptionMessage(TryCatch& iTryCatch)
 {
-	// Adding this location information is unhelpful because the library user can
-	// get the information from Line/StartColumn/EndColumn, and may not want it
-	// entangled with the message, or may want to localise it, or whatever.
-	//System::String^ location;
-    //
-	//v8::Local<v8::Message> message = iTryCatch.Message();
-	//if (!message.IsEmpty())
-	//	location = gcnew System::String((wchar_t*) *String::Value(message->GetScriptResourceName())) + ", line " + message->GetLineNumber();
-	//else
-	//	location = gcnew System::String("Unknown location");
-	
 	System::Exception^ exception = GetSystemException(iTryCatch);
 	if (exception != nullptr)
 	{
-		return gcnew System::String(exception->Message /*+ " (" + location + ")."*/);
+		return gcnew System::String(exception->Message);
 	}
 	else
 	{
-		if (iTryCatch.Exception()->IsNull())
-			// We get a null exception here when execution is terminated.
-			// Documentation shows a HasTerminated() method on TryCatch,
-			// but perhaps our copy of v8 is too old.
+		if (iTryCatch.HasTerminated())
 			return gcnew System::String(L"Execution Terminated");
 		else
-			return gcnew System::String((wchar_t*) *String::Value(JavascriptContext::GetCurrentIsolate(), iTryCatch.Exception())) /*+ " (" + location + ")"*/;
+			return gcnew System::String((wchar_t*) *String::Value(JavascriptContext::GetCurrentIsolate(), iTryCatch.Exception()));
 	}
 }
 
