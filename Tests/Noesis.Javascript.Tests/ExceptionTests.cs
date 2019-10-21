@@ -25,6 +25,13 @@ namespace Noesis.Javascript.Tests
             _context.Dispose();
         }
 
+        [TestMethod]
+        public void ThrowNewError()
+        {
+            Action action = () => _context.Run("throw new Error('asdf');");
+            action.ShouldThrowExactly<JavascriptException>().WithMessage("Error: asdf");
+        }
+
         class ClassWithIndexer
         {
             public string this[int index]
@@ -90,7 +97,7 @@ namespace Noesis.Javascript.Tests
             task.Start();
             _context.TerminateExecution(true);
             Action action = () => task.Wait(10 * 1000);
-            action.ShouldThrow<JavascriptException>("Because it was cancelled");
+            action.ShouldThrowExactly<JavascriptException>("Because it was cancelled").WithMessage("Execution Terminated");
         }
     }
 }
