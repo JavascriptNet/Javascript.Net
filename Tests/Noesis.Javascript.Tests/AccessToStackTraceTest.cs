@@ -28,7 +28,7 @@ namespace Noesis.Javascript.Tests
             var frame = (JavascriptStackFrame)frames.Single();
             frame.ScriptName.Should().Be("Single Frame");
             frame.ScriptNameOrSourceURL.Should().Be("Single Frame");
-            frame.FunctionName.Should().Be("");
+            frame.FunctionName.Should().BeNull();
             frame.IsConstructor.Should().Be(false);
             frame.IsEval.Should().Be(false);
             frame.IsWasm.Should().Be(false);

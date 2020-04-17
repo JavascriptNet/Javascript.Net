@@ -71,8 +71,9 @@ ConvertedObjects::~ConvertedObjects()
 {
 	size_t n = objectToConversion->Size();
 	Local<Array> keys_and_items = objectToConversion->AsArray();
+    auto context = JavascriptContext::GetCurrentIsolate()->GetCurrentContext();
 	for (size_t i = 0; i < n; i++) {
-		Local<Value> item_i = keys_and_items->Get((uint32_t)i * 2 + 1);
+		Local<Value> item_i = keys_and_items->Get(context, (uint32_t)i * 2 + 1).ToLocalChecked();
 		Local<External> external = Local<External>::Cast(item_i);
 		delete (gcroot<System::Object^> *)external->Value();
 	}
@@ -120,14 +121,14 @@ JavascriptInterop::ConvertFromV8(Local<Value> iValue, ConvertedObjects &already_
 	if (iValue->IsNull() || iValue->IsUndefined())
 		return nullptr;
 	if (iValue->IsBoolean())
-		return gcnew System::Boolean(iValue->BooleanValue(JavascriptContext::GetCurrentIsolate()->GetCurrentContext()).ToChecked());
+		return gcnew System::Boolean(iValue->BooleanValue(JavascriptContext::GetCurrentIsolate()));
 	if (iValue->IsInt32())
 		return gcnew System::Int32(iValue->Int32Value(JavascriptContext::GetCurrentIsolate()->GetCurrentContext()).ToChecked());
 	if (iValue->IsNumber())
 		return gcnew System::Double(iValue->NumberValue(JavascriptContext::GetCurrentIsolate()->GetCurrentContext()).ToChecked());
     if (iValue->IsString())
     {
-        auto stringValue = iValue->ToString(JavascriptContext::GetCurrentIsolate());
+        auto stringValue = iValue->ToString(JavascriptContext::GetCurrentIsolate()->GetCurrentContext()).ToLocalChecked();
         auto length = stringValue->Length();
         String::Value utf16Bytes(JavascriptContext::GetCurrentIsolate(), stringValue);
         
@@ -141,7 +142,7 @@ JavascriptInterop::ConvertFromV8(Local<Value> iValue, ConvertedObjects &already_
     if (iValue->IsRegExp())
         return ConvertRegexFromV8(iValue);
 	if (iValue->IsFunction())
-		return gcnew JavascriptFunction(iValue->ToObject(JavascriptContext::GetCurrentIsolate()), JavascriptContext::GetCurrent());
+		return gcnew JavascriptFunction(iValue->ToObject(JavascriptContext::GetCurrentIsolate()->GetCurrentContext()).ToLocalChecked(), JavascriptContext::GetCurrent());
     if (iValue->IsBigInt())
     {
         auto stringRepresentation = iValue->ToString(JavascriptContext::GetCurrentIsolate()->GetCurrentContext()).ToLocalChecked();
@@ -149,7 +150,7 @@ JavascriptInterop::ConvertFromV8(Local<Value> iValue, ConvertedObjects &already_
     }
 	if (iValue->IsObject())
 	{
-		Local<Object> object = iValue->ToObject(JavascriptContext::GetCurrentIsolate());
+		Local<Object> object = iValue->ToObject(JavascriptContext::GetCurrentIsolate()->GetCurrentContext()).ToLocalChecked();
 
 		if (object->InternalFieldCount() > 0)
 			return UnwrapObject(iValue);
@@ -165,7 +166,8 @@ JavascriptInterop::ConvertFromV8(Local<Value> iValue, ConvertedObjects &already_
 Local<Value>
 JavascriptInterop::ConvertToV8(System::Object^ iObject)
 {
-	v8::Isolate *isolate = JavascriptContext::GetCurrentIsolate();
+	auto isolate = JavascriptContext::GetCurrentIsolate();
+	auto context = isolate->GetCurrentContext();
 	if (iObject != nullptr)
 	{
 		System::Type^ type = iObject->GetType();
@@ -182,7 +184,7 @@ JavascriptInterop::ConvertToV8(System::Object^ iObject)
             if (type == System::Numerics::BigInteger::typeid)
             {
                 auto globalObj = isolate->GetCurrentContext()->Global();
-                auto bigIntFunction = Local<Function>::Cast(globalObj->Get(String::NewFromUtf8(isolate, "BigInt")));
+                auto bigIntFunction = Local<Function>::Cast(globalObj->Get(context, String::NewFromUtf8(isolate, "BigInt").ToLocalChecked()).ToLocalChecked());
                 Local<Value> parameters[] = { ConvertToV8(safe_cast<System::Numerics::BigInteger>(iObject).ToString()) };
                 return bigIntFunction->Call(isolate->GetCurrentContext(), globalObj, 1, parameters).ToLocalChecked();
             }
@@ -317,7 +319,7 @@ JavascriptInterop::UnwrapObject(Local<Value> iValue)
 
 	if (iValue->IsObject())
 	{
-		Local<Object> object = iValue->ToObject(JavascriptContext::GetCurrentIsolate());
+		Local<Object> object = iValue->ToObject(JavascriptContext::GetCurrentIsolate()->GetCurrentContext()).ToLocalChecked();
 
 		if (object->InternalFieldCount() > 0)
 		{
@@ -335,14 +337,15 @@ JavascriptInterop::UnwrapObject(Local<Value> iValue)
 System::Object^
 JavascriptInterop::ConvertArrayFromV8(Local<Value> iValue, ConvertedObjects &already_converted)
 {
-	v8::Local<v8::Array> object = v8::Local<v8::Array>::Cast(iValue->ToObject(JavascriptContext::GetCurrentIsolate()));
+    auto context = JavascriptContext::GetCurrentIsolate()->GetCurrentContext();
+	v8::Local<v8::Array> object = v8::Local<v8::Array>::Cast(iValue->ToObject(context).ToLocalChecked());
 	int length = object->Length();
 	cli::array<System::Object^>^ results = gcnew cli::array<System::Object^>(length);
 
 	// Populate the .NET Array with the v8 Array
 	for(int i = 0; i < length; i++)
 	{
-		results->SetValue(ConvertFromV8(object->Get(i), already_converted), i);
+		results->SetValue(ConvertFromV8(object->Get(context, i).ToLocalChecked(), already_converted), i);
 	}
 
 	return results;
@@ -355,7 +358,8 @@ JavascriptInterop::ConvertObjectFromV8(Local<Object> iObject, ConvertedObjects &
 {
 	System::Object ^converted_object = already_converted.GetConverted(iObject);
 	if (converted_object == nullptr) {
-		v8::Isolate *isolate = JavascriptContext::GetCurrentIsolate();
+		auto isolate = JavascriptContext::GetCurrentIsolate();
+		auto context = isolate->GetCurrentContext();
 		v8::Local<v8::Array> names = iObject->GetPropertyNames(isolate->GetCurrentContext()).ToLocalChecked();
 
 		unsigned int length = names->Length();
@@ -363,8 +367,8 @@ JavascriptInterop::ConvertObjectFromV8(Local<Object> iObject, ConvertedObjects &
 		already_converted.AddConverted(iObject, results);
 		for (unsigned int i = 0; i < length; i++) {
 			v8::Local<v8::Value> nameKey = v8::Uint32::New(isolate, i);
-			v8::Local<v8::Value> propName = names->Get(nameKey);
-			v8::Local<v8::Value> propValue = iObject->Get(propName);
+			v8::Local<v8::Value> propName = names->Get(context, nameKey).ToLocalChecked();
+			v8::Local<v8::Value> propValue = iObject->Get(context, propName).ToLocalChecked();
 
 			// Property "names" may be integers or other types.  However they will
 			// generally be strings so continuing to key this dictionary that way is 
@@ -406,7 +410,7 @@ JavascriptInterop::ConvertObjectFromV8(Local<Object> iObject, ConvertedObjects &
 double GetDateComponent(Isolate* isolate, Local<Date> date, const char* component)
 {
     auto context = isolate->GetCurrentContext();
-    auto getComponent = date->Get(context, String::NewFromUtf8(isolate, component)).ToLocalChecked().As<Function>();
+    auto getComponent = date->Get(context, String::NewFromUtf8(isolate, component).ToLocalChecked()).ToLocalChecked().As<Function>();
     auto componentValue = getComponent->Call(context, date, 0, nullptr).ToLocalChecked();
     return componentValue->NumberValue(isolate->GetCurrentContext()).ToChecked();
 }
@@ -441,7 +445,7 @@ Local<Date> JavascriptInterop::ConvertDateTimeToV8(System::DateTime^ dateTime)
     auto millisecond = JavascriptInterop::ConvertToV8(dateTime->Millisecond);
 
     auto globalObj = isolate->GetCurrentContext()->Global();
-    auto dateConstructor = Local<Function>::Cast(globalObj->Get(String::NewFromUtf8(isolate, "Date")));
+    auto dateConstructor = Local<Function>::Cast(globalObj->Get(isolate->GetCurrentContext(), String::NewFromUtf8(isolate, "Date").ToLocalChecked()).ToLocalChecked());
     Local<Value> parameters[] = { year, month, day, hour, minute, second, millisecond };
 
     return handleScope.Escape(dateConstructor->NewInstance(isolate->GetCurrentContext(), 7, parameters).ToLocalChecked().As<Date>());
@@ -454,7 +458,7 @@ JavascriptInterop::ConvertRegexFromV8(Local<Value> iValue)
 {
     using RegexOptions = System::Text::RegularExpressions::RegexOptions;
 
-    Local<RegExp> regexp = Local<RegExp>::Cast(iValue->ToObject(JavascriptContext::GetCurrentIsolate()));
+    Local<RegExp> regexp = Local<RegExp>::Cast(iValue->ToObject(JavascriptContext::GetCurrentIsolate()->GetCurrentContext()).ToLocalChecked());
     Local<String> jsPattern = regexp->GetSource();
     RegExp::Flags jsFlags = regexp->GetFlags();
 
@@ -537,7 +541,8 @@ JavascriptInterop::ConvertFromSystemDictionary(System::Object^ iObject)
 v8::Local<v8::Value>
 JavascriptInterop::ConvertFromSystemList(System::Object^ iObject) 
 {
-	v8::Isolate *isolate = JavascriptContext::GetCurrentIsolate();
+	auto isolate = JavascriptContext::GetCurrentIsolate();
+	auto context = isolate->GetCurrentContext();
 	v8::Local<v8::Array> object = v8::Array::New(isolate);
 	System::Collections::IList^ list =  safe_cast<System::Collections::IList^>(iObject);
 
@@ -545,7 +550,7 @@ JavascriptInterop::ConvertFromSystemList(System::Object^ iObject)
 	{
 		v8::Local<v8::Value> key = v8::Int32::New(isolate, i);
 		v8::Local<v8::Value> val = ConvertToV8(list[i]);
-		object->Set(key, val);
+		object->Set(context, key, val);
 	} 
 
 	return object;
@@ -649,7 +654,7 @@ JavascriptInterop::IsSystemObject(Local<Value> iValue)
 {
 	if (iValue->IsObject())
 	{
-		Local<Object> object = iValue->ToObject(JavascriptContext::GetCurrentIsolate());
+		Local<Object> object = iValue->ToObject(JavascriptContext::GetCurrentIsolate()->GetCurrentContext()).ToLocalChecked();
 		return (object->InternalFieldCount() > 0);
 	}
 
