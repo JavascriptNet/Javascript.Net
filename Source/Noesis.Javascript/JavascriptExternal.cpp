@@ -356,7 +356,7 @@ void JavascriptExternal::IteratorCallback(const v8::FunctionCallbackInfo<Value>&
 
     auto iterator = ObjectTemplate::New(isolate);
     auto functionTemplate = FunctionTemplate::New(isolate, JavascriptExternal::IteratorNextCallback, external);
-    iterator->Set(String::NewFromUtf8(isolate, "next"), functionTemplate);
+    iterator->Set(String::NewFromUtf8(isolate, "next").ToLocalChecked(), functionTemplate);
     iArgs.GetReturnValue().Set(iterator->NewInstance(isolate->GetCurrentContext()).ToLocalChecked());
 }
 
@@ -368,9 +368,9 @@ void JavascriptExternal::IteratorNextCallback(const v8::FunctionCallbackInfo<Val
 
     auto resultTemplate = ObjectTemplate::New(isolate);
     auto result = resultTemplate->NewInstance(isolate->GetCurrentContext()).ToLocalChecked();
-    result->Set(String::NewFromUtf8(isolate, "done"), JavascriptInterop::ConvertToV8(done));
+    result->Set(isolate->GetCurrentContext(), String::NewFromUtf8(isolate, "done").ToLocalChecked(), JavascriptInterop::ConvertToV8(done));
     if (!done)
-        result->Set(String::NewFromUtf8(isolate, "value"), JavascriptInterop::ConvertToV8(enumerator->Current));
+        result->Set(isolate->GetCurrentContext(), String::NewFromUtf8(isolate, "value").ToLocalChecked(), JavascriptInterop::ConvertToV8(enumerator->Current));
     iArgs.GetReturnValue().Set(result);
 }
 
