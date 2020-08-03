@@ -52,7 +52,6 @@ JavascriptExternal::JavascriptExternal(System::Object^ iObject)
 {
 	mObjectHandle = System::Runtime::InteropServices::GCHandle::Alloc(iObject);
 	mOptions = SetParameterOptions::None;
-	mMethods = gcnew System::Collections::Generic::Dictionary<System::String ^, WrappedMethod>();
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -76,15 +75,16 @@ Local<Function>
 JavascriptExternal::GetMethod(wstring iName)
 {
 	v8::Isolate *isolate = JavascriptContext::GetCurrentIsolate();
-	System::Collections::Generic::Dictionary<System::String ^, WrappedMethod> ^methods = mMethods;
+    JavascriptContext^ context = JavascriptContext::GetCurrent();
+    System::Object^ self = mObjectHandle.Target;
+    System::Type^ type = self->GetType();
+    System::Collections::Generic::Dictionary<System::String ^, WrappedMethod> ^methods = context->MethodsForType(type);
 	System::String^ memberName = gcnew System::String(iName.c_str());
 	WrappedMethod method;
 	if (methods->TryGetValue(memberName, method))
 		return Local<Function>::New(isolate, *(method.Pointer));
 	else
 	{
-		System::Object^ self = mObjectHandle.Target;
-		System::Type^ type = self->GetType();
 		System::String^ memberName = gcnew System::String(iName.c_str());
 		cli::array<System::Object^>^ objectInfo = gcnew cli::array<System::Object^>(2);
 		objectInfo->SetValue(self,0);
@@ -94,7 +94,6 @@ JavascriptExternal::GetMethod(wstring iName)
 		cli::array<MemberInfo^>^ members = type->GetMember(memberName);
 		if (members->Length > 0 && members[0]->MemberType == MemberTypes::Method)
 		{
-			JavascriptContext^ context = JavascriptContext::GetCurrent();
 			Local<External> external = External::New(isolate, context->WrapObject(objectInfo));
 			Local<FunctionTemplate> functionTemplate = FunctionTemplate::New(isolate, JavascriptInterop::Invoker, external);
 			Local<Function> function = functionTemplate->GetFunction(isolate->GetCurrentContext()).ToLocalChecked();

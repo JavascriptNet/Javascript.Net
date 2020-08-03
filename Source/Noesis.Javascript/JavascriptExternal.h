@@ -98,9 +98,6 @@ private:
 
 	SetParameterOptions mOptions;
 
-	// Owned by JavascriptContext.
-	gcroot<System::Collections::Generic::Dictionary<System::String ^, WrappedMethod> ^> mMethods;
-
     std::unique_ptr<Persistent<Function>> mIterator;
     static void IteratorCallback(const v8::FunctionCallbackInfo<Value>& iArgs);
     static void IteratorNextCallback(const v8::FunctionCallbackInfo<Value>& iArgs);

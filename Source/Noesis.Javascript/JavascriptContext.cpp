@@ -171,8 +171,9 @@ JavascriptContext::JavascriptContext()
 
     isolate->SetFatalErrorHandler(FatalErrorCallback);
 
-	mExternals = gcnew System::Collections::Generic::Dictionary<System::Object ^, WrappedJavascriptExternal>();
     mTypeToConstructorMapping = gcnew System::Collections::Generic::Dictionary<System::Type ^, System::IntPtr>();
+    mTypeToMethods = gcnew System::Collections::Generic::Dictionary<System::Type^, System::Collections::Generic::Dictionary<System::String^, WrappedMethod>^>();
+
 	mFunctions = gcnew System::Collections::Generic::List<System::WeakReference ^>();
 	HandleScope scope(isolate);
 	mContext = new Persistent<Context>(isolate, Context::New(isolate));
@@ -186,8 +187,6 @@ JavascriptContext::~JavascriptContext()
 	{
 		v8::Locker v8ThreadLock(isolate);
 		v8::Isolate::Scope isolate_scope(isolate);
-		for each (WrappedJavascriptExternal wrapped in mExternals->Values)
-			delete wrapped.Pointer;
         for each (System::WeakReference^ f in mFunctions) {
             JavascriptFunction ^function = safe_cast<JavascriptFunction ^>(f->Target);
             if (function != nullptr)
@@ -197,8 +196,8 @@ JavascriptContext::~JavascriptContext()
             delete (void *)p;
         }
 		delete mContext;
-		delete mExternals;
         delete mTypeToConstructorMapping;
+        delete mTypeToMethods;
 		delete mFunctions;
 	}
 	if (isolate != NULL)
@@ -298,6 +297,7 @@ void JavascriptContext::SetConstructor(System::String^ name, System::Type^ assoc
     functionTemplate->SetClassName(className);
     JavascriptInterop::InitObjectWrapperTemplate(functionTemplate->InstanceTemplate());
     mTypeToConstructorMapping[associatedType] = System::IntPtr(new Persistent<FunctionTemplate>(isolate, functionTemplate));
+    mTypeToMethods[associatedType] = gcnew System::Collections::Generic::Dictionary<System::String^, WrappedMethod>();
     Local<Context>::New(isolate, *mContext)->Global()->Set(context, className, functionTemplate->GetFunction(context).ToLocalChecked());
 }
 
@@ -505,18 +505,7 @@ JavascriptContext::Collect()
 JavascriptExternal*
 JavascriptContext::WrapObject(System::Object^ iObject)
 {
-	WrappedJavascriptExternal external_wrapped;
-	if (mExternals->TryGetValue(iObject, external_wrapped))
-	{
-		// We've wrapped this guy before.
-		return external_wrapped.Pointer;
-	}
-	else
-	{
-		JavascriptExternal* external = new JavascriptExternal(iObject);
-		mExternals[iObject] = WrappedJavascriptExternal(external);
-		return external;
-	}
+    return new JavascriptExternal(iObject);
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -529,10 +518,19 @@ JavascriptContext::GetObjectWrapperConstructorTemplate(System::Type ^type)
         Local<FunctionTemplate> constructor = FunctionTemplate::New(GetCurrentIsolate());
         JavascriptInterop::InitObjectWrapperTemplate(constructor->InstanceTemplate());
         mTypeToConstructorMapping[type] = System::IntPtr(new Persistent<FunctionTemplate>(isolate, constructor));
+        mTypeToMethods[type] = gcnew System::Collections::Generic::Dictionary<System::String^, WrappedMethod>();
         return constructor;
     }
     Persistent<FunctionTemplate> *constructor = (Persistent<FunctionTemplate> *)(void *)ptrToConstructor;
 	return constructor->Get(isolate);
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+
+System::Collections::Generic::Dictionary<System::String^, WrappedMethod>^
+JavascriptContext::MethodsForType(System::Type^ type)
+{
+    return mTypeToMethods[type];
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////

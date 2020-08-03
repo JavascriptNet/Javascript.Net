@@ -259,7 +259,14 @@ JavascriptInterop::ConvertToV8(System::Object^ iObject)
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
-// TODO: should return Local<External>
+// a sort-of destructor in v8 land
+void JavascriptExternalMakeWeak(const v8::WeakCallbackInfo<JavascriptExternal>& data) {
+    v8::Isolate* isolate = JavascriptContext::GetCurrentIsolate();
+    JavascriptExternal *external = data.GetParameter();
+    delete external;
+}
+
+// TO DO: should return Local<External>
 Local<Object>
 JavascriptInterop::WrapObject(System::Object^ iObject)
 {
@@ -267,11 +274,17 @@ JavascriptInterop::WrapObject(System::Object^ iObject)
 
 	if (context != nullptr)
 	{
-		Local<FunctionTemplate> templ = context->GetObjectWrapperConstructorTemplate(iObject->GetType());
+        System::Type ^object_type = iObject->GetType();
+		Local<FunctionTemplate> templ = context->GetObjectWrapperConstructorTemplate(object_type);
 		v8::Isolate *isolate = JavascriptContext::GetCurrentIsolate();
         Local<ObjectTemplate> instanceTemplate = templ->InstanceTemplate();
 		Local<Object> object = instanceTemplate->NewInstance(isolate->GetCurrentContext()).ToLocalChecked();
-		object->SetInternalField(0, External::New(isolate, context->WrapObject(iObject)));
+        JavascriptExternal* external = context->WrapObject(iObject);
+		object->SetInternalField(0, External::New(isolate, external));
+        
+        // So we're notified when this object is no longer needed.
+        v8::Persistent<v8::Object, v8::CopyablePersistentTraits<v8::Object>> pobj(isolate, object);
+        pobj.SetWeak<JavascriptExternal>(external, JavascriptExternalMakeWeak, v8::WeakCallbackType::kParameter);
 
 		return object;
 	}
@@ -281,7 +294,7 @@ JavascriptInterop::WrapObject(System::Object^ iObject)
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
-// TODO: should use Local<External> iExternal
+// TO DO: should use Local<External> iExternal
 System::Object^
 JavascriptInterop::UnwrapObject(Local<Value> iValue)
 {
