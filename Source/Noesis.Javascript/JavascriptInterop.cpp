@@ -279,7 +279,7 @@ JavascriptInterop::WrapObject(System::Object^ iObject)
 		v8::Isolate *isolate = JavascriptContext::GetCurrentIsolate();
         Local<ObjectTemplate> instanceTemplate = templ->InstanceTemplate();
 		Local<Object> object = instanceTemplate->NewInstance(isolate->GetCurrentContext()).ToLocalChecked();
-        JavascriptExternal* external = context->WrapObject(iObject);
+        JavascriptExternal* external = new JavascriptExternal(iObject, true);
 		object->SetInternalField(0, External::New(isolate, external));
         
         // So we're notified when this object is no longer needed.

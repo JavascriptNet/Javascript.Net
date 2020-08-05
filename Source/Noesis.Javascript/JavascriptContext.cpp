@@ -505,7 +505,7 @@ JavascriptContext::Collect()
 JavascriptExternal*
 JavascriptContext::WrapObject(System::Object^ iObject)
 {
-    return new JavascriptExternal(iObject);
+    return new JavascriptExternal(iObject, false);
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////

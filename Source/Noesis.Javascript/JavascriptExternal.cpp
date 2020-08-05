@@ -48,10 +48,13 @@ using namespace std;
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
-JavascriptExternal::JavascriptExternal(System::Object^ iObject)
+JavascriptExternal::JavascriptExternal(System::Object^ iObject, bool needs_methods)
 {
 	mObjectHandle = System::Runtime::InteropServices::GCHandle::Alloc(iObject);
 	mOptions = SetParameterOptions::None;
+    System::Type^ type = iObject->GetType();
+    if (needs_methods)
+        mMethods = JavascriptContext::GetCurrent()->MethodsForType(type);
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -75,17 +78,16 @@ Local<Function>
 JavascriptExternal::GetMethod(wstring iName)
 {
 	v8::Isolate *isolate = JavascriptContext::GetCurrentIsolate();
-    JavascriptContext^ context = JavascriptContext::GetCurrent();
-    System::Object^ self = mObjectHandle.Target;
-    System::Type^ type = self->GetType();
-    System::Collections::Generic::Dictionary<System::String ^, WrappedMethod> ^methods = context->MethodsForType(type);
-	System::String^ memberName = gcnew System::String(iName.c_str());
+    System::Collections::Generic::Dictionary<System::String^, WrappedMethod>^ methods = mMethods;
+    System::String^ memberName = gcnew System::String(iName.c_str());
 	WrappedMethod method;
 	if (methods->TryGetValue(memberName, method))
 		return Local<Function>::New(isolate, *(method.Pointer));
 	else
 	{
-		System::String^ memberName = gcnew System::String(iName.c_str());
+        System::Object^ self = mObjectHandle.Target;
+        System::Type^ type = self->GetType();
+        System::String^ memberName = gcnew System::String(iName.c_str());
 		cli::array<System::Object^>^ objectInfo = gcnew cli::array<System::Object^>(2);
 		objectInfo->SetValue(self,0);
 		objectInfo->SetValue(memberName,1);
@@ -94,13 +96,14 @@ JavascriptExternal::GetMethod(wstring iName)
 		cli::array<MemberInfo^>^ members = type->GetMember(memberName);
 		if (members->Length > 0 && members[0]->MemberType == MemberTypes::Method)
 		{
-			Local<External> external = External::New(isolate, context->WrapObject(objectInfo));
+            JavascriptContext^ context = JavascriptContext::GetCurrent();
+            Local<External> external = External::New(isolate, context->WrapObject(objectInfo));
 			Local<FunctionTemplate> functionTemplate = FunctionTemplate::New(isolate, JavascriptInterop::Invoker, external);
 			Local<Function> function = functionTemplate->GetFunction(isolate->GetCurrentContext()).ToLocalChecked();
 
 			Persistent<Function> *function_ptr = new Persistent<Function>(isolate, function);
 			WrappedMethod wrapped(function_ptr);
-			methods[memberName] = wrapped;
+            methods[memberName] = wrapped;
 
 			return function;
 		}

@@ -94,7 +94,6 @@ public value struct WrappedJavascriptExternal
 {
 private:
 	System::IntPtr pointer;
-    System::Type^ type;
 
 internal:
 	WrappedJavascriptExternal(JavascriptExternal *value)
@@ -199,7 +198,7 @@ internal:
 
     System::Collections::Generic::Dictionary<System::String^, WrappedMethod>^ MethodsForType(System::Type^ type);
 
-	void RegisterFunction(System::Object^ f);
+    void RegisterFunction(System::Object^ f);
 
 	static void FatalErrorCallbackMember(const char* location, const char* message);
 

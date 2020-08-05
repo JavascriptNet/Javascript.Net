@@ -57,7 +57,7 @@ class JavascriptExternal
 	////////////////////////////////////////////////////////////
 public:
 
-	JavascriptExternal(System::Object^ iObject);
+	JavascriptExternal(System::Object^ iObject, bool needs_methods);
 
 	~JavascriptExternal();
 
@@ -97,6 +97,9 @@ private:
 	System::Runtime::InteropServices::GCHandle mObjectHandle;
 
 	SetParameterOptions mOptions;
+
+    // Owned by JavascriptContext.  Only set when the object is with `JavascriptInterop::Getter()`
+    gcroot<System::Collections::Generic::Dictionary<System::String^, WrappedMethod>^> mMethods;
 
     std::unique_ptr<Persistent<Function>> mIterator;
     static void IteratorCallback(const v8::FunctionCallbackInfo<Value>& iArgs);
