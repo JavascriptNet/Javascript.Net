@@ -71,8 +71,12 @@ The log at https://docs.google.com/a/g7.org/document/d/1g8JFi8T_oAE_7uAri7Njtig7
 
 Running Tests
 =============
-
 The unit tests are standard Visual Studio - run them using the GUI.
+
+
+How it Works
+============
+Simple values and arrays are copied between the native memory space (where v8 resides) and the Common Language Runtime (CLR) (where .Net applications live).  Complex .Net types (delegates, objects) are proxied.  When calls are made into proxied types then the parameters are copied into the CLR and the call is executed.  The results are copied back.
 
 
 Internationalization
