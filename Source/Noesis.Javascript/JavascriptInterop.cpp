@@ -290,16 +290,18 @@ JavascriptInterop::WrapObject(System::Object^ iObject)
 {
 	JavascriptContext^ context = JavascriptContext::GetCurrent();
 
-	if (context != nullptr)
-	{
-		Local<FunctionTemplate> templ = context->GetObjectWrapperConstructorTemplate(iObject->GetType());
-		v8::Isolate *isolate = JavascriptContext::GetCurrentIsolate();
-        Local<ObjectTemplate> instanceTemplate = templ->InstanceTemplate();
-		Local<Object> object = instanceTemplate->NewInstance(isolate->GetCurrentContext()).ToLocalChecked();
-		object->SetInternalField(0, External::New(isolate, context->WrapObject(iObject)));
+    if (context != nullptr)
+    {
+        v8::Isolate *isolate = JavascriptContext::GetCurrentIsolate();
+        JavascriptExternal *external = context->WrapObject(iObject);
 
-		return object;
-	}
+        Local<FunctionTemplate> templ = context->GetObjectWrapperConstructorTemplate(iObject->GetType());
+        Local<ObjectTemplate> instanceTemplate = templ->InstanceTemplate();
+        Local<Object> object = instanceTemplate->NewInstance(isolate->GetCurrentContext()).ToLocalChecked();
+        external->Wrap(isolate, object);
+
+        return object;
+    }
 
 	throw gcnew System::Exception("No context currently active.");
 }

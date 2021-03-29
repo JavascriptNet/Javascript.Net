@@ -59,7 +59,31 @@ JavascriptExternal::JavascriptExternal(System::Object^ iObject)
 
 JavascriptExternal::~JavascriptExternal()
 {
-	mObjectHandle.Free();
+    mObjectHandle.Free();
+    if (mPersistent.IsEmpty())
+        return;
+    mPersistent.ClearWeak<void>();
+    mPersistent.Reset();
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+
+void GCCallback(const WeakCallbackInfo<JavascriptExternal>& data)
+{
+    auto context = JavascriptContext::GetCurrent();
+    auto external = data.GetParameter();
+    auto object = external->GetObject();
+    if (context->mExternals->ContainsKey(object))
+        context->mExternals->Remove(object);
+    delete external;
+}
+
+void
+JavascriptExternal::Wrap(Isolate* isolate, Local<Object> object)
+{
+    object->SetInternalField(0, External::New(isolate, this));
+    mPersistent.Reset(isolate, object);
+    mPersistent.SetWeak(this, &GCCallback, WeakCallbackType::kParameter);
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////

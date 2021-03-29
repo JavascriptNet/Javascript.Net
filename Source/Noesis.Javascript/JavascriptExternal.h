@@ -87,9 +87,13 @@ public:
 
     Local<Function> GetIterator();
 
+    void Wrap(Isolate* isolate, Local<Object> object);
+
 	////////////////////////////////////////////////////////////
 	// Data members
 	////////////////////////////////////////////////////////////
+public:
+    Persistent<Object> mPersistent;
 private:
 	
 	// Handle to the .Net object being wrapped.  It takes this
