@@ -66,16 +66,16 @@ public enum class SetParameterOptions : int
 public value struct WrappedMethod
 {
 private:
-	System::IntPtr pointer;
+    System::IntPtr pointer;
 
 internal:
-	WrappedMethod(Persistent<Function> *value)
-	{
-		System::IntPtr value_pointer(value);
+    WrappedMethod(Persistent<Function> *value)
+    {
+        System::IntPtr value_pointer(value);
         pointer = value_pointer;
-	}
+    }
 
-	property Persistent<Function> *Pointer
+    property Persistent<Function> *Pointer
     {
         Persistent<Function> *get()
         {
@@ -209,6 +209,7 @@ internal:
     // collection of JavascriptExternal objects that won't be freed until
     // the context is destroyed.
     System::Collections::Generic::Dictionary<System::Object^, WrappedJavascriptExternal>^ mExternals;
+    System::Collections::Generic::Dictionary<System::String^, WrappedMethod>^ mMethods;
 protected:
 	// By entering an isolate before using a context, we can have multiple
 	// contexts used simultaneously in different threads.

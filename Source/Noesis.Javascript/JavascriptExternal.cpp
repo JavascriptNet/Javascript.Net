@@ -52,7 +52,6 @@ JavascriptExternal::JavascriptExternal(System::Object^ iObject)
 {
 	mObjectHandle = System::Runtime::InteropServices::GCHandle::Alloc(iObject);
 	mOptions = SetParameterOptions::None;
-	mMethods = gcnew System::Collections::Generic::Dictionary<System::String ^, WrappedMethod>();
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -99,40 +98,30 @@ JavascriptExternal::GetObject()
 Local<Function>
 JavascriptExternal::GetMethod(wstring iName)
 {
-	v8::Isolate *isolate = JavascriptContext::GetCurrentIsolate();
-	System::Collections::Generic::Dictionary<System::String ^, WrappedMethod> ^methods = mMethods;
-	System::String^ memberName = gcnew System::String(iName.c_str());
-	WrappedMethod method;
-	if (methods->TryGetValue(memberName, method))
-		return Local<Function>::New(isolate, *(method.Pointer));
+    auto context = JavascriptContext::GetCurrent();
+    auto isolate = JavascriptContext::GetCurrentIsolate();
+
+    auto type = mObjectHandle.Target->GetType();
+    auto memberName = gcnew System::String(iName.c_str());
+    auto uniqueMethodName = type->AssemblyQualifiedName + L"." + memberName;
+
+    if (context->mMethods->ContainsKey(uniqueMethodName))
+        return Local<Function>::New(isolate, *context->mMethods[uniqueMethodName].Pointer);
 	else
 	{
-		System::Object^ self = mObjectHandle.Target;
-		System::Type^ type = self->GetType();
-		System::String^ memberName = gcnew System::String(iName.c_str());
-		cli::array<System::Object^>^ objectInfo = gcnew cli::array<System::Object^>(2);
-		objectInfo->SetValue(self,0);
-		objectInfo->SetValue(memberName,1);
-
 		// Verification if it a method
-		cli::array<MemberInfo^>^ members = type->GetMember(memberName);
+        auto members = type->GetMember(memberName);
 		if (members->Length > 0 && members[0]->MemberType == MemberTypes::Method)
 		{
-			JavascriptContext^ context = JavascriptContext::GetCurrent();
-			Local<External> external = External::New(isolate, context->WrapObject(objectInfo));
-			Local<FunctionTemplate> functionTemplate = FunctionTemplate::New(isolate, JavascriptInterop::Invoker, external);
-			Local<Function> function = functionTemplate->GetFunction(isolate->GetCurrentContext()).ToLocalChecked();
-
-			Persistent<Function> *function_ptr = new Persistent<Function>(isolate, function);
-			WrappedMethod wrapped(function_ptr);
-			methods[memberName] = wrapped;
-
-			return function;
+            auto functionTemplate = FunctionTemplate::New(isolate, JavascriptInterop::Invoker, JavascriptInterop::ConvertToV8(memberName));
+            auto function = functionTemplate->GetFunction(isolate->GetCurrentContext()).ToLocalChecked();
+            context->mMethods[uniqueMethodName] = WrappedMethod(new Persistent<Function>(isolate, function));
+            return function;
 		}
 	}
 	
 	// Wasn't an method
-	return  Local<Function>();
+	return Local<Function>();
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
