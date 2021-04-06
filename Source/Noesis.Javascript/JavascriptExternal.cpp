@@ -350,10 +350,7 @@ Local<Function> JavascriptExternal::GetIterator()
     if (mIterator != nullptr)
         return Local<Function>::New(isolate, *mIterator);
 
-    auto self = mObjectHandle.Target;
-    auto context = JavascriptContext::GetCurrent();
-    auto external = External::New(isolate, context->WrapObject(self));
-    auto functionTemplate = FunctionTemplate::New(isolate, JavascriptExternal::IteratorCallback, external);
+    auto functionTemplate = FunctionTemplate::New(isolate, JavascriptExternal::IteratorCallback);
     auto function = functionTemplate->GetFunction(isolate->GetCurrentContext()).ToLocalChecked();
     mIterator = std::make_unique<Persistent<Function>>(isolate, function);
     return function;
@@ -362,21 +359,32 @@ Local<Function> JavascriptExternal::GetIterator()
 void JavascriptExternal::IteratorCallback(const v8::FunctionCallbackInfo<Value>& iArgs)
 {
     auto isolate = iArgs.GetIsolate();
-    auto enumerable = (System::Collections::IEnumerable^) JavascriptInterop::UnwrapObject(Local<External>::Cast(iArgs.Data()));
-    auto enumerator = enumerable->GetEnumerator();
-    auto context = JavascriptContext::GetCurrent();
-    auto external = External::New(isolate, context->WrapObject(enumerator));
-
+    
     auto iterator = ObjectTemplate::New(isolate);
-    auto functionTemplate = FunctionTemplate::New(isolate, JavascriptExternal::IteratorNextCallback, external);
+    iterator->SetInternalFieldCount(1);
+    auto functionTemplate = FunctionTemplate::New(isolate, JavascriptExternal::IteratorNextCallback);
     iterator->Set(String::NewFromUtf8(isolate, "next").ToLocalChecked(), functionTemplate);
-    iArgs.GetReturnValue().Set(iterator->NewInstance(isolate->GetCurrentContext()).ToLocalChecked());
+    auto iteratorInstance = iterator->NewInstance(isolate->GetCurrentContext()).ToLocalChecked();
+
+    auto internalField = Local<External>::Cast(iArgs.Holder()->GetInternalField(0));
+    auto external = (JavascriptExternal*)internalField->Value();
+    auto enumerable = (System::Collections::IEnumerable^)external->GetObject();
+    auto enumerator = enumerable->GetEnumerator();
+
+    auto context = JavascriptContext::GetCurrent();
+    auto enumeratorExternal = context->WrapObject(enumerator);
+    enumeratorExternal->Wrap(isolate, iteratorInstance);
+
+    iArgs.GetReturnValue().Set(iteratorInstance);
 }
 
 void JavascriptExternal::IteratorNextCallback(const v8::FunctionCallbackInfo<Value>& iArgs)
 {
     auto isolate = iArgs.GetIsolate();
-    auto enumerator = (System::Collections::IEnumerator^) JavascriptInterop::UnwrapObject(Local<External>::Cast(iArgs.Data()));
+
+    auto internalField = Local<External>::Cast(iArgs.Holder()->GetInternalField(0));
+    auto external = (JavascriptExternal*)internalField->Value();
+    auto enumerator = (System::Collections::IEnumerator^) external->GetObject();
     auto done = !enumerator->MoveNext();
 
     auto resultTemplate = ObjectTemplate::New(isolate);
