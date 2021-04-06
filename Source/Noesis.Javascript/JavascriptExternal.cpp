@@ -107,18 +107,16 @@ JavascriptExternal::GetMethod(wstring iName)
 
     if (context->mMethods->ContainsKey(uniqueMethodName))
         return Local<Function>::New(isolate, *context->mMethods[uniqueMethodName].Pointer);
-	else
-	{
-		// Verification if it a method
-        auto members = type->GetMember(memberName);
-		if (members->Length > 0 && members[0]->MemberType == MemberTypes::Method)
-		{
-            auto functionTemplate = FunctionTemplate::New(isolate, JavascriptInterop::Invoker, JavascriptInterop::ConvertToV8(memberName));
-            auto function = functionTemplate->GetFunction(isolate->GetCurrentContext()).ToLocalChecked();
-            context->mMethods[uniqueMethodName] = WrappedMethod(new Persistent<Function>(isolate, function));
-            return function;
-		}
-	}
+	
+    // Verification if it a method
+    auto members = type->GetMember(memberName);
+    if (members->Length > 0 && members[0]->MemberType == MemberTypes::Method)
+    {
+        auto functionTemplate = FunctionTemplate::New(isolate, JavascriptInterop::Invoker, JavascriptInterop::ConvertToV8(memberName));
+        auto function = functionTemplate->GetFunction(isolate->GetCurrentContext()).ToLocalChecked();
+        context->mMethods[uniqueMethodName] = WrappedMethod(new Persistent<Function>(isolate, function));
+        return function;
+    }
 	
 	// Wasn't an method
 	return Local<Function>();
@@ -346,20 +344,24 @@ JavascriptExternal::SetProperty(uint32_t iIndex, Local<Value> iValue)
 
 Local<Function> JavascriptExternal::GetIterator()
 {
+    auto context = JavascriptContext::GetCurrent();
+    auto type = mObjectHandle.Target->GetType();
+    auto uniqueMethodName = type->AssemblyQualifiedName + L".$$Iterator";
+
     auto isolate = JavascriptContext::GetCurrentIsolate();
-    if (mIterator != nullptr)
-        return Local<Function>::New(isolate, *mIterator);
+    if (context->mMethods->ContainsKey(uniqueMethodName))
+        return Local<Function>::New(isolate, *context->mMethods[uniqueMethodName].Pointer);
 
     auto functionTemplate = FunctionTemplate::New(isolate, JavascriptExternal::IteratorCallback);
     auto function = functionTemplate->GetFunction(isolate->GetCurrentContext()).ToLocalChecked();
-    mIterator = std::make_unique<Persistent<Function>>(isolate, function);
+    context->mMethods[uniqueMethodName] = WrappedMethod(new Persistent<Function>(isolate, function));
     return function;
 }
 
 void JavascriptExternal::IteratorCallback(const v8::FunctionCallbackInfo<Value>& iArgs)
 {
     auto isolate = iArgs.GetIsolate();
-    
+
     auto iterator = ObjectTemplate::New(isolate);
     iterator->SetInternalFieldCount(1);
     auto functionTemplate = FunctionTemplate::New(isolate, JavascriptExternal::IteratorNextCallback);

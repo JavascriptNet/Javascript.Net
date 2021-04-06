@@ -101,7 +101,6 @@ private:
 
 	SetParameterOptions mOptions;
 
-    std::unique_ptr<Persistent<Function>> mIterator;
     static void IteratorCallback(const v8::FunctionCallbackInfo<Value>& iArgs);
     static void IteratorNextCallback(const v8::FunctionCallbackInfo<Value>& iArgs);
 };
