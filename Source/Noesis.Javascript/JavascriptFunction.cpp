@@ -20,18 +20,16 @@ JavascriptFunction::JavascriptFunction(v8::Local<v8::Object> iFunction, Javascri
 		throw gcnew System::ArgumentException("Must provide a JavascriptContext");
 
 	mFuncHandle = new Persistent<Function>(context->GetCurrentIsolate(), Local<Function>::Cast(iFunction));
-	mContext = context;
-
-	mContext->RegisterFunction(this);
+    mContextHandle = gcnew System::WeakReference(context);
 }
 
 JavascriptFunction::~JavascriptFunction()
 {
 	if(mFuncHandle) 
 	{
-		if (mContext)
+		if (IsAlive())
 		{
-            JavascriptScope scope(mContext);
+            JavascriptScope scope(GetContext());
 			mFuncHandle->Reset();
 		}
 		delete mFuncHandle;
@@ -46,16 +44,17 @@ JavascriptFunction::!JavascriptFunction()
 
 System::Object^ JavascriptFunction::Call(... cli::array<System::Object^>^ args)
 {
-    if (mFuncHandle == nullptr)
+    if (!IsAlive())
         throw gcnew JavascriptException(L"This function's owning JavascriptContext has been disposed");
     if (!args)
         throw gcnew System::ArgumentNullException("args");
 	
-    JavascriptScope scope(mContext);
-	v8::Isolate* isolate = mContext->GetCurrentIsolate();
+    auto context = GetContext();
+    JavascriptScope scope(context);
+	v8::Isolate* isolate = context->GetCurrentIsolate();
 	HandleScope handleScope(isolate);
 
-	Local<v8::Object> global = mContext->GetGlobal();
+	Local<v8::Object> global = context->GetGlobal();
 
 	int argc = args->Length;
 	Local<v8::Value> *argv = new Local<v8::Value>[argc];
@@ -81,13 +80,13 @@ bool JavascriptFunction::operator==(JavascriptFunction^ func1, JavascriptFunctio
 		return false;
     if (func1_null && func2_null)
         return true;
-    if (func1->mFuncHandle == nullptr)
+    if (!func1->IsAlive())
         throw gcnew JavascriptException(L"'func1's owning JavascriptContext has been disposed");
-    if (func2->mFuncHandle == nullptr)
+    if (!func2->IsAlive())
         throw gcnew JavascriptException(L"'func2's owning JavascriptContext has been disposed");
 
-	Local<Function> jsFuncPtr1 = func1->mFuncHandle->Get(func1->mContext->GetCurrentIsolate());
-	Local<Function> jsFuncPtr2 = func2->mFuncHandle->Get(func2->mContext->GetCurrentIsolate());
+	Local<Function> jsFuncPtr1 = func1->mFuncHandle->Get(func1->GetContext()->GetCurrentIsolate());
+	Local<Function> jsFuncPtr2 = func2->mFuncHandle->Get(func2->GetContext()->GetCurrentIsolate());
 
 	return jsFuncPtr1->Equals(JavascriptContext::GetCurrentIsolate()->GetCurrentContext(), jsFuncPtr2).ToChecked();
 }
@@ -99,22 +98,23 @@ bool JavascriptFunction::Equals(JavascriptFunction^ other)
 
 bool JavascriptFunction::Equals(Object^ other)
 {
-    if (mFuncHandle == nullptr)
+    if (!IsAlive())
         throw gcnew JavascriptException(L"This function's owning JavascriptContext has been disposed");
     JavascriptFunction^ otherFunc = dynamic_cast<JavascriptFunction^>(other);
-    if (otherFunc != nullptr && otherFunc->mFuncHandle == nullptr)
-        throw gcnew JavascriptException(L"This function's owning JavascriptContext has been disposed");
+    if (otherFunc != nullptr && !otherFunc->IsAlive())
+        throw gcnew JavascriptException(L"The other function's owning JavascriptContext has been disposed");
 
 	return (otherFunc && this->Equals(otherFunc));
 }
 
 System::String^ JavascriptFunction::ToString()
 {
-    if (mFuncHandle == nullptr)
+    if (!IsAlive())
         throw gcnew JavascriptException(L"This function's owning JavascriptContext has been disposed");
    
-    JavascriptScope scope(mContext);
-    auto isolate = mContext->GetCurrentIsolate();
+    auto context = GetContext();
+    JavascriptScope scope(context);
+    auto isolate = context->GetCurrentIsolate();
     HandleScope handleScope(isolate);
     auto asString = mFuncHandle->Get(isolate)->ToString(isolate->GetCurrentContext());
     return safe_cast<System::String^>(JavascriptInterop::ConvertFromV8(asString.ToLocalChecked()));

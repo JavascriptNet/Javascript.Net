@@ -196,9 +196,9 @@ internal:
 
 	Local<FunctionTemplate> GetObjectWrapperConstructorTemplate(System::Type ^type);
 
-	void RegisterFunction(System::Object^ f);
-
 	static void FatalErrorCallbackMember(const char* location, const char* message);
+
+    inline bool IsDisposed() { return mContext == nullptr; }
 
 	////////////////////////////////////////////////////////////
 	// Data members
@@ -223,10 +223,6 @@ protected:
     // mapping was provided.
     // The `IntPtr` points to a `Persistent<FunctionTemplate>`.
     System::Collections::Generic::Dictionary<System::Type ^, System::IntPtr> ^mTypeToConstructorMapping;
-
-	// Stores every JavascriptFunction we create.  Ensures we dispose of them
-	// all.
-	System::Collections::Generic::List<System::WeakReference ^> ^mFunctions;
 
 	// See comment for TerminateExecution().
 	bool terminateRuns;
