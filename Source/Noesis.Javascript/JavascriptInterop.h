@@ -114,8 +114,6 @@ private:
 
 	static System::Object^ ConvertArrayFromV8(Local<Value> iValue, ConvertedObjects &already_converted);
 
-	static Local<Object> WrapFunction(System::Object^ iObject, System::String^ iName);
-
 	static void Getter(Local<Name> iName, const PropertyCallbackInfo<Value>& iInfo);
 
 	static void Setter(Local<String> iName, Local<Value> iValue, const PropertyCallbackInfo<Value>& iInfo);
