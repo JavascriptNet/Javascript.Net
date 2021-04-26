@@ -59,10 +59,11 @@ JavascriptExternal::JavascriptExternal(System::Object^ iObject)
 JavascriptExternal::~JavascriptExternal()
 {
     mObjectHandle.Free();
-    if (mPersistent.IsEmpty())
-        return;
-    mPersistent.ClearWeak<void>();
-    mPersistent.Reset();
+    if (!mPersistent.IsEmpty()) {
+        mPersistent.ClearWeak<void>();
+        mPersistent.Reset();
+    }
+
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
