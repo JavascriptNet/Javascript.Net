@@ -35,10 +35,12 @@ public:
 	virtual bool Equals(Object^ other) override;
 	
     virtual System::String^ ToString() override;
-
+internal:
+    v8::Persistent<v8::Function>* mFuncHandle;
 private:
-	v8::Persistent<v8::Function>* mFuncHandle;
-	JavascriptContext^ mContext;
+    System::WeakReference^ mContextHandle;
+    inline JavascriptContext^ GetContext() { return mContextHandle->IsAlive ? safe_cast<JavascriptContext^>(mContextHandle->Target) : nullptr; }
+    inline bool IsAlive() { auto context = GetContext(); return context != nullptr && !context->IsDisposed() && mFuncHandle != nullptr; }
 };
 
 //////////////////////////////////////////////////////////////////////////

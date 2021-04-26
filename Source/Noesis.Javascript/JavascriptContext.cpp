@@ -159,8 +159,8 @@ JavascriptContext::JavascriptContext()
     isolate->SetFatalErrorHandler(FatalErrorCallback);
 
 	mExternals = gcnew System::Collections::Generic::Dictionary<System::Object ^, WrappedJavascriptExternal>();
+	mMethods = gcnew System::Collections::Generic::Dictionary<System::String ^, WrappedMethod>();
     mTypeToConstructorMapping = gcnew System::Collections::Generic::Dictionary<System::Type ^, System::IntPtr>();
-	mFunctions = gcnew System::Collections::Generic::List<System::WeakReference ^>();
 	HandleScope scope(isolate);
 	mContext = new Persistent<Context>(isolate, Context::New(isolate));
     terminateRuns = false;
@@ -175,18 +175,19 @@ JavascriptContext::~JavascriptContext()
 		v8::Isolate::Scope isolate_scope(isolate);
 		for each (WrappedJavascriptExternal wrapped in mExternals->Values)
 			delete wrapped.Pointer;
-        for each (System::WeakReference^ f in mFunctions) {
-            JavascriptFunction ^function = safe_cast<JavascriptFunction ^>(f->Target);
-            if (function != nullptr)
-                delete function;
+        for each (WrappedMethod wrapped in mMethods->Values)
+        {
+            wrapped.Pointer->Reset();
+            delete wrapped.Pointer;
         }
         for each (System::IntPtr p in mTypeToConstructorMapping->Values) {
             delete (void *)p;
         }
 		delete mContext;
+        mContext = nullptr;
 		delete mExternals;
+        delete mMethods;
         delete mTypeToConstructorMapping;
-		delete mFunctions;
 	}
 	if (isolate != NULL)
 		isolate->Dispose();
@@ -521,16 +522,6 @@ JavascriptContext::GetObjectWrapperConstructorTemplate(System::Type ^type)
     }
     Persistent<FunctionTemplate> *constructor = (Persistent<FunctionTemplate> *)(void *)ptrToConstructor;
 	return constructor->Get(isolate);
-}
-
-////////////////////////////////////////////////////////////////////////////////////////////////////
-
-void
-JavascriptContext::RegisterFunction(System::Object^ f)
-{
-    // Note that while we do store WeakReferences, we never clean up this hashtable,
-    // so it will just grow and grow.
-	mFunctions->Add(gcnew System::WeakReference(f));
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////

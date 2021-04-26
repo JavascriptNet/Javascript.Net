@@ -52,14 +52,38 @@ JavascriptExternal::JavascriptExternal(System::Object^ iObject)
 {
 	mObjectHandle = System::Runtime::InteropServices::GCHandle::Alloc(iObject);
 	mOptions = SetParameterOptions::None;
-	mMethods = gcnew System::Collections::Generic::Dictionary<System::String ^, WrappedMethod>();
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
 JavascriptExternal::~JavascriptExternal()
 {
-	mObjectHandle.Free();
+    mObjectHandle.Free();
+    if (!mPersistent.IsEmpty()) {
+        mPersistent.ClearWeak<void>();
+        mPersistent.Reset();
+    }
+
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+
+void GCCallback(const WeakCallbackInfo<JavascriptExternal>& data)
+{
+    auto context = JavascriptContext::GetCurrent();
+    auto external = data.GetParameter();
+    auto object = external->GetObject();
+    if (context->mExternals->ContainsKey(object))
+        context->mExternals->Remove(object);
+    delete external;
+}
+
+void
+JavascriptExternal::Wrap(Isolate* isolate, Local<Object> object)
+{
+    object->SetInternalField(0, External::New(isolate, this));
+    mPersistent.Reset(isolate, object);
+    mPersistent.SetWeak(this, &GCCallback, WeakCallbackType::kParameter);
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -75,40 +99,28 @@ JavascriptExternal::GetObject()
 Local<Function>
 JavascriptExternal::GetMethod(wstring iName)
 {
-	v8::Isolate *isolate = JavascriptContext::GetCurrentIsolate();
-	System::Collections::Generic::Dictionary<System::String ^, WrappedMethod> ^methods = mMethods;
-	System::String^ memberName = gcnew System::String(iName.c_str());
-	WrappedMethod method;
-	if (methods->TryGetValue(memberName, method))
-		return Local<Function>::New(isolate, *(method.Pointer));
-	else
-	{
-		System::Object^ self = mObjectHandle.Target;
-		System::Type^ type = self->GetType();
-		System::String^ memberName = gcnew System::String(iName.c_str());
-		cli::array<System::Object^>^ objectInfo = gcnew cli::array<System::Object^>(2);
-		objectInfo->SetValue(self,0);
-		objectInfo->SetValue(memberName,1);
+    auto context = JavascriptContext::GetCurrent();
+    auto isolate = JavascriptContext::GetCurrentIsolate();
 
-		// Verification if it a method
-		cli::array<MemberInfo^>^ members = type->GetMember(memberName);
-		if (members->Length > 0 && members[0]->MemberType == MemberTypes::Method)
-		{
-			JavascriptContext^ context = JavascriptContext::GetCurrent();
-			Local<External> external = External::New(isolate, context->WrapObject(objectInfo));
-			Local<FunctionTemplate> functionTemplate = FunctionTemplate::New(isolate, JavascriptInterop::Invoker, external);
-			Local<Function> function = functionTemplate->GetFunction(isolate->GetCurrentContext()).ToLocalChecked();
+    auto type = mObjectHandle.Target->GetType();
+    auto memberName = gcnew System::String(iName.c_str());
+    auto uniqueMethodName = type->AssemblyQualifiedName + L"." + memberName;
 
-			Persistent<Function> *function_ptr = new Persistent<Function>(isolate, function);
-			WrappedMethod wrapped(function_ptr);
-			methods[memberName] = wrapped;
-
-			return function;
-		}
-	}
+    if (context->mMethods->ContainsKey(uniqueMethodName))
+        return Local<Function>::New(isolate, *context->mMethods[uniqueMethodName].Pointer);
+	
+    // Verification if it a method
+    auto members = type->GetMember(memberName);
+    if (members->Length > 0 && members[0]->MemberType == MemberTypes::Method)
+    {
+        auto functionTemplate = FunctionTemplate::New(isolate, JavascriptInterop::Invoker, JavascriptInterop::ConvertToV8(memberName));
+        auto function = functionTemplate->GetFunction(isolate->GetCurrentContext()).ToLocalChecked();
+        context->mMethods[uniqueMethodName] = WrappedMethod(new Persistent<Function>(isolate, function));
+        return function;
+    }
 	
 	// Wasn't an method
-	return  Local<Function>();
+	return Local<Function>();
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -333,37 +345,49 @@ JavascriptExternal::SetProperty(uint32_t iIndex, Local<Value> iValue)
 
 Local<Function> JavascriptExternal::GetIterator()
 {
-    auto isolate = JavascriptContext::GetCurrentIsolate();
-    if (mIterator != nullptr)
-        return Local<Function>::New(isolate, *mIterator);
-
-    auto self = mObjectHandle.Target;
     auto context = JavascriptContext::GetCurrent();
-    auto external = External::New(isolate, context->WrapObject(self));
-    auto functionTemplate = FunctionTemplate::New(isolate, JavascriptExternal::IteratorCallback, external);
+    auto type = mObjectHandle.Target->GetType();
+    auto uniqueMethodName = type->AssemblyQualifiedName + L".$$Iterator";
+
+    auto isolate = JavascriptContext::GetCurrentIsolate();
+    if (context->mMethods->ContainsKey(uniqueMethodName))
+        return Local<Function>::New(isolate, *context->mMethods[uniqueMethodName].Pointer);
+
+    auto functionTemplate = FunctionTemplate::New(isolate, JavascriptExternal::IteratorCallback);
     auto function = functionTemplate->GetFunction(isolate->GetCurrentContext()).ToLocalChecked();
-    mIterator = std::make_unique<Persistent<Function>>(isolate, function);
+    context->mMethods[uniqueMethodName] = WrappedMethod(new Persistent<Function>(isolate, function));
     return function;
 }
 
 void JavascriptExternal::IteratorCallback(const v8::FunctionCallbackInfo<Value>& iArgs)
 {
     auto isolate = iArgs.GetIsolate();
-    auto enumerable = (System::Collections::IEnumerable^) JavascriptInterop::UnwrapObject(Local<External>::Cast(iArgs.Data()));
-    auto enumerator = enumerable->GetEnumerator();
-    auto context = JavascriptContext::GetCurrent();
-    auto external = External::New(isolate, context->WrapObject(enumerator));
 
     auto iterator = ObjectTemplate::New(isolate);
-    auto functionTemplate = FunctionTemplate::New(isolate, JavascriptExternal::IteratorNextCallback, external);
+    iterator->SetInternalFieldCount(1);
+    auto functionTemplate = FunctionTemplate::New(isolate, JavascriptExternal::IteratorNextCallback);
     iterator->Set(String::NewFromUtf8(isolate, "next").ToLocalChecked(), functionTemplate);
-    iArgs.GetReturnValue().Set(iterator->NewInstance(isolate->GetCurrentContext()).ToLocalChecked());
+    auto iteratorInstance = iterator->NewInstance(isolate->GetCurrentContext()).ToLocalChecked();
+
+    auto internalField = Local<External>::Cast(iArgs.Holder()->GetInternalField(0));
+    auto external = (JavascriptExternal*)internalField->Value();
+    auto enumerable = (System::Collections::IEnumerable^)external->GetObject();
+    auto enumerator = enumerable->GetEnumerator();
+
+    auto context = JavascriptContext::GetCurrent();
+    auto enumeratorExternal = context->WrapObject(enumerator);
+    enumeratorExternal->Wrap(isolate, iteratorInstance);
+
+    iArgs.GetReturnValue().Set(iteratorInstance);
 }
 
 void JavascriptExternal::IteratorNextCallback(const v8::FunctionCallbackInfo<Value>& iArgs)
 {
     auto isolate = iArgs.GetIsolate();
-    auto enumerator = (System::Collections::IEnumerator^) JavascriptInterop::UnwrapObject(Local<External>::Cast(iArgs.Data()));
+
+    auto internalField = Local<External>::Cast(iArgs.Holder()->GetInternalField(0));
+    auto external = (JavascriptExternal*)internalField->Value();
+    auto enumerator = (System::Collections::IEnumerator^) external->GetObject();
     auto done = !enumerator->MoveNext();
 
     auto resultTemplate = ObjectTemplate::New(isolate);

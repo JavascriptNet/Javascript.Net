@@ -290,16 +290,18 @@ JavascriptInterop::WrapObject(System::Object^ iObject)
 {
 	JavascriptContext^ context = JavascriptContext::GetCurrent();
 
-	if (context != nullptr)
-	{
-		Local<FunctionTemplate> templ = context->GetObjectWrapperConstructorTemplate(iObject->GetType());
-		v8::Isolate *isolate = JavascriptContext::GetCurrentIsolate();
-        Local<ObjectTemplate> instanceTemplate = templ->InstanceTemplate();
-		Local<Object> object = instanceTemplate->NewInstance(isolate->GetCurrentContext()).ToLocalChecked();
-		object->SetInternalField(0, External::New(isolate, context->WrapObject(iObject)));
+    if (context != nullptr)
+    {
+        v8::Isolate *isolate = JavascriptContext::GetCurrentIsolate();
+        JavascriptExternal *external = context->WrapObject(iObject);
 
-		return object;
-	}
+        Local<FunctionTemplate> templ = context->GetObjectWrapperConstructorTemplate(iObject->GetType());
+        Local<ObjectTemplate> instanceTemplate = templ->InstanceTemplate();
+        Local<Object> object = instanceTemplate->NewInstance(isolate->GetCurrentContext()).ToLocalChecked();
+        external->Wrap(isolate, object);
+
+        return object;
+    }
 
 	throw gcnew System::Exception("No context currently active.");
 }
@@ -790,23 +792,20 @@ void
 JavascriptInterop::Invoker(const v8::FunctionCallbackInfo<Value>& iArgs)
 {
 	v8::Isolate *isolate = JavascriptContext::GetCurrentIsolate();
-	System::Object^ data = UnwrapObject(Local<External>::Cast(iArgs.Data()));
+    auto internalField = Local<External>::Cast(iArgs.Holder()->GetInternalField(0));
+    auto external = (JavascriptExternal*)internalField->Value();
 	System::Reflection::MethodInfo^ bestMethod;
 	cli::array<System::Object^>^ suppliedArguments;
 	cli::array<System::Object^>^ bestMethodArguments;
-	cli::array<System::Object^>^ objectInfo;
 	int bestMethodMatchedArgs = -1;
 	System::Object^ ret;
 
-	// get target and member's name
-	objectInfo = safe_cast<cli::array<System::Object^>^>(data);
-	System::Object^ self = objectInfo[0];
-	// System::Object^ holder = UnwrapObject(iArgs.Holder());
+	System::Object^ self = external->GetObject();
 	System::Type^ holderType = self->GetType(); 
 	
 	// get members
 	System::Type^ type = self->GetType();
-	System::String^ memberName = (System::String^)objectInfo[1];
+	System::String^ memberName = (System::String^) ConvertFromV8(iArgs.Data());
 	cli::array<System::Reflection::MemberInfo^>^ members = type->GetMember(memberName);
 
 	if (members->Length > 0 && members[0]->MemberType == System::Reflection::MemberTypes::Method)
