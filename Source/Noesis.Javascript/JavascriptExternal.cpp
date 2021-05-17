@@ -79,11 +79,31 @@ void GCCallback(const WeakCallbackInfo<JavascriptExternal>& data)
 }
 
 void
-JavascriptExternal::Wrap(Isolate* isolate, Local<Object> object)
+JavascriptExternal::InitializePersistent(Isolate* isolate, Local<Object> object)
 {
     object->SetInternalField(0, External::New(isolate, this));
     mPersistent.Reset(isolate, object);
     mPersistent.SetWeak(this, &GCCallback, WeakCallbackType::kParameter);
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+
+Local<Object>
+JavascriptExternal::ToLocal(Isolate* isolate)
+{
+    if (!mPersistent.IsEmpty())
+        return Local<Object>::New(isolate, mPersistent);
+    
+    auto context = JavascriptContext::GetCurrent();
+
+    EscapableHandleScope scope(isolate);
+
+    Local<FunctionTemplate> templ = context->GetObjectWrapperConstructorTemplate(GetObject()->GetType());
+    Local<ObjectTemplate> instanceTemplate = templ->InstanceTemplate();
+    Local<Object> object = instanceTemplate->NewInstance(isolate->GetCurrentContext()).ToLocalChecked();
+    InitializePersistent(isolate, object);
+
+    return scope.Escape(object);
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -376,7 +396,7 @@ void JavascriptExternal::IteratorCallback(const v8::FunctionCallbackInfo<Value>&
 
     auto context = JavascriptContext::GetCurrent();
     auto enumeratorExternal = context->WrapObject(enumerator);
-    enumeratorExternal->Wrap(isolate, iteratorInstance);
+    enumeratorExternal->InitializePersistent(isolate, iteratorInstance);
 
     iArgs.GetReturnValue().Set(iteratorInstance);
 }
