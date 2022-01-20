@@ -91,9 +91,10 @@ bool JavascriptFunction::operator==(JavascriptFunction^ func1, JavascriptFunctio
 
     JavascriptScope scope(context);
     auto isolate = context->GetCurrentIsolate();
+    HandleScope handleScope(isolate);
 
-    Local<Function> jsFuncPtr1 = func1->mFuncHandle->Get(isolate);
-    Local<Function> jsFuncPtr2 = func2->mFuncHandle->Get(isolate);
+    auto jsFuncPtr1 = func1->mFuncHandle->Get(isolate);
+    auto jsFuncPtr2 = func2->mFuncHandle->Get(isolate);
 
     return jsFuncPtr1->Equals(isolate->GetCurrentContext(), jsFuncPtr2).ToChecked();
 }
