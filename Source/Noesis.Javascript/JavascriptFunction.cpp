@@ -74,12 +74,11 @@ System::Object^ JavascriptFunction::Call(... cli::array<System::Object^>^ args)
 
 bool JavascriptFunction::operator==(JavascriptFunction^ func1, JavascriptFunction^ func2)
 {
-    bool func1_null = ReferenceEquals(func1, nullptr),
-        func2_null = ReferenceEquals(func2, nullptr);
-    if (func1_null != func2_null)
-        return false;
-    if (func1_null && func2_null)
+    if (ReferenceEquals(func1, func2))
         return true;
+    if (ReferenceEquals(func1, nullptr) != ReferenceEquals(func2, nullptr))
+        return false;
+
     if (!func1->IsAlive())
         throw gcnew JavascriptException(L"'func1's owning JavascriptContext has been disposed");
     if (!func2->IsAlive())
