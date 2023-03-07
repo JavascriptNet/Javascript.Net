@@ -26,7 +26,8 @@
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
-#include <atomic>
+#include <mutex>
+#include <shared_mutex>
 #include <msclr\lock.h>
 #include <vcclr.h>
 #include <msclr\marshal.h>
@@ -85,19 +86,26 @@ namespace Noesis { namespace Javascript {
 			strcpy_s(strrchr(icudtl_dat_path, '\\'), 12, "\\icudtl.dat");
 	}
 
-    std::atomic_flag initalized = ATOMIC_FLAG_INIT;
+    bool initialized = false;
+    std::shared_mutex mutex;
+
 	// This code didn't work in managed code, probably due to too-clever smart pointers.
 	void UnmanagedInitialisation()
 	{
-        if (!initalized.test_and_set(std::memory_order_acquire)) {
-            // Get location of DLL so that v8 can use it to find its .dat files.
-            char dll_path[MAX_PATH], icudtl_dat_path[MAX_PATH];
-            GetPathsForInitialisation(dll_path, icudtl_dat_path);
-            v8::V8::InitializeICUDefaultLocation(dll_path, icudtl_dat_path);
-            v8::Platform* platform = v8::platform::NewDefaultPlatform().release();
-            v8::V8::InitializePlatform(platform);
-            v8::V8::Initialize();
-        }
+        if (initialized)
+            return;
+        std::unique_lock<std::shared_mutex> lock(mutex);
+        if (initialized)
+            return;
+
+        // Get location of DLL so that v8 can use it to find its .dat files.
+        char dll_path[MAX_PATH], icudtl_dat_path[MAX_PATH];
+        GetPathsForInitialisation(dll_path, icudtl_dat_path);
+        v8::V8::InitializeICUDefaultLocation(dll_path, icudtl_dat_path);
+        v8::Platform* platform = v8::platform::NewDefaultPlatform().release();
+        v8::V8::InitializePlatform(platform);
+        v8::V8::Initialize();
+        initialized = true;
 	}
 #pragma managed(pop)
 
@@ -112,7 +120,6 @@ v8::Local<v8::String> ToV8String(Isolate* isolate, System::String^ value) {
 
 static JavascriptContext::JavascriptContext()
 {
-    System::Threading::Mutex mutex(true, "FA12B681-E968-4D3A-833D-43B25865BEF1");
     UnmanagedInitialisation();
 }
 
