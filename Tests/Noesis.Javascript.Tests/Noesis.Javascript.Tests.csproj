@@ -35,6 +35,6 @@
   </ItemGroup>
 
   <Target Name="PostBuild" AfterTargets="PostBuildEvent">
-    <Exec Command="copy $(ProjectDir)..\..\$(V8Platform)\$(Configuration)\v8.dll $(ProjectDir)$(OutDir)&#xD;&#xA;copy $(ProjectDir)..\..\$(V8Platform)\$(Configuration)\v8_libbase.dll $(ProjectDir)$(OutDir)&#xD;&#xA;copy $(ProjectDir)..\..\$(V8Platform)\$(Configuration)\v8_libplatform.dll $(ProjectDir)$(OutDir)&#xD;&#xA;copy $(ProjectDir)..\..\$(V8Platform)\$(Configuration)\zlib.dll $(ProjectDir)$(OutDir)&#xD;&#xA;copy $(ProjectDir)..\..\$(V8Platform)\$(Configuration)\icu*.* $(ProjectDir)$(OutDir)" />
+    <Exec Command="copy $(ProjectDir)..\..\$(V8Platform)\$(Configuration)\v8.dll $(ProjectDir)$(OutDir)&#xD;&#xA;copy $(ProjectDir)..\..\$(V8Platform)\$(Configuration)\v8_libbase.dll $(ProjectDir)$(OutDir)&#xD;&#xA;copy $(ProjectDir)..\..\$(V8Platform)\$(Configuration)\v8_libplatform.dll $(ProjectDir)$(OutDir)&#xD;&#xA;copy $(ProjectDir)..\..\$(V8Platform)\$(Configuration)\third_party_*.dll $(ProjectDir)$(OutDir)&#xD;&#xA;copy $(ProjectDir)..\..\$(V8Platform)\$(Configuration)\icu*.* $(ProjectDir)$(OutDir)" />
   </Target>
 </Project>

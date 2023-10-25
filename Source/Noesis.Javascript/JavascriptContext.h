@@ -175,8 +175,6 @@ public ref class JavascriptContext: public System::IDisposable
 	// Constructor
 	////////////////////////////////////////////////////////////
 public:
-    static JavascriptContext();
-
 	JavascriptContext();
 
 	~JavascriptContext();
@@ -201,6 +199,12 @@ public:
 	virtual System::Object^ Run(System::String^ iScript, System::String^ iScriptResourceName);
 		
 	property static System::String^ V8Version { System::String^ get(); }
+	
+    /// <summary>
+    /// Returns true if the unmanaged initialization of V8 has already occurred in this process. This property helps with not calling certain
+    /// operations (e.g. setting engine flags by using SetFlags) that only work before the V8 platform is initialized in this process.
+    /// </summary>
+    property static bool IsV8Initialized { bool get(); }
 
     System::Collections::Generic::List<JavascriptStackFrame^>^ GetCurrentStack(int maxDepth);
 
