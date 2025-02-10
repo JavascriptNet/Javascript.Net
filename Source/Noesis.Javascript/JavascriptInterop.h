@@ -119,13 +119,13 @@ private:
 
 	static System::Object^ ConvertArrayFromV8(Local<Value> iValue, ConvertedObjects &already_converted);
 
-	static void Getter(Local<Name> iName, const PropertyCallbackInfo<Value>& iInfo);
+	static Intercepted Getter(Local<Name> iName, const PropertyCallbackInfo<Value>& iInfo);
 
-	static void Setter(Local<String> iName, Local<Value> iValue, const PropertyCallbackInfo<Value>& iInfo);
+	static Intercepted Setter(Local<String> iName, Local<Value> iValue, const PropertyCallbackInfo<Value>& iInfo);
 
-	static void IndexGetter(uint32_t iIndex, const PropertyCallbackInfo<Value>& iInfo);
+	static Intercepted IndexGetter(uint32_t iIndex, const PropertyCallbackInfo<Value>& iInfo);
 
-	static void IndexSetter(uint32_t iIndex, Local<Value> iValue, const PropertyCallbackInfo<Value>& iInfo);
+	static Intercepted IndexSetter(uint32_t iIndex, Local<Value> iValue, const PropertyCallbackInfo<Value>& iInfo);
 };
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////

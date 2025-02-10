@@ -411,7 +411,7 @@ void JavascriptExternal::IteratorCallback(const v8::FunctionCallbackInfo<Value>&
     iterator->Set(String::NewFromUtf8(isolate, "next").ToLocalChecked(), functionTemplate);
     auto iteratorInstance = iterator->NewInstance(isolate->GetCurrentContext()).ToLocalChecked();
 
-    auto internalField = Local<External>::Cast(iArgs.Holder()->GetInternalField(0));
+    auto internalField = iArgs.This()->GetInternalField(0).As<Value>().As<External>();
     auto external = (JavascriptExternal*)internalField->Value();
     auto enumerable = (System::Collections::IEnumerable^)external->GetObject();
     auto enumerator = enumerable->GetEnumerator();
@@ -427,7 +427,7 @@ void JavascriptExternal::IteratorNextCallback(const v8::FunctionCallbackInfo<Val
 {
     auto isolate = iArgs.GetIsolate();
 
-    auto internalField = Local<External>::Cast(iArgs.Holder()->GetInternalField(0));
+    auto internalField = iArgs.This()->GetInternalField(0).As<Value>().As<External>();
     auto external = (JavascriptExternal*)internalField->Value();
     auto enumerator = (System::Collections::IEnumerator^) external->GetObject();
 

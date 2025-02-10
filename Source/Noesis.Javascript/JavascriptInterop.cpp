@@ -53,10 +53,10 @@ void JavascriptInterop::InitObjectWrapperTemplate(Local<ObjectTemplate> &object)
 {
     object->SetInternalFieldCount(1);
 
-    NamedPropertyHandlerConfiguration namedPropertyConfig((GenericNamedPropertyGetterCallback) Getter, (GenericNamedPropertySetterCallback) Setter, nullptr, nullptr, nullptr);
+    NamedPropertyHandlerConfiguration namedPropertyConfig((NamedPropertyGetterCallback) Getter, (NamedPropertySetterCallback) Setter, nullptr, nullptr, nullptr);
     object->SetHandler(namedPropertyConfig);
 
-    IndexedPropertyHandlerConfiguration indexedPropertyConfig((IndexedPropertyGetterCallback) IndexGetter, (IndexedPropertySetterCallback) IndexSetter);
+    IndexedPropertyHandlerConfiguration indexedPropertyConfig((IndexedPropertyGetterCallbackV2) IndexGetter, (IndexedPropertySetterCallbackV2) IndexSetter);
     object->SetHandler(indexedPropertyConfig);
 }
 
@@ -353,7 +353,7 @@ JavascriptInterop::UnwrapObject(Local<Value> iValue)
 
 		if (object->InternalFieldCount() > 0)
 		{
-			Local<External> external = Local<External>::Cast(object->GetInternalField(0));
+			Local<External> external = object->GetInternalField(0).As<Value>().As<External>();
 			JavascriptExternal* wrapper = (JavascriptExternal*) external->Value();
 			return wrapper->GetObject();
 		}
@@ -693,11 +693,11 @@ JavascriptInterop::IsSystemObject(Local<Value> iValue)
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
-void
+Intercepted
 JavascriptInterop::Getter(Local<Name> iName, const PropertyCallbackInfo<Value>& iInfo)
 {
     Isolate* isolate = iInfo.GetIsolate();
-	Local<External> external = Local<External>::Cast(iInfo.Holder()->GetInternalField(0));
+	Local<External> external = iInfo.HolderV2()->GetInternalField(0).As<Value>().As<External>();
 	JavascriptExternal* wrapper = (JavascriptExternal*) external->Value();
 	Local<Function> function;
 	Local<Value> value;
@@ -710,13 +710,13 @@ JavascriptInterop::Getter(Local<Name> iName, const PropertyCallbackInfo<Value>& 
         function = wrapper->GetMethod(name);
         if (!function.IsEmpty()) {
             iInfo.GetReturnValue().Set(function);  // good value or exception
-            return;
+            return Intercepted::kYes;
         }
 
         // As for GetMethod().
         if (wrapper->GetProperty(name, value)) {
             iInfo.GetReturnValue().Set(value);  // good value or exception
-            return;
+            return Intercepted::kYes;
         }
 
         // map toString with ToString
@@ -725,7 +725,7 @@ JavascriptInterop::Getter(Local<Name> iName, const PropertyCallbackInfo<Value>& 
             function = wrapper->GetMethod(L"ToString");
             if (!function.IsEmpty()) {
                 iInfo.GetReturnValue().Set(function);
-                return;
+                return Intercepted::kYes;
             }
         }
     }
@@ -734,73 +734,70 @@ JavascriptInterop::Getter(Local<Name> iName, const PropertyCallbackInfo<Value>& 
         // iterator symbol
         if (iName == Symbol::GetIterator(isolate))
         {
-            if (System::Collections::IEnumerable::typeid->IsAssignableFrom(wrapper->GetObject()->GetType()))
-                iInfo.GetReturnValue().Set(wrapper->GetIterator());
-            else
-                iInfo.GetReturnValue().Set(Undefined(isolate));
-            return;
+            if (!System::Collections::IEnumerable::typeid->IsAssignableFrom(wrapper->GetObject()->GetType()))
+                return Intercepted::kNo;
+            iInfo.GetReturnValue().Set(wrapper->GetIterator());
+            return Intercepted::kYes;
         }
     }
 
 	// member not found
 	if ((wrapper->GetOptions() & SetParameterOptions::RejectUnknownProperties) == SetParameterOptions::RejectUnknownProperties) {
 		iInfo.GetReturnValue().Set(isolate->ThrowException(JavascriptInterop::ConvertToV8("Unknown member: " + gcnew System::String((wchar_t*) *String::Value(JavascriptContext::GetCurrentIsolate(), iName)))));
-		return;
+        return Intercepted::kYes;
 	}
-	iInfo.GetReturnValue().Set(Local<Value>());
+    return Intercepted::kNo;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
-void
+Intercepted
 JavascriptInterop::Setter(Local<String> iName, Local<Value> iValue, const PropertyCallbackInfo<Value>& iInfo)
 {
 	wstring name = (wchar_t*) *String::Value(JavascriptContext::GetCurrentIsolate(), iName);
-	Local<External> external = Local<External>::Cast(iInfo.Holder()->GetInternalField(0));
+	Local<External> external = iInfo.HolderV2()->GetInternalField(0).As<Value>().As<External>();
 	JavascriptExternal* wrapper = (JavascriptExternal*) external->Value();
 
-	// set property
-	iInfo.GetReturnValue().Set(wrapper->SetProperty(name, iValue));
+    auto value = wrapper->SetProperty(name, iValue);
+    if (!value.IsEmpty())
+        return Intercepted::kYes;
+    // member not found
+    return Intercepted::kNo;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
-void
+////////////////////////////////////////////////////////////////////////////////////////////////////
+Intercepted
 JavascriptInterop::IndexGetter(uint32_t iIndex, const PropertyCallbackInfo<Value> &iInfo)
 {
-	Local<External> external = Local<External>::Cast(iInfo.Holder()->GetInternalField(0));
+	Local<External> external = iInfo.HolderV2()->GetInternalField(0).As<Value>().As<External>();
 	JavascriptExternal* wrapper = (JavascriptExternal*) external->Value();
 	Local<Value> value;
 
-	// get property
 	value = wrapper->GetProperty(iIndex);
 	if (!value.IsEmpty()) {
 		iInfo.GetReturnValue().Set(value);
-		return;
+        return Intercepted::kYes;
 	}
-
-	// member not found
-	iInfo.GetReturnValue().Set(Local<Value>());
+    // member not found
+    return Intercepted::kNo;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
-void
+Intercepted
 JavascriptInterop::IndexSetter(uint32_t iIndex, Local<Value> iValue, const PropertyCallbackInfo<Value> &iInfo)
 {
-	Local<External> external = Local<External>::Cast(iInfo.Holder()->GetInternalField(0));
+	Local<External> external = iInfo.HolderV2()->GetInternalField(0).As<Value>().As<External>();
 	JavascriptExternal* wrapper = (JavascriptExternal*) external->Value();
 	Local<Value> value;
 
-	// get property
 	value = wrapper->SetProperty(iIndex, iValue);
-	if (!value.IsEmpty()) {
-		iInfo.GetReturnValue().Set(value);
-		return;
-	}
-
-	// member not found
-	iInfo.GetReturnValue().Set(Local<Value>());
+    if (!value.IsEmpty())
+        return Intercepted::kYes;
+    // member not found
+    return Intercepted::kNo;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -820,21 +817,21 @@ int CountMaximumNumberOfParameters(cli::array<System::Reflection::MemberInfo^>^ 
 // Invoker: V8 callback function that handles invocation of .NET methods from JavaScript
 //
 // When .NET methods are called from certain JavaScript contexts (like 'with' statements or
-// Proxy handlers), V8's iArgs.Holder() points to the wrong object and cannot provide the
+// Proxy handlers), V8's iArgs.This() points to the wrong object and cannot provide the
 // JavascriptExternal wrapper needed to access the actual .NET object.
 //
 // This function uses a two-tier approach to find the JavascriptExternal wrapper:
 //
-// 1. PRIMARY PATH: Extract wrapper from iArgs.Holder()->GetInternalField(0)
-//    - Used when Holder() is the actual wrapped .NET object
+// 1. PRIMARY PATH: Extract wrapper from iArgs.This()->GetInternalField(0)
+//    - Used when This() is the actual wrapped .NET object
 //    - This is the common case: obj.method()
 //    - Fast path with direct access to the correct wrapper
 //
 // 2. FALLBACK PATH: Extract wrapper from function data array
-//    - Used when Holder()->InternalFieldCount() == 0
+//    - Used when This()->InternalFieldCount() == 0
 //    - Happens when calling context obscures the original object:
-//      * with(new Proxy({}, {})) { method() } - Holder() points to Proxy
-//      * method.call(someOtherContext) - Holder() may point to non-.NET object
+//      * with(new Proxy({}, {})) { method() } - This() points to Proxy
+//      * method.call(someOtherContext) - This() may point to non-.NET object
 //    - The wrapper was embedded at function creation time (see JavascriptExternal::GetMethod)
 //    - Ensures methods work even when V8's execution context separates function from object
 //
@@ -848,7 +845,7 @@ JavascriptInterop::Invoker(const v8::FunctionCallbackInfo<Value>& iArgs)
 	// Extract method name and fallback wrapper from function data.
     // Function data is an array created in JavascriptExternal::GetMethod():
     //   [0] = method name (String)
-    //   [1] = External pointer to JavascriptExternal wrapper (fallback for when Holder() fails)
+    //   [1] = External pointer to JavascriptExternal wrapper (fallback for when This() fails)
 	Local<Value> data = iArgs.Data();
 	if (!data->IsArray()) {
 		isolate->ThrowException(JavascriptInterop::ConvertToV8(
@@ -878,41 +875,40 @@ JavascriptInterop::Invoker(const v8::FunctionCallbackInfo<Value>& iArgs)
 	}
 	JavascriptExternal* fallbackExternal = (JavascriptExternal*) Local<External>::Cast(externalValue)->Value();
     
-    // PRIMARY PATH: Try to get wrapper from Holder() first.
+    // PRIMARY PATH: Try to get wrapper from This() first.
     // This ensures each object uses its own wrapper when possible, which is important for:
     // - Calling methods on different instances of the same type
     // - Ensuring the method operates on the correct .NET object
-    // Holder() is V8's concept of "the object that owns this property/method"
     JavascriptExternal* external = nullptr;
     
-    if (iArgs.Holder()->IsObject() && iArgs.Holder()->InternalFieldCount() > 0)
+    if (iArgs.This()->IsObject() && iArgs.This()->InternalFieldCount() > 0)
     {
-        // PRIMARY PATH SUCCESS: Holder() has internal fields
+        // PRIMARY PATH SUCCESS: This() has internal fields
         // This is a wrapped .NET object, so we can extract the JavascriptExternal wrapper directly
-        Local<Object> targetObject = iArgs.Holder();
+        Local<Object> targetObject = iArgs.This();
         if (targetObject.IsEmpty())
         {
             isolate->ThrowException(JavascriptInterop::ConvertToV8(
-                System::String::Format("Invalid Holder() object for method '{0}'", memberName)
+                System::String::Format("Invalid This() object for method '{0}'", memberName)
             ));
             return;
         }
 
-        Local<Value> fieldValue = targetObject->GetInternalField(0);
+        Local<Value> fieldValue = targetObject->GetInternalField(0).As<Value>();
         if (!fieldValue->IsExternal()) {
             isolate->ThrowException(JavascriptInterop::ConvertToV8(
-                System::String::Format("Invalid internal field in Holder() for method '{0}'", memberName)
+                System::String::Format("Invalid internal field in This() for method '{0}'", memberName)
             ));
             return;
         }
         Local<External> internalField = Local<External>::Cast(fieldValue);
         external = (JavascriptExternal*)internalField->Value();
     } else {
-       // FALLBACK PATH: Holder()->InternalFieldCount() == 0
-       // This happens when the method is called from a context where V8's Holder() doesn't
+       // FALLBACK PATH: This()->InternalFieldCount() == 0
+       // This happens when the method is called from a context where V8's This() doesn't
        // point to the original .NET object wrapper. Common scenarios:
-       //   - with(new Proxy({}, {})) { method() }  - Holder() is the Proxy
-       //   - method.call(null) or method.apply(null) - Holder() is null/non-.NET object
+       //   - with(new Proxy({}, {})) { method() }  - This() is the Proxy
+       //   - method.call(null) or method.apply(null) - This() is null/non-.NET object
        // In these cases, we use the wrapper that was embedded in function data when the
        // method was first created (see JavascriptExternal::GetMethod)
        if (fallbackExternal == nullptr) {
@@ -928,8 +924,8 @@ JavascriptInterop::Invoker(const v8::FunctionCallbackInfo<Value>& iArgs)
     }
 
     // At this point, 'external' contains the JavascriptExternal wrapper, obtained from either:
-    // 1. Holder()->GetInternalField(0) if Holder() was the wrapped .NET object (PRIMARY)
-    // 2. Function data array if Holder() didn't have internal fields (FALLBACK)
+    // 1. This()->GetInternalField(0) if This() was the wrapped .NET object (PRIMARY)
+    // 2. Function data array if This() didn't have internal fields (FALLBACK)
     // Now we can safely access the underlying .NET object and invoke the method
     System::Object^ self;
     try
