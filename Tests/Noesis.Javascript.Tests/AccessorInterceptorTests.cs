@@ -215,7 +215,7 @@ test.prop.complex = complex;");
             _context.SetParameter("myObject", new ClassWithProperty(), SetParameterOptions.RejectUnknownProperties);
 
             Action action = () => _context.Run("myObject.UnknownProperty = 77");
-            action.ShouldThrowExactly<JavascriptException>();
+            action.Should().ThrowExactly<JavascriptException>();
         }
         
         [TestMethod]
@@ -224,7 +224,7 @@ test.prop.complex = complex;");
             _context.SetParameter("myObject", new ClassWithProperty(), SetParameterOptions.RejectUnknownProperties);
 
             Action action = () => _context.Run("myObject.UnknownProperty");
-            action.ShouldThrowExactly<JavascriptException>().Which.Message.Should().StartWith("Unknown member:");
+            action.Should().ThrowExactly<JavascriptException>().Which.Message.Should().StartWith("Unknown member:");
         }
 
         class ClassForTypeCoercion
@@ -481,7 +481,7 @@ result;
             var enumerable = new ClassWithEnumerableProperty();
             _context.SetParameter("enumerable", enumerable);
             var result = _context.Run(@"[...enumerable.Items];");
-            result.ShouldBeEquivalentTo(new int[] { 1, 2, 3 });
+            result.Should().BeEquivalentTo(new int[] { 1, 2, 3 });
         }
 
         [TestMethod]
@@ -490,7 +490,7 @@ result;
             var enumerable = new ClassWithEnumerableProperty();
             _context.SetParameter("enumerable", enumerable);
             var result = _context.Run(@"[...enumerable.ComplexItems]");
-            result.ShouldBeEquivalentTo(new ClassWithDecimalProperty[] 
+            result.Should().BeEquivalentTo(new ClassWithDecimalProperty[] 
             {
                 new ClassWithDecimalProperty { D = 1 },
                 new ClassWithDecimalProperty { D = 2 },
@@ -516,7 +516,7 @@ array.map(x => x.D).join(', ');
             var enumerable = new ClassWithEnumerableProperty();
             _context.SetParameter("enumerable", enumerable);
             Action action = () => _context.Run(@"enumerable[Symbol.iterator]()");
-            action.ShouldThrow<JavascriptException>("TypeError: enumerable[Symbol.iterator] is not a function");
+            action.Should().Throw<JavascriptException>("TypeError: enumerable[Symbol.iterator] is not a function");
         }
     }
 }

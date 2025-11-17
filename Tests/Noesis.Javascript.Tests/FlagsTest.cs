@@ -16,7 +16,7 @@ namespace Noesis.Javascript.Tests
                 using (var context = new JavascriptContext())
                     context.Run("globalVariable = 1;");
             };
-            action.ShouldThrowExactly<JavascriptException>().WithMessage("ReferenceError: globalVariable is not defined");
+            action.Should().ThrowExactly<JavascriptException>().WithMessage("ReferenceError: globalVariable is not defined");
             JavascriptContext.SetFlags("--nouse_strict");
         }
     }

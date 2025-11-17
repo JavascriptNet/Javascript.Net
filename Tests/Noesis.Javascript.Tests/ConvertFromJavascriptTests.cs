@@ -162,7 +162,7 @@ namespace Noesis.Javascript.Tests
             _context.Run("var myRegExp = /abc/gim");
 
             var regex = _context.GetParameter("myRegExp");
-            regex.Should().BeOfType<Regex>().Which.ShouldBeEquivalentTo(new Regex("abc", RegexOptions.ECMAScript | RegexOptions.IgnoreCase | RegexOptions.Multiline));
+            regex.Should().BeOfType<Regex>().Which.Should().BeEquivalentTo(new Regex("abc", RegexOptions.ECMAScript | RegexOptions.IgnoreCase | RegexOptions.Multiline));
         }
 
         [TestMethod]
@@ -171,7 +171,7 @@ namespace Noesis.Javascript.Tests
             _context.Run("var myRegExp = new RegExp('abc', 'gim')");
 
             var regex = _context.GetParameter("myRegExp");
-            regex.Should().BeOfType<Regex>().Which.ShouldBeEquivalentTo(new Regex("abc", RegexOptions.ECMAScript | RegexOptions.IgnoreCase | RegexOptions.Multiline));
+            regex.Should().BeOfType<Regex>().Which.Should().BeEquivalentTo(new Regex("abc", RegexOptions.ECMAScript | RegexOptions.IgnoreCase | RegexOptions.Multiline));
         }
 
         [TestMethod]
@@ -280,7 +280,7 @@ namespace Noesis.Javascript.Tests
             var obj = new TypedPropertiesClass();
             _context.SetParameter("obj", obj);
             Action action = () => _context.Run("obj.methodWithEnumParameter('dog')");
-            action.ShouldThrow<JavascriptException>("'dog' is not a member of the required enum")
+            action.Should().Throw<JavascriptException>("'dog' is not a member of the required enum")
                   .Which.Message.Should().Contain("Argument mismatch");
         }
 

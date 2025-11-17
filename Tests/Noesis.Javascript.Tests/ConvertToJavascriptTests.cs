@@ -156,7 +156,7 @@ namespace Noesis.Javascript.Tests
         public void SetRegexWithoutECMAScriptFlagThrowsException()
         {
             Action action = () => _context.SetParameter("val", new Regex("abc"));
-            action.ShouldThrow<Exception>().WithMessage("Only regular expressions with the ECMAScript option can be converted.");
+            action.Should().Throw<Exception>().WithMessage("Only regular expressions with the ECMAScript option can be converted.");
         }
 
         [TestMethod]

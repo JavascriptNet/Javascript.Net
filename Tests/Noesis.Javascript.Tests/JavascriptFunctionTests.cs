@@ -72,7 +72,7 @@ namespace Noesis.Javascript.Tests
 
             var result = _context.Run("collection.Filter(x => x % 2 === 0)") as IEnumerable<int>;
             result.Should().NotBeNull();
-            result.Should().BeEquivalentTo(2, 4);
+            result.Should().BeEquivalentTo(new[] { 2, 4 });
         }
 
         [TestMethod]
@@ -81,7 +81,7 @@ namespace Noesis.Javascript.Tests
             var function = _context.Run("() => { throw new Error('test'); }") as JavascriptFunction;
             function.Should().NotBeNull();
             Action action = () => function.Call();
-            action.ShouldThrowExactly<JavascriptException>().WithMessage("Error: test");
+            action.Should().ThrowExactly<JavascriptException>().WithMessage("Error: test");
         }
 
         [TestMethod]
@@ -129,7 +129,7 @@ function test() {
                 function = context.Run("() => { throw new Error('test'); }") as JavascriptFunction;
             }
             Action action = () => function.Call();
-            action.ShouldThrowExactly<JavascriptException>().WithMessage("This function's owning JavascriptContext has been disposed");
+            action.Should().ThrowExactly<JavascriptException>().WithMessage("This function's owning JavascriptContext has been disposed");
         }
 
         [TestMethod]
