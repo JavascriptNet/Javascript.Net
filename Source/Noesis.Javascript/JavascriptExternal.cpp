@@ -50,7 +50,9 @@ using namespace std;
 
 JavascriptExternal::JavascriptExternal(System::Object^ iObject)
 {
-	mObjectHandle = System::Runtime::InteropServices::GCHandle::Alloc(iObject);
+	// .NET 8: Store GCHandle as IntPtr for safe native storage
+	System::Runtime::InteropServices::GCHandle handle = System::Runtime::InteropServices::GCHandle::Alloc(iObject, System::Runtime::InteropServices::GCHandleType::Normal);
+	mObjectHandle = System::Runtime::InteropServices::GCHandle::ToIntPtr(handle);
 	mOptions = SetParameterOptions::None;
 }
 
@@ -58,7 +60,12 @@ JavascriptExternal::JavascriptExternal(System::Object^ iObject)
 
 JavascriptExternal::~JavascriptExternal()
 {
-    mObjectHandle.Free();
+    // .NET 8: Convert IntPtr back to GCHandle for freeing
+    if (mObjectHandle != System::IntPtr::Zero) {
+        System::Runtime::InteropServices::GCHandle handle = System::Runtime::InteropServices::GCHandle::FromIntPtr(mObjectHandle);
+        handle.Free();
+        mObjectHandle = System::IntPtr::Zero;
+    }
     if (!mPersistent.IsEmpty()) {
         mPersistent.ClearWeak<void>();
         mPersistent.Reset();
@@ -72,9 +79,8 @@ void GCCallback(const WeakCallbackInfo<JavascriptExternal>& data)
 {
     auto context = JavascriptContext::GetCurrent();
     auto external = data.GetParameter();
-    auto object = external->GetObject();
-    if (context->mExternals->ContainsKey(object))
-        context->mExternals->Remove(object);
+    // .NET 8: Do NOT access GetObject() here - the GCHandle may already be freed
+    // The delete will clean up the handle properly in the destructor
     delete external;
 }
 
@@ -111,7 +117,13 @@ JavascriptExternal::ToLocal(Isolate* isolate)
 System::Object^
 JavascriptExternal::GetObject()
 {
-	return mObjectHandle.Target;
+	// .NET 8: Convert IntPtr back to GCHandle to access Target
+	if (mObjectHandle == System::IntPtr::Zero)
+		return nullptr;
+	System::Runtime::InteropServices::GCHandle handle = System::Runtime::InteropServices::GCHandle::FromIntPtr(mObjectHandle);
+	if (!handle.IsAllocated)
+		return nullptr;
+	return handle.Target;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -122,7 +134,7 @@ JavascriptExternal::GetMethod(wstring iName)
     auto context = JavascriptContext::GetCurrent();
     auto isolate = JavascriptContext::GetCurrentIsolate();
 
-    auto type = mObjectHandle.Target->GetType();
+    auto type = GetObject()->GetType();
     auto memberName = gcnew System::String(iName.c_str());
     auto uniqueMethodName = type->AssemblyQualifiedName + L"." + memberName;
 
@@ -158,7 +170,7 @@ JavascriptExternal::GetMethod(Local<String> iName)
 bool
 JavascriptExternal::GetProperty(wstring iName, Local<Value> &result)
 {
-	System::Object^ self = mObjectHandle.Target;
+	System::Object^ self = GetObject();
 	System::Type^ type = self->GetType();
 	PropertyInfo^ propertyInfo = type->GetProperty(gcnew System::String(iName.c_str()));
 
@@ -209,7 +221,7 @@ JavascriptExternal::GetProperty(wstring iName, Local<Value> &result)
 Local<Value>
 JavascriptExternal::GetProperty(uint32_t iIndex)
 {
-	System::Object^ self = mObjectHandle.Target;
+	System::Object^ self = GetObject();
 	System::Type^ type = self->GetType();
 	cli::array<PropertyInfo^>^ propertyInfo = type->GetProperties();
 	int index = iIndex;
@@ -254,7 +266,7 @@ JavascriptExternal::GetProperty(uint32_t iIndex)
 Local<Value>
 JavascriptExternal::SetProperty(wstring iName, Local<Value> iValue)
 {
-	System::Object^ self = mObjectHandle.Target;
+	System::Object^ self = GetObject();
 	System::Type^ type = self->GetType();
 	PropertyInfo^ propertyInfo = type->GetProperty(gcnew System::String(iName.c_str()));
 
@@ -324,7 +336,7 @@ JavascriptExternal::SetProperty(wstring iName, Local<Value> iValue)
 Local<Value>
 JavascriptExternal::SetProperty(uint32_t iIndex, Local<Value> iValue)
 {
-	System::Object^ self = mObjectHandle.Target;
+	System::Object^ self = GetObject();
 	System::Type^ type = self->GetType();
 	cli::array<PropertyInfo^>^ propertyInfo = type->GetProperties();
 	int index = iIndex;
@@ -366,7 +378,7 @@ JavascriptExternal::SetProperty(uint32_t iIndex, Local<Value> iValue)
 Local<Function> JavascriptExternal::GetIterator()
 {
     auto context = JavascriptContext::GetCurrent();
-    auto type = mObjectHandle.Target->GetType();
+    auto type = GetObject()->GetType();
     auto uniqueMethodName = type->AssemblyQualifiedName + L".$$Iterator";
 
     auto isolate = JavascriptContext::GetCurrentIsolate();
