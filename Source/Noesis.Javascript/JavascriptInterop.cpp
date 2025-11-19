@@ -391,7 +391,7 @@ JavascriptInterop::ConvertObjectFromV8(Local<Object> iObject, ConvertedObjects &
  * and assumes incorrectly that Germany observed UTC+2 during the summer time.
  *
  * V8
- * new Date(1978, 5, 15) // "Thu Jun 15 1978 00:00:00 GMT+0100 (Mitteleuropäische Normalzeit)"
+ * new Date(1978, 5, 15) // "Thu Jun 15 1978 00:00:00 GMT+0100 (Mitteleuropï¿½ische Normalzeit)"
  *
  * C#
  * If we get the ticks since 1970-01-01 from V8 to construct a UTC DateTime object we get
@@ -414,13 +414,13 @@ double GetDateComponent(Isolate* isolate, Local<Date> date, const char* componen
 System::DateTime^ JavascriptInterop::ConvertDateFromV8(Local<Date> date)
 {
     auto isolate = JavascriptContext::GetCurrentIsolate();
-    auto year = GetDateComponent(isolate, date, "getFullYear");
-    auto month = GetDateComponent(isolate, date, "getMonth") + 1;
-    auto day = GetDateComponent(isolate, date, "getDate");
-    auto hour = GetDateComponent(isolate, date, "getHours");
-    auto minute = GetDateComponent(isolate, date, "getMinutes");
-    auto second = GetDateComponent(isolate, date, "getSeconds");
-    auto millisecond = GetDateComponent(isolate, date, "getMilliseconds");
+    int year = static_cast<int>(GetDateComponent(isolate, date, "getFullYear"));
+    int month = static_cast<int>(GetDateComponent(isolate, date, "getMonth") + 1);
+    int day = static_cast<int>(GetDateComponent(isolate, date, "getDate"));
+    int hour = static_cast<int>(GetDateComponent(isolate, date, "getHours"));
+    int minute = static_cast<int>(GetDateComponent(isolate, date, "getMinutes"));
+    int second = static_cast<int>(GetDateComponent(isolate, date, "getSeconds"));
+    int millisecond = static_cast<int>(GetDateComponent(isolate, date, "getMilliseconds"));
     return gcnew System::DateTime(year, month, day, hour, minute, second, millisecond, System::DateTimeKind::Local);
 }
 

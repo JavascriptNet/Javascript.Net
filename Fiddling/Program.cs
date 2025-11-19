@@ -68,7 +68,7 @@ namespace Fiddling
         internal Bozo(Array a) { this.a = a; }
         public object this[int i]
         {
-            get { throw new ApplicationException("bozo"); return a.GetValue(i); }
+            get { throw new ApplicationException("bozo"); }
             set { a.SetValue(value, i); }
         }
     }
