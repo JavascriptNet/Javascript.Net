@@ -48,7 +48,7 @@ namespace Fiddling
 					//	Console.WriteLine("Result is: `{0}`", result);
 					//}
                 } catch (Exception ex) {
-                    string s = (string)ex.Data["V8StackTrace"];
+                    var s = ex.Data["V8StackTrace"];
                     Console.WriteLine(s);
                 }
                 //Console.WriteLine(ints[1]);

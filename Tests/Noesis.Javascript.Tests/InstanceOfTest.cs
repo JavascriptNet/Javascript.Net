@@ -8,7 +8,7 @@ namespace Noesis.Javascript.Tests
     [TestClass]
     public class InstanceOfTest
     {
-        private JavascriptContext _context;
+        private JavascriptContext _context = null!;
 
         private class TestClass
         {

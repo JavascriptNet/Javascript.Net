@@ -9,7 +9,7 @@ namespace Noesis.Javascript.Tests
     [TestClass]
     public class AccessorInterceptorTests
     {
-        private JavascriptContext _context;
+        private JavascriptContext _context = null!;
 
         [TestInitialize]
         public void SetUp()
@@ -35,7 +35,7 @@ namespace Noesis.Javascript.Tests
         class ClassWithIndexer
         {
             public int Index { get; set; }
-            public string Value { get; set; }
+            public string? Value { get; set; }
 
             public string this[int iIndex]
             {
@@ -57,7 +57,7 @@ namespace Noesis.Javascript.Tests
 
         class ClassWithDictionary
         {
-            public DictionaryLike prop { get; set; }
+            public DictionaryLike prop { get; set; } = new();
         }
 
 
@@ -65,7 +65,7 @@ namespace Noesis.Javascript.Tests
 		{
 			public Dictionary<string, object> internalDict { get; set; }
 
-			public DictionaryLike(Dictionary<string, object> internalDict = null)
+			public DictionaryLike(Dictionary<string, object>? internalDict = null)
 			{
 				this.internalDict = internalDict ?? new Dictionary<string, object>();
 			}
@@ -142,7 +142,7 @@ test.prop.complex = complex;");
 
 		class ClassWithProperty
         {
-            public string MyProperty { get; set; }
+            public string? MyProperty { get; set; }
         }
 
         [TestMethod]

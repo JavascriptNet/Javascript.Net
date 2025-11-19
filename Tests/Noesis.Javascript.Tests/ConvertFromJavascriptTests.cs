@@ -4,13 +4,14 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 using FluentAssertions;
 using System.Text.RegularExpressions;
 using System.Numerics;
+using System.Diagnostics.CodeAnalysis;
 
 namespace Noesis.Javascript.Tests
 {
     [TestClass]
     public class ConvertFromJavascriptTests
     {
-        private JavascriptContext _context;
+        private JavascriptContext _context = null!;
 
         private class TypedPropertiesClass
         {

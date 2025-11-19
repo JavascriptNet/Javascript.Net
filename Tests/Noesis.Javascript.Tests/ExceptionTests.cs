@@ -10,7 +10,7 @@ namespace Noesis.Javascript.Tests
     [TestClass]
     public class ExceptionTests
     {
-        private JavascriptContext _context;
+        private JavascriptContext _context = null!;
 
         [TestInitialize]
         public void SetUp()
