@@ -50,17 +50,15 @@ using namespace std;
 
 JavascriptExternal::JavascriptExternal(System::Object^ iObject)
 {
-	// .NET 8: Store GCHandle as IntPtr for safe native storage
-	System::Runtime::InteropServices::GCHandle handle = System::Runtime::InteropServices::GCHandle::Alloc(iObject, System::Runtime::InteropServices::GCHandleType::Normal);
-	mObjectHandle = System::Runtime::InteropServices::GCHandle::ToIntPtr(handle);
-	mOptions = SetParameterOptions::None;
+    System::Runtime::InteropServices::GCHandle handle = System::Runtime::InteropServices::GCHandle::Alloc(iObject, System::Runtime::InteropServices::GCHandleType::Normal);
+    mObjectHandle = System::Runtime::InteropServices::GCHandle::ToIntPtr(handle);
+    mOptions = SetParameterOptions::None;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
 JavascriptExternal::~JavascriptExternal()
 {
-    // .NET 8: Convert IntPtr back to GCHandle for freeing
     if (mObjectHandle != System::IntPtr::Zero) {
         System::Runtime::InteropServices::GCHandle handle = System::Runtime::InteropServices::GCHandle::FromIntPtr(mObjectHandle);
         handle.Free();
@@ -79,8 +77,19 @@ void GCCallback(const WeakCallbackInfo<JavascriptExternal>& data)
 {
     auto context = JavascriptContext::GetCurrent();
     auto external = data.GetParameter();
-    // .NET 8: Do NOT access GetObject() here - the GCHandle may already be freed
-    // The delete will clean up the handle properly in the destructor
+    auto object = external->GetObject();
+
+    if (object != nullptr) {
+        if (context->mExternals->ContainsKey(object)) {
+            context->mExternals->Remove(object);
+        }
+        else {
+            std::printf("GCCallback: external object not found in context\n");
+        }
+    }
+    else {
+        std::printf("GCCallback: external object already null\n");
+    }
     delete external;
 }
 
@@ -117,13 +126,13 @@ JavascriptExternal::ToLocal(Isolate* isolate)
 System::Object^
 JavascriptExternal::GetObject()
 {
-	// .NET 8: Convert IntPtr back to GCHandle to access Target
-	if (mObjectHandle == System::IntPtr::Zero)
-		return nullptr;
-	System::Runtime::InteropServices::GCHandle handle = System::Runtime::InteropServices::GCHandle::FromIntPtr(mObjectHandle);
-	if (!handle.IsAllocated)
-		return nullptr;
-	return handle.Target;
+    // .NET 8: Convert IntPtr back to GCHandle to access Target
+    if (mObjectHandle == System::IntPtr::Zero)
+        return nullptr;
+    System::Runtime::InteropServices::GCHandle handle = System::Runtime::InteropServices::GCHandle::FromIntPtr(mObjectHandle);
+    if (!handle.IsAllocated)
+        return nullptr;
+    return handle.Target;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
