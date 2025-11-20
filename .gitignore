@@ -24,3 +24,10 @@ _ReSharper*/
 TestResult.xml
 .vs/
 /Source/Noesis.Javascript/packages
+
+# NuGet
+.nuget/
+packages/
+*.nupkg
+*.snupkg
+

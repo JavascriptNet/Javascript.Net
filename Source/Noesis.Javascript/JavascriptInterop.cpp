@@ -391,7 +391,7 @@ JavascriptInterop::ConvertObjectFromV8(Local<Object> iObject, ConvertedObjects &
  * and assumes incorrectly that Germany observed UTC+2 during the summer time.
  *
  * V8
- * new Date(1978, 5, 15) // "Thu Jun 15 1978 00:00:00 GMT+0100 (Mitteleurop�ische Normalzeit)"
+ * new Date(1978, 5, 15) // "Thu Jun 15 1978 00:00:00 GMT+0100 (Mitteleuropäische Normalzeit)"
  *
  * C#
  * If we get the ticks since 1970-01-01 from V8 to construct a UTC DateTime object we get
