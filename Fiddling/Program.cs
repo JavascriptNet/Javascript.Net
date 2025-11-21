@@ -79,6 +79,7 @@ namespace Fiddling
             GC.Collect();
             GC.WaitForPendingFinalizers();
             GC.Collect();
+            // breakpoint here - after dispose of the context (the garbage collection was only triggered to compare the object count in the memory dump)
         }
 
         static void FatalErrorHandler(string a, string b)
