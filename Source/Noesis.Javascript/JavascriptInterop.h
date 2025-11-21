@@ -41,6 +41,9 @@ namespace Noesis { namespace Javascript {
 using namespace v8;
 using namespace System::Collections::Generic;
 
+// Forward declaration
+ref class JavascriptFunction;
+
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 // Remembers which objects have been just converted, to avoid stack overflows when we are 
