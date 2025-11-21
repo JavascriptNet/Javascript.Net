@@ -66,11 +66,12 @@ JavascriptFunction::~JavascriptFunction()
 	if (mFuncHandle) 
 	{
 		auto context = GetContext();
-		if (context && !context->IsDisposed() && IsAlive() && !mFuncHandle->IsEmpty())
+		if (context && !context->IsDisposed() && !mFuncHandle->IsEmpty())
 		{
 			JavascriptScope scope(context);
-			
-			int identityHash = mFuncHandle->Get(context->GetCurrentIsolate())->GetIdentityHash();
+            auto isolate = context->GetCurrentIsolate();
+            HandleScope handleScope(isolate);
+			int identityHash = mFuncHandle->Get(isolate)->GetIdentityHash();
 			
 			if (context->mFunctions->ContainsKey(identityHash))
 			{
