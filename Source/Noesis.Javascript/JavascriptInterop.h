@@ -88,6 +88,8 @@ public:
 private:
 	static System::Object^ ConvertFromV8(Local<Value> iValue, ConvertedObjects &already_converted);
 
+	static JavascriptFunction^ ConvertFunctionFromV8(Local<Value> iValue);
+
 	static System::Object^ ConvertObjectFromV8(Local<Object> iObject, ConvertedObjects &already_converted);
 
 	static System::DateTime^ ConvertDateFromV8(Local<Date> iValue);

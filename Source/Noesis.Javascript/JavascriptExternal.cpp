@@ -83,12 +83,6 @@ void GCCallback(const WeakCallbackInfo<JavascriptExternal>& data)
         if (context->mExternals->ContainsKey(object)) {
             context->mExternals->Remove(object);
         }
-        else {
-            std::printf("GCCallback: external object not found in context\n");
-        }
-    }
-    else {
-        std::printf("GCCallback: external object already null\n");
     }
     delete external;
 }

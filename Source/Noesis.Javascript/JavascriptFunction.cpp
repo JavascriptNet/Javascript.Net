@@ -56,6 +56,9 @@ JavascriptFunction::JavascriptFunction(v8::Local<v8::Object> iFunction, Javascri
 	auto func = Local<Function>::Cast(iFunction);
 	
 	mFuncHandle = new Persistent<Function>(isolate, func);
+	// SetWeak allows V8 to garbage collect the JavaScript function when it's no longer referenced in JS.
+	// The callback notifies us so we can clean up the managed wrapper and remove it from the cache.
+	// Without this, the V8 function would be kept alive forever, causing a memory leak.
 	mFuncHandle->SetWeak(mFuncHandle, JavascriptFunctionGCCallback, WeakCallbackType::kParameter);
 	
     mContextHandle = gcnew System::WeakReference(context);

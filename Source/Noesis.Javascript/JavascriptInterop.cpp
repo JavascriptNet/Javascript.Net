@@ -106,6 +106,40 @@ ConvertedObjects::GetConverted(v8::Local<v8::Object> o)
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
+JavascriptFunction^
+JavascriptInterop::ConvertFunctionFromV8(Local<Value> iValue)
+{
+	auto context = JavascriptContext::GetCurrent();
+	auto func = Local<Function>::Cast(iValue);
+	int identityHash = func->GetIdentityHash();
+	
+	// Check if we already have a wrapper for this function
+	if (context->mFunctions->ContainsKey(identityHash))
+	{
+		auto wrapped = context->mFunctions[identityHash];
+		auto wrapper = wrapped.Pointer;
+		if (wrapper && wrapper->managedHandle.IsAllocated)
+		{
+			auto target = wrapper->managedHandle.Target;
+			if (target != nullptr)
+				return safe_cast<JavascriptFunction^>(target);  // Reuse existing wrapper
+		}
+		// Stale entry (GC collected), remove it
+		context->mFunctions->Remove(identityHash);
+	}
+	
+	// Create new wrapper and add to cache
+	auto jsFunc = gcnew JavascriptFunction(
+		iValue->ToObject(context->GetCurrentIsolate()->GetCurrentContext()).ToLocalChecked(), 
+		context
+	);
+	auto wrapper = new JavascriptFunctionWrapper(jsFunc->mFuncHandle, jsFunc);
+	context->mFunctions[identityHash] = WrappedJavascriptFunction(wrapper);
+	return jsFunc;
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+
 System::Object^
 JavascriptInterop::ConvertFromV8(Local<Value> iValue)
 {
@@ -142,35 +176,7 @@ JavascriptInterop::ConvertFromV8(Local<Value> iValue, ConvertedObjects &already_
     if (iValue->IsRegExp())
         return ConvertRegexFromV8(iValue);
 	if (iValue->IsFunction())
-	{
-		auto context = JavascriptContext::GetCurrent();
-		auto func = Local<Function>::Cast(iValue);
-		int identityHash = func->GetIdentityHash();
-		
-		// Check if we already have a wrapper for this function
-		if (context->mFunctions->ContainsKey(identityHash))
-		{
-			auto wrapped = context->mFunctions[identityHash];
-			auto wrapper = wrapped.Pointer;
-			if (wrapper && wrapper->managedHandle.IsAllocated)
-			{
-				auto target = wrapper->managedHandle.Target;
-				if (target != nullptr)
-					return safe_cast<JavascriptFunction^>(target);  // Reuse existing wrapper
-			}
-			// Stale entry (GC collected), remove it
-			context->mFunctions->Remove(identityHash);
-		}
-		
-		// Create new wrapper and add to cache
-		auto jsFunc = gcnew JavascriptFunction(
-			iValue->ToObject(context->GetCurrentIsolate()->GetCurrentContext()).ToLocalChecked(), 
-			context
-		);
-		auto wrapper = new JavascriptFunctionWrapper(jsFunc->mFuncHandle, jsFunc);
-		context->mFunctions[identityHash] = WrappedJavascriptFunction(wrapper);
-		return jsFunc;
-	}
+		return ConvertFunctionFromV8(iValue);
     if (iValue->IsBigInt())
     {
         auto stringRepresentation = iValue->ToString(JavascriptContext::GetCurrentIsolate()->GetCurrentContext()).ToLocalChecked();
