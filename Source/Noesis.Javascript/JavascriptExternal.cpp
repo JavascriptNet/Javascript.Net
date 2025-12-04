@@ -144,11 +144,18 @@ JavascriptExternal::GetMethod(wstring iName)
     if (context->mMethods->ContainsKey(uniqueMethodName))
         return Local<Function>::New(isolate, *context->mMethods[uniqueMethodName].Pointer);
 	
-    // Verification if it a method
+    // Verification if it is a method
     auto members = type->GetMember(memberName);
     if (members->Length > 0 && members[0]->MemberType == MemberTypes::Method)
     {
-        auto functionTemplate = FunctionTemplate::New(isolate, JavascriptInterop::Invoker, JavascriptInterop::ConvertToV8(memberName));
+        // Store both the method name AND the target object wrapper in function data
+        // This ensures we can find the correct object even when called from different contexts
+        auto externalPtr = External::New(isolate, this);
+        auto dataArray = v8::Array::New(isolate, 2);
+        dataArray->Set(isolate->GetCurrentContext(), 0, JavascriptInterop::ConvertToV8(memberName)).ToChecked();
+        dataArray->Set(isolate->GetCurrentContext(), 1, externalPtr).ToChecked();
+        
+        auto functionTemplate = FunctionTemplate::New(isolate, JavascriptInterop::Invoker, dataArray);
         auto function = functionTemplate->GetFunction(isolate->GetCurrentContext()).ToLocalChecked();
         context->mMethods[uniqueMethodName] = WrappedMethod(new Persistent<Function>(isolate, function));
         return function;

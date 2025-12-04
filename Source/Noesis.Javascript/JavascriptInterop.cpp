@@ -819,21 +819,120 @@ int CountMaximumNumberOfParameters(cli::array<System::Reflection::MemberInfo^>^ 
 void
 JavascriptInterop::Invoker(const v8::FunctionCallbackInfo<Value>& iArgs)
 {
-	v8::Isolate *isolate = JavascriptContext::GetCurrentIsolate();
-    auto internalField = Local<External>::Cast(iArgs.Holder()->GetInternalField(0));
-    auto external = (JavascriptExternal*)internalField->Value();
-	System::Reflection::MethodInfo^ bestMethod;
-	cli::array<System::Object^>^ suppliedArguments;
-	cli::array<System::Object^>^ bestMethodArguments;
-	int bestMethodMatchedArgs = -1;
-	System::Object^ ret;
+    v8::Isolate* isolate = JavascriptContext::GetCurrentIsolate();
 
-	System::Object^ self = external->GetObject();
+    // Extract method name from function data (always an array now)
+    System::String^ memberName = nullptr;
+    JavascriptExternal* fallbackExternal = nullptr;
+    
+    try {
+        Local<Value> data = iArgs.Data();
+        if (data->IsArray()) {
+            // Format: array with [0] = method name, [1] = External pointer to JavascriptExternal
+            Local<Array> dataArray = data.As<Array>();
+            Local<Context> context = isolate->GetCurrentContext();
+            Local<Value> methodNameValue = dataArray->Get(context, 0).ToLocalChecked();
+            if (methodNameValue->IsString()) {
+                memberName = (System::String^) ConvertFromV8(methodNameValue);
+            }
+            Local<Value> externalValue = dataArray->Get(context, 1).ToLocalChecked();
+            if (externalValue->IsExternal()) {
+                fallbackExternal = (JavascriptExternal*) Local<External>::Cast(externalValue)->Value();
+            }
+        } else {
+            // Old format: just method name (for backwards compatibility)
+            memberName = (System::String^) ConvertFromV8(data);
+        }
+    } catch (...) {
+        memberName = "[unknown]";
+    }
+
+    // FIRST try to get wrapper from Holder() or This() so each object uses its own wrapper
+    JavascriptExternal* external = nullptr;
+    Local<Object> targetObject;
+    
+    if (iArgs.Holder()->IsObject() && iArgs.Holder()->InternalFieldCount() > 0)
+    {
+        targetObject = iArgs.Holder();
+    }
+    else if (iArgs.This()->IsObject() && iArgs.This()->InternalFieldCount() > 0)
+    {
+        targetObject = iArgs.This();
+    }
+    
+    // If we found a valid target object, extract the wrapper
+    if (!targetObject.IsEmpty())
+    {
+        Local<Value> fieldValue = targetObject->GetInternalField(0);
+        if (fieldValue->IsExternal())
+        {
+            Local<External> internalField = Local<External>::Cast(fieldValue);
+            external = (JavascriptExternal*) internalField->Value();
+        }
+    }
+    
+    // If we couldn't get wrapper from Holder/This, use the fallback from function data
+    // This handles the with(Proxy) scenario where Holder/This don't have internal fields
+    if (external == nullptr)
+    {
+        if (fallbackExternal != nullptr)
+        {
+            external = fallbackExternal;
+        }
+        else
+        {
+            System::String^ errorMsg = System::String::Format(
+                "Invalid object for method '{0}': Holder()->IsObject()={1}, Holder()->InternalFieldCount()={2}, This()->IsObject()={3}, This()->InternalFieldCount()={4}, This()==Holder()={5}",
+                memberName,
+                iArgs.Holder()->IsObject(),
+                iArgs.Holder()->InternalFieldCount(),
+                iArgs.This()->IsObject(),
+                iArgs.This()->InternalFieldCount(),
+                (iArgs.This() == iArgs.Holder())
+            );
+            isolate->ThrowException(JavascriptInterop::ConvertToV8(errorMsg));
+            return;
+        }
+    }
+
+    // Now it's safe to access members
+    System::Object^ self;
+    try
+    {
+        self = external->GetObject();
+        if (self == nullptr)
+        {
+            System::String^ errorMsg = System::String::Format(
+                "Underlying .NET object has been garbage collected for method '{0}'",
+                memberName
+            );
+            isolate->ThrowException(JavascriptInterop::ConvertToV8(errorMsg));
+            return;
+        }
+    }
+    catch (System::Exception^ e)
+    {
+        System::String^ errorMsg = System::String::Format(
+            "Error accessing .NET object for method '{0}': {1}",
+            memberName,
+            e->Message
+        );
+        isolate->ThrowException(JavascriptInterop::ConvertToV8(errorMsg));
+        return;
+    }
+
+    // Continue with method invocation
+    System::Reflection::MethodInfo^ bestMethod;
+    cli::array<System::Object^>^ suppliedArguments;
+    cli::array<System::Object^>^ bestMethodArguments;
+    int bestMethodMatchedArgs = -1;
+    System::Object^ ret;
+
 	System::Type^ holderType = self->GetType(); 
 	
 	// get members
 	System::Type^ type = self->GetType();
-	System::String^ memberName = (System::String^) ConvertFromV8(iArgs.Data());
+	// memberName was already extracted from function data at the beginning of this function
 	cli::array<System::Reflection::MemberInfo^>^ members = type->GetMember(memberName);
 
 	if (members->Length > 0 && members[0]->MemberType == System::Reflection::MemberTypes::Method)
