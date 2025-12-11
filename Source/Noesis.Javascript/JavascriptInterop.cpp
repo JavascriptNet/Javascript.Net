@@ -816,86 +816,121 @@ int CountMaximumNumberOfParameters(cli::array<System::Reflection::MemberInfo^>^ 
     return maxParameters;
 }
 
+////////////////////////////////////////////////////////////////////////////////////////////////////
+// Invoker: V8 callback function that handles invocation of .NET methods from JavaScript
+//
+// When .NET methods are called from certain JavaScript contexts (like 'with' statements or
+// Proxy handlers), V8's iArgs.Holder() points to the wrong object and cannot provide the
+// JavascriptExternal wrapper needed to access the actual .NET object.
+//
+// This function uses a two-tier approach to find the JavascriptExternal wrapper:
+//
+// 1. PRIMARY PATH: Extract wrapper from iArgs.Holder()->GetInternalField(0)
+//    - Used when Holder() is the actual wrapped .NET object
+//    - This is the common case: obj.method()
+//    - Fast path with direct access to the correct wrapper
+//
+// 2. FALLBACK PATH: Extract wrapper from function data array
+//    - Used when Holder()->InternalFieldCount() == 0
+//    - Happens when calling context obscures the original object:
+//      * with(new Proxy({}, {})) { method() } - Holder() points to Proxy
+//      * method.call(someOtherContext) - Holder() may point to non-.NET object
+//    - The wrapper was embedded at function creation time (see JavascriptExternal::GetMethod)
+//    - Ensures methods work even when V8's execution context separates function from object
+//
+// This allows cached .NET methods to work correctly regardless of JavaScript calling context.
+////////////////////////////////////////////////////////////////////////////////////////////////////
 void
 JavascriptInterop::Invoker(const v8::FunctionCallbackInfo<Value>& iArgs)
 {
     v8::Isolate* isolate = JavascriptContext::GetCurrentIsolate();
 
-    // Extract method name from function data (always an array now)
-    System::String^ memberName = nullptr;
-    JavascriptExternal* fallbackExternal = nullptr;
-    
-    try {
-        Local<Value> data = iArgs.Data();
-        if (data->IsArray()) {
-            // Format: array with [0] = method name, [1] = External pointer to JavascriptExternal
-            Local<Array> dataArray = data.As<Array>();
-            Local<Context> context = isolate->GetCurrentContext();
-            Local<Value> methodNameValue = dataArray->Get(context, 0).ToLocalChecked();
-            if (methodNameValue->IsString()) {
-                memberName = (System::String^) ConvertFromV8(methodNameValue);
-            }
-            Local<Value> externalValue = dataArray->Get(context, 1).ToLocalChecked();
-            if (externalValue->IsExternal()) {
-                fallbackExternal = (JavascriptExternal*) Local<External>::Cast(externalValue)->Value();
-            }
-        } else {
-            // Old format: just method name (for backwards compatibility)
-            memberName = (System::String^) ConvertFromV8(data);
-        }
-    } catch (...) {
-        memberName = "[unknown]";
-    }
+	// Extract method name and fallback wrapper from function data.
+    // Function data is an array created in JavascriptExternal::GetMethod():
+    //   [0] = method name (String)
+    //   [1] = External pointer to JavascriptExternal wrapper (fallback for when Holder() fails)
+	Local<Value> data = iArgs.Data();
+	if (!data->IsArray()) {
+		isolate->ThrowException(JavascriptInterop::ConvertToV8(
+            "Internal error: function data is not an array"));
+        return;
+	}
 
-    // FIRST try to get wrapper from Holder() or This() so each object uses its own wrapper
+	Local<Array> dataArray = data.As<Array>();
+	Local<Context> context = isolate->GetCurrentContext();
+
+	Local<Value> methodNameValue = dataArray->Get(context, 0).ToLocalChecked();
+	if (!methodNameValue->IsString()) {
+		isolate->ThrowException(JavascriptInterop::ConvertToV8(
+            "Internal error: method name is not a string"));
+        return;
+	}
+	System::String^ memberName = (System::String^) ConvertFromV8(methodNameValue);
+
+	Local<Value> externalValue = dataArray->Get(context, 1).ToLocalChecked();
+	if (!externalValue->IsExternal()) {
+		System::String^ errorMsg = System::String::Format(
+            "Internal error: wrapper for method '{0}' is not an External",
+            memberName
+        );
+        isolate->ThrowException(JavascriptInterop::ConvertToV8(errorMsg));
+        return;
+	}
+	JavascriptExternal* fallbackExternal = (JavascriptExternal*) Local<External>::Cast(externalValue)->Value();
+    
+    // PRIMARY PATH: Try to get wrapper from Holder() first.
+    // This ensures each object uses its own wrapper when possible, which is important for:
+    // - Calling methods on different instances of the same type
+    // - Ensuring the method operates on the correct .NET object
+    // Holder() is V8's concept of "the object that owns this property/method"
     JavascriptExternal* external = nullptr;
-    Local<Object> targetObject;
     
     if (iArgs.Holder()->IsObject() && iArgs.Holder()->InternalFieldCount() > 0)
     {
-        targetObject = iArgs.Holder();
-    }
-    else if (iArgs.This()->IsObject() && iArgs.This()->InternalFieldCount() > 0)
-    {
-        targetObject = iArgs.This();
-    }
-    
-    // If we found a valid target object, extract the wrapper
-    if (!targetObject.IsEmpty())
-    {
-        Local<Value> fieldValue = targetObject->GetInternalField(0);
-        if (fieldValue->IsExternal())
+        // PRIMARY PATH SUCCESS: Holder() has internal fields
+        // This is a wrapped .NET object, so we can extract the JavascriptExternal wrapper directly
+        Local<Object> targetObject = iArgs.Holder();
+        if (targetObject.IsEmpty())
         {
-            Local<External> internalField = Local<External>::Cast(fieldValue);
-            external = (JavascriptExternal*) internalField->Value();
-        }
-    }
-    
-    // If we couldn't get wrapper from Holder/This, use the fallback from function data
-    // This handles the with(Proxy) scenario where Holder/This don't have internal fields
-    if (external == nullptr)
-    {
-        if (fallbackExternal != nullptr)
-        {
-            external = fallbackExternal;
-        }
-        else
-        {
-            System::String^ errorMsg = System::String::Format(
-                "Invalid object for method '{0}': Holder()->IsObject()={1}, Holder()->InternalFieldCount()={2}, This()->IsObject()={3}, This()->InternalFieldCount()={4}, This()==Holder()={5}",
-                memberName,
-                iArgs.Holder()->IsObject(),
-                iArgs.Holder()->InternalFieldCount(),
-                iArgs.This()->IsObject(),
-                iArgs.This()->InternalFieldCount(),
-                (iArgs.This() == iArgs.Holder())
-            );
-            isolate->ThrowException(JavascriptInterop::ConvertToV8(errorMsg));
+            isolate->ThrowException(JavascriptInterop::ConvertToV8(
+                System::String::Format("Invalid Holder() object for method '{0}'", memberName)
+            ));
             return;
         }
+
+        Local<Value> fieldValue = targetObject->GetInternalField(0);
+        if (!fieldValue->IsExternal()) {
+            isolate->ThrowException(JavascriptInterop::ConvertToV8(
+                System::String::Format("Invalid internal field in Holder() for method '{0}'", memberName)
+            ));
+            return;
+        }
+        Local<External> internalField = Local<External>::Cast(fieldValue);
+        external = (JavascriptExternal*)internalField->Value();
+    } else {
+       // FALLBACK PATH: Holder()->InternalFieldCount() == 0
+       // This happens when the method is called from a context where V8's Holder() doesn't
+       // point to the original .NET object wrapper. Common scenarios:
+       //   - with(new Proxy({}, {})) { method() }  - Holder() is the Proxy
+       //   - method.call(null) or method.apply(null) - Holder() is null/non-.NET object
+       // In these cases, we use the wrapper that was embedded in function data when the
+       // method was first created (see JavascriptExternal::GetMethod)
+       if (fallbackExternal == nullptr) {
+           // CRITICAL ERROR: No wrapper available from either path
+           // This should never happen if functions are created via JavascriptExternal::GetMethod
+           // If we reach here, something is fundamentally wrong with function creation
+           isolate->ThrowException(JavascriptInterop::ConvertToV8(
+               System::String::Format("No wrapper available for method '{0}'", memberName)
+           ));
+           return;
+       }
+       external = fallbackExternal;
     }
 
-    // Now it's safe to access members
+    // At this point, 'external' contains the JavascriptExternal wrapper, obtained from either:
+    // 1. Holder()->GetInternalField(0) if Holder() was the wrapped .NET object (PRIMARY)
+    // 2. Function data array if Holder() didn't have internal fields (FALLBACK)
+    // Now we can safely access the underlying .NET object and invoke the method
     System::Object^ self;
     try
     {

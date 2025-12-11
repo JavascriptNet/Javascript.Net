@@ -4,6 +4,10 @@ using System;
 
 namespace Noesis.Javascript.Tests
 {
+    /// <summary>
+    /// Tests for calling .NET methods from JavaScript contexts
+    /// where Holder()->InternalFieldCount() == 0 (such as 'with' statements and Proxy contexts).
+    /// </summary>
     [TestClass]
     public class MethodCachingWithProxyTests
     {
