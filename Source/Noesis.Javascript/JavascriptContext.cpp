@@ -577,7 +577,7 @@ CompileScript(v8::Isolate *isolate, wchar_t const *source_code, wchar_t const *r
 		else
 		{
 			Local<String> resource = String::NewFromTwoByte(isolate, (uint16_t const *)resource_name, v8::NewStringType::kNormal).ToLocalChecked();
-            ScriptOrigin *origin = new ScriptOrigin(resource);
+            ScriptOrigin *origin = new ScriptOrigin(isolate, resource);
 			script = Script::Compile(JavascriptContext::GetCurrentIsolate()->GetCurrentContext(), source, origin);
 		}
 
