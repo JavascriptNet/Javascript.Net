@@ -10,7 +10,7 @@ namespace Noesis.Javascript.Tests
     [TestClass]
     public class ExceptionTests
     {
-        private JavascriptContext _context;
+        private JavascriptContext _context = null!;
 
         [TestInitialize]
         public void SetUp()
@@ -29,14 +29,14 @@ namespace Noesis.Javascript.Tests
         public void ThrowNewError()
         {
             Action action = () => _context.Run("throw new Error('asdf');");
-            action.ShouldThrowExactly<JavascriptException>().WithMessage("Error: asdf");
+            action.Should().ThrowExactly<JavascriptException>().WithMessage("Error: asdf");
         }
 
         [TestMethod]
         public void ThrowNewErrorWithZeroByte()
         {
             Action action = () => _context.Run("throw new Error('asdf\\0qwer');");
-            action.ShouldThrowExactly<JavascriptException>().WithMessage("Error: asdf\0qwer");
+            action.Should().ThrowExactly<JavascriptException>().WithMessage("Error: asdf\0qwer");
         }
 
         class ClassWithIndexer
@@ -54,7 +54,7 @@ namespace Noesis.Javascript.Tests
             _context.SetParameter("obj", new ClassWithIndexer());
 
             Action action = () => _context.Run("obj[1] = 123 /* passing int when expecting string */");
-            action.ShouldThrowExactly<JavascriptException>().WithMessage("Object of type 'System.Int32' cannot be converted to type 'System.String'.");
+            action.Should().ThrowExactly<JavascriptException>().WithMessage("Object of type 'System.Int32' cannot be converted to type 'System.String'.");
         }
 
         class ClassWithMethods
@@ -70,7 +70,7 @@ namespace Noesis.Javascript.Tests
             _context.SetParameter("obj", new ClassWithMethods());
 
             Action action = () => _context.Run("obj.Method('hello') /* passing string when expecting int */");
-            action.ShouldThrowExactly<JavascriptException>().WithMessage("Argument mismatch for method \"Method\".");
+            action.Should().ThrowExactly<JavascriptException>().WithMessage("Argument mismatch for method \"Method\".");
         }
 
         [TestMethod]
@@ -79,7 +79,7 @@ namespace Noesis.Javascript.Tests
             _context.SetParameter("obj", new ClassWithMethods());
 
             Action action = () => _context.Run("obj.MethodThatThrows()");
-            action.ShouldThrowExactly<JavascriptException>().WithMessage("Test C# exception");
+            action.Should().ThrowExactly<JavascriptException>().WithMessage("Test C# exception");
         }
 
         [TestMethod]
@@ -88,21 +88,21 @@ namespace Noesis.Javascript.Tests
             _context.SetParameter("obj", new ClassWithMethods());
 
             Action action = () => _context.Run("obj.MethodThatThrowsWithZeroByte()");
-            action.ShouldThrowExactly<JavascriptException>().WithMessage("Test C#\0exception");
+            action.Should().ThrowExactly<JavascriptException>().WithMessage("Test C#\0exception");
         }
 
         [TestMethod]
         public void StackOverflow()
         {
             Action action = () => _context.Run("function f() { f(); }; f();");
-            action.ShouldThrowExactly<JavascriptException>().WithMessage("RangeError: Maximum call stack size exceeded");
+            action.Should().ThrowExactly<JavascriptException>().WithMessage("RangeError: Maximum call stack size exceeded");
         }
 
         [TestMethod]
         public void ArgumentChecking()
         {
             Action action = () => _context.Run(null);
-            action.ShouldThrowExactly<ArgumentNullException>();
+            action.Should().ThrowExactly<ArgumentNullException>();
         }
 
         [TestMethod]
@@ -114,7 +114,9 @@ namespace Noesis.Javascript.Tests
             task.Start();
             _context.TerminateExecution(true);
             Action action = () => task.Wait(10 * 1000);
-            action.ShouldThrowExactly<JavascriptException>("Because it was cancelled").WithMessage("Execution Terminated");
+            action.Should().Throw<AggregateException>("Because it was cancelled")
+                .WithInnerException<JavascriptException>()
+                .WithMessage("Execution Terminated");
         }
     }
 }

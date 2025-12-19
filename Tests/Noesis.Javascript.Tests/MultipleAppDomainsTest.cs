@@ -7,6 +7,7 @@ namespace Noesis.Javascript.Tests
     [TestClass]
     public class MultipleAppDomainsTest
     {
+#if NETFRAMEWORK
         private void ConstructContextInNewDomain()
         {
             var domainSetup = new AppDomainSetup { ApplicationBase = AppDomain.CurrentDomain.BaseDirectory };
@@ -21,5 +22,14 @@ namespace Noesis.Javascript.Tests
             ConstructContextInNewDomain();
             ConstructContextInNewDomain();
         }
+#else
+        [TestMethod]
+        public void ConstructionContextInTwoDifferentAppDomainTests()
+        {
+            // AppDomain.CreateDomain is not supported in .NET Core/.NET 8
+            // This test is only applicable to .NET Framework
+            Assert.Inconclusive("AppDomain.CreateDomain is not supported in .NET Core/.NET 8");
+        }
+#endif
     }
 }

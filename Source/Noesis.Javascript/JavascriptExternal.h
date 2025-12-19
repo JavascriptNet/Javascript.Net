@@ -97,7 +97,8 @@ private:
 	
 	// Handle to the .Net object being wrapped.  It takes this
 	// form so that the garbage collector won't try to move it.
-	System::Runtime::InteropServices::GCHandle mObjectHandle;
+    // .NET 8: Store as IntPtr instead of GCHandle for safe native storage
+    System::IntPtr mObjectHandle;
 
 	SetParameterOptions mOptions;
 

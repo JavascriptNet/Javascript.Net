@@ -8,7 +8,7 @@ namespace Noesis.Javascript.Tests
     [TestClass]
     public class InstanceOfTest
     {
-        private JavascriptContext _context;
+        private JavascriptContext _context = null!;
 
         private class TestClass
         {
@@ -59,7 +59,7 @@ namespace Noesis.Javascript.Tests
         {
             _context.SetParameter("test", new TestClass());
             _context.Invoking(x => x.Run("test instanceof Test"))
-                .ShouldThrow<JavascriptException>().WithMessage("ReferenceError: Test is not defined");
+                .Should().Throw<JavascriptException>().WithMessage("ReferenceError: Test is not defined");
         }
 
         [TestMethod]

@@ -111,6 +111,56 @@ internal:
     }
 };
 
+////////////////////////////////////////////////////////////////////////////////////////////////////
+// Wrapper for JavascriptFunction - used for caching and cleanup
+////////////////////////////////////////////////////////////////////////////////////////////////////
+ref class JavascriptFunction;  // Forward declaration
+
+// Native wrapper that holds both V8 handle and weak reference to managed object
+struct JavascriptFunctionWrapper
+{
+    v8::Persistent<v8::Function>* handle;
+    System::Runtime::InteropServices::GCHandle managedHandle;
+    
+    JavascriptFunctionWrapper() : handle(nullptr) {}
+    
+    JavascriptFunctionWrapper(v8::Persistent<v8::Function>* h, JavascriptFunction^ func) 
+        : handle(h)
+    {
+        managedHandle = System::Runtime::InteropServices::GCHandle::Alloc(
+            func, 
+            System::Runtime::InteropServices::GCHandleType::Weak
+        );
+    }
+};
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+// WrappedJavascriptFunction
+//
+// Wraps a pointer to JavascriptFunctionWrapper for storage in managed dictionary.
+// Similar pattern to WrappedMethod and WrappedJavascriptExternal.
+////////////////////////////////////////////////////////////////////////////////////////////////////
+public value struct WrappedJavascriptFunction
+{
+private:
+    System::IntPtr pointer;
+
+internal:
+    WrappedJavascriptFunction(JavascriptFunctionWrapper* value)
+    {
+        System::IntPtr value_pointer(value);
+        pointer = value_pointer;
+    }
+
+    property JavascriptFunctionWrapper* Pointer
+    {
+        JavascriptFunctionWrapper* get()
+        {
+            return (JavascriptFunctionWrapper*)(void*)pointer;
+        }
+    }
+};
+
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 // JavascriptContext
@@ -203,12 +253,19 @@ internal:
 	////////////////////////////////////////////////////////////
 	// Data members
 	////////////////////////////////////////////////////////////
-internal:
+public:
     // Stores every JavascriptExternal we create.  This saves time if the same
     // objects are recreated frequently, and stops us building up a huge
     // collection of JavascriptExternal objects that won't be freed until
     // the context is destroyed.
     System::Collections::Generic::Dictionary<System::Object^, WrappedJavascriptExternal>^ mExternals;
+internal:
+
+    // Stores JavascriptFunction wrappers keyed by V8 function identity hash.
+    // Entries are automatically removed by GC callback when V8 collects the function.
+    // This prevents memory leaks from accumulating function wrappers.
+    System::Collections::Generic::Dictionary<int, WrappedJavascriptFunction>^ mFunctions;
+
     System::Collections::Generic::Dictionary<System::String^, WrappedMethod>^ mMethods;
 protected:
 	// By entering an isolate before using a context, we can have multiple

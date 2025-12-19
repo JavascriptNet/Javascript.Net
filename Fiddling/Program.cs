@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Runtime.Remoting.Contexts;
 using System.Text;
 using Noesis.Javascript;
 
@@ -15,45 +14,72 @@ namespace Fiddling
     {
         public class Product
         {
+            public Product(decimal price)
+            {
+                Price = price;
+            }
             public decimal Price { get; set; }
+            public void DoSomething() { }
+            public void DoSomethingElse() { }
+            public IEnumerable<decimal> GetTaxes() => new List<decimal> { 0.01m, 0.02m };
+            public decimal GetSalesTax(JavascriptFunction callback) => Convert.ToDecimal(callback.Call(Price));
+            public override string ToString() => Price.ToString();
         }
+
+        // ...
 
         static void Main(string[] args)
         {
+            using (JavascriptContext context = new JavascriptContext())
+            {
+                try
+                {
+                    // breakpoint here
+                    context.SetConstructor<Product>("Product", (Func<decimal, Product>)(price => new Product(price)));
+                    context.SetParameter("globalProduct", new Product(2));
+                    var result = context.Run($@"
+{{
+    const importantProduct = new Product(3);
+    let sum = 0;
+    for (let i = 0; i < 200_000; i++) {{
 
-            JavascriptContext.SetFatalErrorHandler(FatalErrorHandler);
-            using (JavascriptContext context = new JavascriptContext()) {
-                //int[] ints = new[] { 1, 2, 3 };
-                //_context.SetParameter("n", ints);
-                //var result = _context.Run("n[1]");
-                //Console.WriteLine(result.ToString());
-                //_context.SetParameter("bozo", new Bozo(ints));
+        // Commit 1 - creating managed objects from JS
+        const product = new Product(Math.random());
 
-                context.SetParameter("test", new Product() { Price = new decimal(0.333) });
-                context.Run("test.Price = test.Price * 2");
-                Console.WriteLine(context.Run("test.Price").ToString());
-                //context.Run("modified_price = test.Price * 2");
-                //Console.WriteLine(context.GetParameter("modified_price").ToString());  //returns 0.... not good
+        // Commit 2 - calling methods on managed objects
+        product.DoSomething();
+        product.DoSomething();
+        product.DoSomethingElse();
 
+        // Commits 3 and 4 - using iterators
+        for (const tax of product.GetTaxes())
+        {{
+            sum += tax;
+        }}
 
-                try {
-                    //_context.Run("a=[]; while(true) a.push(0)");
-                    //_context.Run("function f() { f(); } f()");
+        // Commit 5 - using JS callbacks in managed code without disposing them explicitly
+        sum += product.GetSalesTax(p => p * 0.19);
+        // End of scenarios
 
-					//while(true) {
-					//	Console.Write("> ");
-					//	var input = Console.ReadLine();
-					//	if (input == "quit")
-					//		break;
-					//	var result = _context.Run(input);
-					//	Console.WriteLine("Result is: `{0}`", result);
-					//}
-                } catch (Exception ex) {
-                    string s = (string)ex.Data["V8StackTrace"];
+        sum += product.Price;
+    }}
+    [sum, importantProduct.Price, globalProduct.Price].toString();
+}}
+");
+                    Console.WriteLine(result);
+                    Console.WriteLine(context.GetParameter("globalProduct"));
+                    // breakpoint here - pre dispose of the context
+                }
+                catch (Exception ex)
+                {
+                    var s = (string)ex.Data["V8StackTrace"]!;
                     Console.WriteLine(s);
                 }
-                //Console.WriteLine(ints[1]);
             }
+            GC.Collect();
+            GC.WaitForPendingFinalizers();
+            GC.Collect();
+            // breakpoint here - after dispose of the context (the garbage collection was only triggered to compare the object count in the memory dump)
         }
 
         static void FatalErrorHandler(string a, string b)
@@ -69,7 +95,7 @@ namespace Fiddling
         internal Bozo(Array a) { this.a = a; }
         public object this[int i]
         {
-            get { throw new ApplicationException("bozo"); return a.GetValue(i); }
+            get { throw new ApplicationException("bozo"); }
             set { a.SetValue(value, i); }
         }
     }

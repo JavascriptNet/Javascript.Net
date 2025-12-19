@@ -2,6 +2,7 @@
 using FluentAssertions;
 using System.Linq;
 using System.Collections.Generic;
+using System;
 
 namespace Noesis.Javascript.Tests
 {
@@ -10,11 +11,11 @@ namespace Noesis.Javascript.Tests
     {
         private class StracktraceExporter
         {
-            public JavascriptContext context { get; set; }
+            public JavascriptContext? context { get; set; }
 
             public List<JavascriptStackFrame> frames(int depth)
             {
-                return context.GetCurrentStack(depth);
+                return context?.GetCurrentStack(depth) ?? throw new ApplicationException("No context set");
             }
         }
 

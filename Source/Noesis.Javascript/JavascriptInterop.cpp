@@ -106,6 +106,40 @@ ConvertedObjects::GetConverted(v8::Local<v8::Object> o)
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
+JavascriptFunction^
+JavascriptInterop::ConvertFunctionFromV8(Local<Value> iValue)
+{
+	auto context = JavascriptContext::GetCurrent();
+	auto func = Local<Function>::Cast(iValue);
+	int identityHash = func->GetIdentityHash();
+	
+	// Check if we already have a wrapper for this function
+	if (context->mFunctions->ContainsKey(identityHash))
+	{
+		auto wrapped = context->mFunctions[identityHash];
+		auto wrapper = wrapped.Pointer;
+		if (wrapper && wrapper->managedHandle.IsAllocated)
+		{
+			auto target = wrapper->managedHandle.Target;
+			if (target != nullptr)
+				return safe_cast<JavascriptFunction^>(target);  // Reuse existing wrapper
+		}
+		// Stale entry (GC collected), remove it
+		context->mFunctions->Remove(identityHash);
+	}
+	
+	// Create new wrapper and add to cache
+	auto jsFunc = gcnew JavascriptFunction(
+		iValue->ToObject(context->GetCurrentIsolate()->GetCurrentContext()).ToLocalChecked(), 
+		context
+	);
+	auto wrapper = new JavascriptFunctionWrapper(jsFunc->mFuncHandle, jsFunc);
+	context->mFunctions[identityHash] = WrappedJavascriptFunction(wrapper);
+	return jsFunc;
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+
 System::Object^
 JavascriptInterop::ConvertFromV8(Local<Value> iValue)
 {
@@ -142,7 +176,7 @@ JavascriptInterop::ConvertFromV8(Local<Value> iValue, ConvertedObjects &already_
     if (iValue->IsRegExp())
         return ConvertRegexFromV8(iValue);
 	if (iValue->IsFunction())
-		return gcnew JavascriptFunction(iValue->ToObject(JavascriptContext::GetCurrentIsolate()->GetCurrentContext()).ToLocalChecked(), JavascriptContext::GetCurrent());
+		return ConvertFunctionFromV8(iValue);
     if (iValue->IsBigInt())
     {
         auto stringRepresentation = iValue->ToString(JavascriptContext::GetCurrentIsolate()->GetCurrentContext()).ToLocalChecked();
@@ -391,7 +425,7 @@ JavascriptInterop::ConvertObjectFromV8(Local<Object> iObject, ConvertedObjects &
  * and assumes incorrectly that Germany observed UTC+2 during the summer time.
  *
  * V8
- * new Date(1978, 5, 15) // "Thu Jun 15 1978 00:00:00 GMT+0100 (Mitteleurop‰ische Normalzeit)"
+ * new Date(1978, 5, 15) // "Thu Jun 15 1978 00:00:00 GMT+0100 (Mitteleurop√§ische Normalzeit)"
  *
  * C#
  * If we get the ticks since 1970-01-01 from V8 to construct a UTC DateTime object we get
@@ -414,13 +448,13 @@ double GetDateComponent(Isolate* isolate, Local<Date> date, const char* componen
 System::DateTime^ JavascriptInterop::ConvertDateFromV8(Local<Date> date)
 {
     auto isolate = JavascriptContext::GetCurrentIsolate();
-    auto year = GetDateComponent(isolate, date, "getFullYear");
-    auto month = GetDateComponent(isolate, date, "getMonth") + 1;
-    auto day = GetDateComponent(isolate, date, "getDate");
-    auto hour = GetDateComponent(isolate, date, "getHours");
-    auto minute = GetDateComponent(isolate, date, "getMinutes");
-    auto second = GetDateComponent(isolate, date, "getSeconds");
-    auto millisecond = GetDateComponent(isolate, date, "getMilliseconds");
+    int year = static_cast<int>(GetDateComponent(isolate, date, "getFullYear"));
+    int month = static_cast<int>(GetDateComponent(isolate, date, "getMonth") + 1);
+    int day = static_cast<int>(GetDateComponent(isolate, date, "getDate"));
+    int hour = static_cast<int>(GetDateComponent(isolate, date, "getHours"));
+    int minute = static_cast<int>(GetDateComponent(isolate, date, "getMinutes"));
+    int second = static_cast<int>(GetDateComponent(isolate, date, "getSeconds"));
+    int millisecond = static_cast<int>(GetDateComponent(isolate, date, "getMilliseconds"));
     return gcnew System::DateTime(year, month, day, hour, minute, second, millisecond, System::DateTimeKind::Local);
 }
 
@@ -782,24 +816,158 @@ int CountMaximumNumberOfParameters(cli::array<System::Reflection::MemberInfo^>^ 
     return maxParameters;
 }
 
+////////////////////////////////////////////////////////////////////////////////////////////////////
+// Invoker: V8 callback function that handles invocation of .NET methods from JavaScript
+//
+// When .NET methods are called from certain JavaScript contexts (like 'with' statements or
+// Proxy handlers), V8's iArgs.Holder() points to the wrong object and cannot provide the
+// JavascriptExternal wrapper needed to access the actual .NET object.
+//
+// This function uses a two-tier approach to find the JavascriptExternal wrapper:
+//
+// 1. PRIMARY PATH: Extract wrapper from iArgs.Holder()->GetInternalField(0)
+//    - Used when Holder() is the actual wrapped .NET object
+//    - This is the common case: obj.method()
+//    - Fast path with direct access to the correct wrapper
+//
+// 2. FALLBACK PATH: Extract wrapper from function data array
+//    - Used when Holder()->InternalFieldCount() == 0
+//    - Happens when calling context obscures the original object:
+//      * with(new Proxy({}, {})) { method() } - Holder() points to Proxy
+//      * method.call(someOtherContext) - Holder() may point to non-.NET object
+//    - The wrapper was embedded at function creation time (see JavascriptExternal::GetMethod)
+//    - Ensures methods work even when V8's execution context separates function from object
+//
+// This allows cached .NET methods to work correctly regardless of JavaScript calling context.
+////////////////////////////////////////////////////////////////////////////////////////////////////
 void
 JavascriptInterop::Invoker(const v8::FunctionCallbackInfo<Value>& iArgs)
 {
-	v8::Isolate *isolate = JavascriptContext::GetCurrentIsolate();
-    auto internalField = Local<External>::Cast(iArgs.Holder()->GetInternalField(0));
-    auto external = (JavascriptExternal*)internalField->Value();
-	System::Reflection::MethodInfo^ bestMethod;
-	cli::array<System::Object^>^ suppliedArguments;
-	cli::array<System::Object^>^ bestMethodArguments;
-	int bestMethodMatchedArgs = -1;
-	System::Object^ ret;
+    v8::Isolate* isolate = JavascriptContext::GetCurrentIsolate();
 
-	System::Object^ self = external->GetObject();
+	// Extract method name and fallback wrapper from function data.
+    // Function data is an array created in JavascriptExternal::GetMethod():
+    //   [0] = method name (String)
+    //   [1] = External pointer to JavascriptExternal wrapper (fallback for when Holder() fails)
+	Local<Value> data = iArgs.Data();
+	if (!data->IsArray()) {
+		isolate->ThrowException(JavascriptInterop::ConvertToV8(
+            "Internal error: function data is not an array"));
+        return;
+	}
+
+	Local<Array> dataArray = data.As<Array>();
+	Local<Context> context = isolate->GetCurrentContext();
+
+	Local<Value> methodNameValue = dataArray->Get(context, 0).ToLocalChecked();
+	if (!methodNameValue->IsString()) {
+		isolate->ThrowException(JavascriptInterop::ConvertToV8(
+            "Internal error: method name is not a string"));
+        return;
+	}
+	System::String^ memberName = (System::String^) ConvertFromV8(methodNameValue);
+
+	Local<Value> externalValue = dataArray->Get(context, 1).ToLocalChecked();
+	if (!externalValue->IsExternal()) {
+		System::String^ errorMsg = System::String::Format(
+            "Internal error: wrapper for method '{0}' is not an External",
+            memberName
+        );
+        isolate->ThrowException(JavascriptInterop::ConvertToV8(errorMsg));
+        return;
+	}
+	JavascriptExternal* fallbackExternal = (JavascriptExternal*) Local<External>::Cast(externalValue)->Value();
+    
+    // PRIMARY PATH: Try to get wrapper from Holder() first.
+    // This ensures each object uses its own wrapper when possible, which is important for:
+    // - Calling methods on different instances of the same type
+    // - Ensuring the method operates on the correct .NET object
+    // Holder() is V8's concept of "the object that owns this property/method"
+    JavascriptExternal* external = nullptr;
+    
+    if (iArgs.Holder()->IsObject() && iArgs.Holder()->InternalFieldCount() > 0)
+    {
+        // PRIMARY PATH SUCCESS: Holder() has internal fields
+        // This is a wrapped .NET object, so we can extract the JavascriptExternal wrapper directly
+        Local<Object> targetObject = iArgs.Holder();
+        if (targetObject.IsEmpty())
+        {
+            isolate->ThrowException(JavascriptInterop::ConvertToV8(
+                System::String::Format("Invalid Holder() object for method '{0}'", memberName)
+            ));
+            return;
+        }
+
+        Local<Value> fieldValue = targetObject->GetInternalField(0);
+        if (!fieldValue->IsExternal()) {
+            isolate->ThrowException(JavascriptInterop::ConvertToV8(
+                System::String::Format("Invalid internal field in Holder() for method '{0}'", memberName)
+            ));
+            return;
+        }
+        Local<External> internalField = Local<External>::Cast(fieldValue);
+        external = (JavascriptExternal*)internalField->Value();
+    } else {
+       // FALLBACK PATH: Holder()->InternalFieldCount() == 0
+       // This happens when the method is called from a context where V8's Holder() doesn't
+       // point to the original .NET object wrapper. Common scenarios:
+       //   - with(new Proxy({}, {})) { method() }  - Holder() is the Proxy
+       //   - method.call(null) or method.apply(null) - Holder() is null/non-.NET object
+       // In these cases, we use the wrapper that was embedded in function data when the
+       // method was first created (see JavascriptExternal::GetMethod)
+       if (fallbackExternal == nullptr) {
+           // CRITICAL ERROR: No wrapper available from either path
+           // This should never happen if functions are created via JavascriptExternal::GetMethod
+           // If we reach here, something is fundamentally wrong with function creation
+           isolate->ThrowException(JavascriptInterop::ConvertToV8(
+               System::String::Format("No wrapper available for method '{0}'", memberName)
+           ));
+           return;
+       }
+       external = fallbackExternal;
+    }
+
+    // At this point, 'external' contains the JavascriptExternal wrapper, obtained from either:
+    // 1. Holder()->GetInternalField(0) if Holder() was the wrapped .NET object (PRIMARY)
+    // 2. Function data array if Holder() didn't have internal fields (FALLBACK)
+    // Now we can safely access the underlying .NET object and invoke the method
+    System::Object^ self;
+    try
+    {
+        self = external->GetObject();
+        if (self == nullptr)
+        {
+            System::String^ errorMsg = System::String::Format(
+                "Underlying .NET object has been garbage collected for method '{0}'",
+                memberName
+            );
+            isolate->ThrowException(JavascriptInterop::ConvertToV8(errorMsg));
+            return;
+        }
+    }
+    catch (System::Exception^ e)
+    {
+        System::String^ errorMsg = System::String::Format(
+            "Error accessing .NET object for method '{0}': {1}",
+            memberName,
+            e->Message
+        );
+        isolate->ThrowException(JavascriptInterop::ConvertToV8(errorMsg));
+        return;
+    }
+
+    // Continue with method invocation
+    System::Reflection::MethodInfo^ bestMethod;
+    cli::array<System::Object^>^ suppliedArguments;
+    cli::array<System::Object^>^ bestMethodArguments;
+    int bestMethodMatchedArgs = -1;
+    System::Object^ ret;
+
 	System::Type^ holderType = self->GetType(); 
 	
 	// get members
 	System::Type^ type = self->GetType();
-	System::String^ memberName = (System::String^) ConvertFromV8(iArgs.Data());
+	// memberName was already extracted from function data at the beginning of this function
 	cli::array<System::Reflection::MemberInfo^>^ members = type->GetMember(memberName);
 
 	if (members->Length > 0 && members[0]->MemberType == System::Reflection::MemberTypes::Method)

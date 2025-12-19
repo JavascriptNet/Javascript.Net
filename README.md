@@ -46,14 +46,31 @@ when you redistribute Noesis.Javascript.dll then you will get errors
 when loading the DLL on some users machines.  (Many, but not all users
 will already have it.)
 
-Targets: .NET Framework 4.5
+Targets: .NET 8
+
+For legacy .NET Framework 4.7.2 support, see previous versions.
 
 
 Building from Source
 ====================
 
-Open the .sln file in Visual Studio, use Configuration Manager to switch to platform to x64, and build.  I've been working using Visual Studio 2017,
-but 2015 will probably work too.
+**Requirements:**
+* Visual Studio 2022 (17.0+) or Visual Studio 2019 (16.4+)
+* .NET 8 SDK
+* Windows SDK 10.0 or later
+
+**Steps:**
+
+1. Open the .sln file in Visual Studio
+2. Use Configuration Manager to switch the platform to x64
+3. Build the solution
+
+The project uses:
+* C++/CLI with .NET Core support (`CLRSupport=NetCore`)
+* .NET 8 SDK-style projects for C# code
+* V8 version 9.8.177.4 via NuGet packages
+
+**Note:** The C++/CLI project requires Windows and Visual Studio with C++/CLI support for .NET Core. This is available in Visual Studio 2019 16.4+ and Visual Studio 2022.
 
 The following warnings are expected:
 

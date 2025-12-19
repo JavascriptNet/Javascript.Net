@@ -166,6 +166,7 @@ JavascriptContext::JavascriptContext()
     isolate->SetFatalErrorHandler(FatalErrorCallback);
 
 	mExternals = gcnew System::Collections::Generic::Dictionary<System::Object ^, WrappedJavascriptExternal>();
+	mFunctions = gcnew System::Collections::Generic::Dictionary<int, WrappedJavascriptFunction>();
 	mMethods = gcnew System::Collections::Generic::Dictionary<System::String ^, WrappedMethod>();
     mTypeToConstructorMapping = gcnew System::Collections::Generic::Dictionary<System::Type ^, System::IntPtr>();
 	HandleScope scope(isolate);
@@ -182,6 +183,23 @@ JavascriptContext::~JavascriptContext()
 		v8::Isolate::Scope isolate_scope(isolate);
 		for each (WrappedJavascriptExternal wrapped in mExternals->Values)
 			delete wrapped.Pointer;
+        // Clean up JavascriptFunction wrappers
+        for each (WrappedJavascriptFunction wrapped in mFunctions->Values)
+        {
+            auto wrapper = wrapped.Pointer;
+            if (wrapper)
+            {
+                if (wrapper->handle && !wrapper->handle->IsEmpty())
+                {
+                    wrapper->handle->ClearWeak();
+                    wrapper->handle->Reset();
+                    delete wrapper->handle;
+                }
+                if (wrapper->managedHandle.IsAllocated)
+                    wrapper->managedHandle.Free();
+                delete wrapper;
+            }
+        }
         for each (WrappedMethod wrapped in mMethods->Values)
         {
             wrapped.Pointer->Reset();
@@ -193,6 +211,7 @@ JavascriptContext::~JavascriptContext()
 		delete mContext;
         mContext = nullptr;
 		delete mExternals;
+        delete mFunctions;
         delete mMethods;
         delete mTypeToConstructorMapping;
 	}

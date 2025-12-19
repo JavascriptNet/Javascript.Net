@@ -9,6 +9,39 @@ namespace Noesis { namespace Javascript {
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
+// This callback is invoked by V8 when it wants to garbage collect the JavaScript function
+void JavascriptFunctionGCCallback(const WeakCallbackInfo<Persistent<Function>>& data)
+{
+    auto handle = data.GetParameter();
+    
+    // V8 requires THIS EXACT HANDLE to be reset in the first-pass callback
+    handle->Reset();
+    
+    auto context = JavascriptContext::GetCurrent();
+    if (context != nullptr && !context->IsDisposed())
+    {
+        for each (auto kvp in context->mFunctions)
+        {
+            auto wrapper = kvp.Value.Pointer;
+            if (wrapper && wrapper->handle == handle)
+            {
+                // Freeing the weak GCHandle allows .NET to collect the managed JavascriptFunction
+                if (wrapper->managedHandle.IsAllocated)
+                    wrapper->managedHandle.Free();
+                
+                delete wrapper->handle;
+                wrapper->handle = nullptr;
+                
+                delete wrapper;
+                
+                // CRITICAL: Remove from cache dictionary to prevent memory leak!
+                context->mFunctions->Remove(kvp.Key);
+                break;
+            }
+        }
+    }
+}
+
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
 JavascriptFunction::JavascriptFunction(v8::Local<v8::Object> iFunction, JavascriptContext^ context)
@@ -19,20 +52,40 @@ JavascriptFunction::JavascriptFunction(v8::Local<v8::Object> iFunction, Javascri
 	if(!context)
 		throw gcnew System::ArgumentException("Must provide a JavascriptContext");
 
-	mFuncHandle = new Persistent<Function>(context->GetCurrentIsolate(), Local<Function>::Cast(iFunction));
+	auto isolate = context->GetCurrentIsolate();
+	auto func = Local<Function>::Cast(iFunction);
+	
+	mFuncHandle = new Persistent<Function>(isolate, func);
+	// SetWeak allows V8 to garbage collect the JavaScript function when it's no longer referenced in JS.
+	// The callback notifies us so we can clean up the managed wrapper and remove it from the cache.
+	// Without this, the V8 function would be kept alive forever, causing a memory leak.
+	mFuncHandle->SetWeak(mFuncHandle, JavascriptFunctionGCCallback, WeakCallbackType::kParameter);
+	
     mContextHandle = gcnew System::WeakReference(context);
 }
 
 JavascriptFunction::~JavascriptFunction()
 {
-	if(mFuncHandle) 
+	if (mFuncHandle) 
 	{
-		if (IsAlive())
+		auto context = GetContext();
+		if (context && !context->IsDisposed() && !mFuncHandle->IsEmpty())
 		{
-            JavascriptScope scope(GetContext());
-			mFuncHandle->Reset();
+			JavascriptScope scope(context);
+            auto isolate = context->GetCurrentIsolate();
+            HandleScope handleScope(isolate);
+			int identityHash = mFuncHandle->Get(isolate)->GetIdentityHash();
+			
+			if (context->mFunctions->ContainsKey(identityHash))
+			{
+				mFuncHandle->ClearWeak();
+				mFuncHandle->Reset();
+				delete mFuncHandle;
+				
+				context->mFunctions->Remove(identityHash);
+			}
 		}
-		delete mFuncHandle;
+		
 		mFuncHandle = nullptr;
 	}
 }

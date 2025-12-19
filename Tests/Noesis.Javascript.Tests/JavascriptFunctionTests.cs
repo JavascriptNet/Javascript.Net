@@ -9,7 +9,7 @@ namespace Noesis.Javascript.Tests
     [TestClass]
     public class JavascriptFunctionTests
     {
-        private JavascriptContext _context;
+        private JavascriptContext _context = null!;
 
         [TestInitialize]
         public void SetUp()
@@ -28,7 +28,7 @@ namespace Noesis.Javascript.Tests
         {
             _context.Run("a = function(a, b) { return a + b; }");
 
-            JavascriptFunction funcObj = _context.GetParameter("a") as JavascriptFunction;
+            JavascriptFunction funcObj = (JavascriptFunction)_context.GetParameter("a");
             funcObj.Should().NotBeNull();
             funcObj.Call(1, 2).Should().BeOfType<int>().Which.Should().Be(3);
         }
@@ -38,7 +38,7 @@ namespace Noesis.Javascript.Tests
         {
             _context.Run("a = function(a, b) { return a + b; }");
 
-            JavascriptFunction funcObj = _context.GetParameter("a") as JavascriptFunction;
+            JavascriptFunction funcObj = (JavascriptFunction)_context.GetParameter("a");
             (funcObj == null).Should().BeFalse();
             (funcObj != null).Should().BeTrue();
             (null == funcObj).Should().BeFalse();
@@ -50,7 +50,7 @@ namespace Noesis.Javascript.Tests
         {
             _context.Run("function test(a, b) { return a + b; }");
 
-            JavascriptFunction funcObj = _context.GetParameter("test") as JavascriptFunction;
+            JavascriptFunction funcObj = (JavascriptFunction)_context.GetParameter("test");
             funcObj.Should().NotBeNull();
             funcObj.Call(1, 2).Should().BeOfType<int>().Which.Should().Be(3);
         }
@@ -60,7 +60,7 @@ namespace Noesis.Javascript.Tests
         {
             _context.Run("a = (a, b) => a + b");
 
-            JavascriptFunction funcObj = _context.GetParameter("a") as JavascriptFunction;
+            JavascriptFunction funcObj = (JavascriptFunction)_context.GetParameter("a");
             funcObj.Should().NotBeNull();
             funcObj.Call(1, 2).Should().BeOfType<int>().Which.Should().Be(3);
         }
@@ -72,7 +72,7 @@ namespace Noesis.Javascript.Tests
 
             var result = _context.Run("collection.Filter(x => x % 2 === 0)") as IEnumerable<int>;
             result.Should().NotBeNull();
-            result.Should().BeEquivalentTo(2, 4);
+            result.Should().BeEquivalentTo(new[] { 2, 4 });
         }
 
         [TestMethod]
@@ -80,15 +80,15 @@ namespace Noesis.Javascript.Tests
         {
             var function = _context.Run("() => { throw new Error('test'); }") as JavascriptFunction;
             function.Should().NotBeNull();
-            Action action = () => function.Call();
-            action.ShouldThrowExactly<JavascriptException>().WithMessage("Error: test");
+            Action action = () => function?.Call();
+            action.Should().ThrowExactly<JavascriptException>().WithMessage("Error: test");
         }
 
         [TestMethod]
         public void ToStringShouldReturnTheFunctionDefinition()
         {
             _context.Run("function test() { return 1; }");
-            var funcObj = _context.GetParameter("test") as JavascriptFunction;
+            var funcObj = (JavascriptFunction)_context.GetParameter("test");
             funcObj.Should().NotBeNull();
             funcObj.ToString().Should().Be("function test() { return 1; }");
         }
@@ -97,7 +97,7 @@ namespace Noesis.Javascript.Tests
         public void ToStringShouldReturnTheFunctionDefinitionForAnArrowFunction()
         {
             _context.Run("var test = (a, b) => a + b");
-            var funcObj = _context.GetParameter("test") as JavascriptFunction;
+            var funcObj = (JavascriptFunction)_context.GetParameter("test");
             funcObj.Should().NotBeNull();
             funcObj.ToString().Should().Be("(a, b) => a + b");
         }
@@ -109,7 +109,7 @@ namespace Noesis.Javascript.Tests
 function test() {
     return 1;
 }");
-            var funcObj = _context.GetParameter("test") as JavascriptFunction;
+            var funcObj = (JavascriptFunction)_context.GetParameter("test");
             funcObj.Should().NotBeNull();
             funcObj.ToString().Should().Be(@"
 function test() {
@@ -126,17 +126,17 @@ function test() {
         {
             JavascriptFunction function;
             using (var context = new JavascriptContext()) {
-                function = context.Run("() => { throw new Error('test'); }") as JavascriptFunction;
+                function = (JavascriptFunction)context.Run("() => { throw new Error('test'); }");
             }
             Action action = () => function.Call();
-            action.ShouldThrowExactly<JavascriptException>().WithMessage("This function's owning JavascriptContext has been disposed");
+            action.Should().ThrowExactly<JavascriptException>().WithMessage("This function's owning JavascriptContext has been disposed");
         }
 
         [TestMethod]
         public void DisposingAFunction()
         {
             using (var context = new JavascriptContext()) {
-                var function = context.Run("() => { throw new Error('test'); }") as JavascriptFunction;
+                var function = (JavascriptFunction)context.Run("() => { throw new Error('test'); }");
                 function.Dispose();
             }
         }

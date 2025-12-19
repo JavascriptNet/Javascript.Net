@@ -41,6 +41,9 @@ namespace Noesis { namespace Javascript {
 using namespace v8;
 using namespace System::Collections::Generic;
 
+// Forward declaration
+ref class JavascriptFunction;
+
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 // Remembers which objects have been just converted, to avoid stack overflows when we are 
@@ -87,6 +90,8 @@ public:
 
 private:
 	static System::Object^ ConvertFromV8(Local<Value> iValue, ConvertedObjects &already_converted);
+
+	static JavascriptFunction^ ConvertFunctionFromV8(Local<Value> iValue);
 
 	static System::Object^ ConvertObjectFromV8(Local<Object> iObject, ConvertedObjects &already_converted);
 

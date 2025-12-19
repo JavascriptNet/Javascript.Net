@@ -10,7 +10,7 @@ namespace Noesis.Javascript.Tests
     [TestClass]
     public class ConvertToJavascriptTests
     {        
-        private JavascriptContext _context;
+        private JavascriptContext _context = null!;
 
         [TestInitialize]
         public void SetUp()
@@ -156,7 +156,7 @@ namespace Noesis.Javascript.Tests
         public void SetRegexWithoutECMAScriptFlagThrowsException()
         {
             Action action = () => _context.SetParameter("val", new Regex("abc"));
-            action.ShouldThrow<Exception>().WithMessage("Only regular expressions with the ECMAScript option can be converted.");
+            action.Should().Throw<Exception>().WithMessage("Only regular expressions with the ECMAScript option can be converted.");
         }
 
         [TestMethod]
