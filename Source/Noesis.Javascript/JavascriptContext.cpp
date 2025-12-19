@@ -118,11 +118,6 @@ v8::Local<v8::String> ToV8String(Isolate* isolate, System::String^ value) {
     return String::NewFromTwoByte(isolate, (uint16_t*)name, v8::NewStringType::kNormal).ToLocalChecked();
 }
 
-static JavascriptContext::JavascriptContext()
-{
-    UnmanagedInitialisation();
-}
-
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -151,6 +146,11 @@ void JavascriptContext::FatalErrorCallbackMember(const char* location, const cha
 
 JavascriptContext::JavascriptContext()
 {
+    // Certain static operations like setting flags cannot be performed after V8 has been initialized. Since we allow setting flags by
+    // a static method we can't do the unmanaged initialization in the static constructor, because that would always run before any other
+    // static method. Instead we call it here. The internal checks in UnmanagedInitialisation make this thread safe.
+    UnmanagedInitialisation();
+
 	// Unfortunately the fatal error handler is not installed early enough to catch
     // out-of-memory errors while creating new isolates
     // (see my post Catching V8::FatalProcessOutOfMemory while creating an isolate (SetFatalErrorHandler does not work)).
@@ -232,6 +232,8 @@ void JavascriptContext::SetFatalErrorHandler(FatalErrorHandler^ handler)
 
 void JavascriptContext::SetFlags(System::String^ flags)
 {
+    if (initialized)
+        throw gcnew System::InvalidOperationException("Flags can only be set once before the first context and therefore V8 is initialized.");
     std::string convertedFlags = msclr::interop::marshal_as<std::string>(flags);
     v8::V8::SetFlagsFromString(convertedFlags.c_str(), (int)convertedFlags.length());
 }
@@ -281,7 +283,7 @@ JavascriptContext::SetParameter(System::String^ iName, System::Object^ iObject, 
 	if (options != SetParameterOptions::None) {
 		Local<v8::Object> obj = value.As<v8::Object>();
 		if (!obj.IsEmpty()) {
-			Local<v8::External> wrap = obj->GetInternalField(0).As<v8::External>();
+			Local<v8::External> wrap = obj->GetInternalField(0).As<v8::Value>().As<v8::External>();
 			if (!wrap.IsEmpty()) {
 				JavascriptExternal* external = static_cast<JavascriptExternal*>(wrap->Value());
 				external->SetOptions(options);
@@ -310,7 +312,8 @@ void JavascriptContext::SetConstructor(System::String^ name, System::Type^ assoc
     Local<String> className = ToV8String(isolate, name);
     Local<FunctionTemplate> functionTemplate = JavascriptInterop::GetFunctionTemplateFromSystemDelegate(constructor);
     functionTemplate->SetClassName(className);
-    JavascriptInterop::InitObjectWrapperTemplate(functionTemplate->InstanceTemplate());
+    auto instanceTemplate = functionTemplate->InstanceTemplate();
+    JavascriptInterop::InitObjectWrapperTemplate(instanceTemplate);
     mTypeToConstructorMapping[associatedType] = System::IntPtr(new Persistent<FunctionTemplate>(isolate, functionTemplate));
     Local<Context>::New(isolate, *mContext)->Global()->Set(context, className, functionTemplate->GetFunction(context).ToLocalChecked());
 }
@@ -512,7 +515,9 @@ JavascriptContext::Exit(v8::Locker *locker, JavascriptContext^ old_context)
 void
 JavascriptContext::Collect()
 {
-    while(!this->isolate->IdleNotificationDeadline(1)) {};
+    // The method used originally here does not exist anymore and this is the best guess for a replacement.
+    // Since this isn't used in internal tests anywhere it can't be checked for validity.
+    this->isolate->MemoryPressureNotification(v8::MemoryPressureLevel::kModerate);
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -542,7 +547,8 @@ JavascriptContext::GetObjectWrapperConstructorTemplate(System::Type ^type)
     System::IntPtr ptrToConstructor;
     if (!mTypeToConstructorMapping->TryGetValue(type, ptrToConstructor)) {
         Local<FunctionTemplate> constructor = FunctionTemplate::New(GetCurrentIsolate());
-        JavascriptInterop::InitObjectWrapperTemplate(constructor->InstanceTemplate());
+        auto instanceTemplate = constructor->InstanceTemplate();
+        JavascriptInterop::InitObjectWrapperTemplate(instanceTemplate);
         mTypeToConstructorMapping[type] = System::IntPtr(new Persistent<FunctionTemplate>(isolate, constructor));
         return constructor;
     }
@@ -555,6 +561,11 @@ JavascriptContext::GetObjectWrapperConstructorTemplate(System::Type ^type)
 System::String^ JavascriptContext::V8Version::get()
 {
 	return gcnew System::String(v8::V8::GetVersion());
+}
+
+bool JavascriptContext::IsV8Initialized::get()
+{
+    return initialized;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////

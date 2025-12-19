@@ -281,6 +281,23 @@ test.prop.complex = complex;");
                     yield return 3;
                 }
             }
+            
+            public IEnumerable<int> ItemsWithException
+            {
+                get
+                {
+                    yield return GetItemOrThrow(1);
+                    yield return GetItemOrThrow(2);
+                    yield return GetItemOrThrow(3);
+                }
+            }
+
+            private int GetItemOrThrow(int n)
+            {
+                if (n == 2)
+                    throw new Exception("Inside MoveNext");
+                return n;
+            }
 
             public IEnumerable<int> EmptyItems
             {
@@ -517,6 +534,137 @@ array.map(x => x.D).join(', ');
             _context.SetParameter("enumerable", enumerable);
             Action action = () => _context.Run(@"enumerable[Symbol.iterator]()");
             action.Should().Throw<JavascriptException>("TypeError: enumerable[Symbol.iterator] is not a function");
+        }
+
+        [TestMethod]
+        public void IEnumerableProperty_UsingForOfLoopToIterate_ExceptionDuringImplicitNextCanBeCaught()
+        {
+            // If the iterator that is implicitly created using for-of delegates its next() method to a C# object's
+            // MoveNext method and that method throws an exception, the exception could previously not be caught and
+            // immediately terminated script execution (without a JS stacktrace even). This can be very bad if
+            // exceptions should be caught in JS to close/dispose external resources explicitly (e.g. closing a file
+            // handle in a finally block).
+            //
+            // This has been fixed by catching the C# exception thrown by MoveNext and scheduling it as a JS exception
+            // with V8 in the iterator implementation of JavascriptExternal. This is the regression test for that.
+            // Similarly we provide more regression tests for other scenarios regarding explicit and implicit calls of
+            // next() below.
+            var enumerable = new ClassWithEnumerableProperty();
+            _context.SetParameter("enumerable", enumerable);
+            var result = _context.Run(@"
+let result = 0;
+try {
+    for (const item of enumerable.ItemsWithException)
+        result += item;
+    result;
+} catch {
+    result = -1; // Set result to -1 to indicate we could catch the exception during the iteration
+} finally {
+    result -= 2; // Subtract an additional 2 to indicate we also executed the finally block
+}
+result;
+");
+            result.Should().Be(-3);
+        }
+
+        [TestMethod]
+        public void IEnumerableProperty_UsingForOfLoopTwice_ExceptionDuringImplicitNextCanBeCaughtTwice()
+        {
+            var enumerable = new ClassWithEnumerableProperty();
+            _context.SetParameter("enumerable", enumerable);
+            var result = _context.Run(@"
+let result1 = 0;
+try {
+    for (const item of enumerable.ItemsWithException)
+        result1 += item;
+    result1;
+} catch {
+    result1 = -1; // Set result to -1 to indicate we could catch the exception during the iteration
+} finally {
+    result1 -= 2; // Subtract an additional 2 to indicate we also executed the finally block
+}
+
+let result2 = 0;
+try {
+    for (const item of enumerable.ItemsWithException)
+        result2 += item;
+    result2;
+} catch {
+    result2 = -1; // Set result to -1 to indicate we could catch the exception during the iteration
+} finally {
+    result2 -= 2; // Subtract an additional 2 to indicate we also executed the finally block
+}
+result1 + result2;
+");
+            result.Should().Be(-6);
+        }
+
+        [TestMethod]
+        public void IEnumerableProperty_UsingSpreadOperator_ExceptionDuringImplicitNextCanBeCaught()
+        {
+            var enumerable = new ClassWithEnumerableProperty();
+            _context.SetParameter("enumerable", enumerable);
+            var result = _context.Run(@"
+let result = 0;
+try {
+    [...enumerable.ItemsWithException];
+} catch {
+    result = -1; // Set result to -1 to indicate we could catch the exception during the iteration
+} finally {
+    result -= 2; // Subtract an additional 2 to indicate we also executed the finally block
+}
+result;");
+            result.Should().Be(-3);
+        }
+
+        [TestMethod]
+        public void IEnumerableProperty_IteratingUsingNextFunction_ExceptionDuringExplicitNextCanBeCaughtAndAnotherCallToNextIndicatesEndOfIterator()
+        {
+            var enumerable = new ClassWithEnumerableProperty();
+            _context.SetParameter("enumerable", enumerable);
+            var result = _context.Run(@"
+function assert(expected, actual) {
+    for (let prop in expected) {
+        if (!(prop in actual))
+            throw new Error(`Property ${prop} not available on ${JSON.stringify(actual)}`);
+        if (expected[prop] !== actual[prop])
+            throw new Error(`Expected ${prop} to be ${expected[prop]} but was ${actual[prop]}`);
+    }
+}
+let result = 0;
+var iterator = enumerable.ItemsWithException[Symbol.iterator]();
+var next = iterator.next();
+assert({ done: false, value: 1 }, next);
+try {
+    next = iterator.next();
+    assert({ done: false, value: 2 }, next);
+} catch {
+    result = -1; // Set result to -1 to indicate we could catch the exception during the iteration
+} finally {
+    result -= 2; // Subtract an additional 2 to indicate we also executed the finally block
+}
+next = iterator.next();
+assert({ done: true }, next);
+result;
+");
+            result.Should().Be(-3);
+        }
+
+        [TestMethod]
+        public void IEnumerableProperty_UsingForOfLoopToIterate_ExceptionDuringImplicitNextHasAJavascriptStacktraceAndSourceAndLineInformation()
+        {
+            var enumerable = new ClassWithEnumerableProperty();
+            _context.SetParameter("enumerable", enumerable);
+            Action action = () => _context.Run(@"
+let result = 0;
+for (const item of enumerable.ItemsWithException)
+    result += item;
+result;
+", "iterate.js");
+            var e = action.Should().ThrowExactly<JavascriptException>().And;
+            e.Data["V8StackTrace"].Should().Be("Error: Inside MoveNext\n    at iterate.js:3:12");
+            e.Source.Should().Be("iterate.js");
+            e.Line.Should().Be(3);
         }
     }
 }

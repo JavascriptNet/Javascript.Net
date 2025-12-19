@@ -411,7 +411,7 @@ void JavascriptExternal::IteratorCallback(const v8::FunctionCallbackInfo<Value>&
     iterator->Set(String::NewFromUtf8(isolate, "next").ToLocalChecked(), functionTemplate);
     auto iteratorInstance = iterator->NewInstance(isolate->GetCurrentContext()).ToLocalChecked();
 
-    auto internalField = Local<External>::Cast(iArgs.Holder()->GetInternalField(0));
+    auto internalField = iArgs.This()->GetInternalField(0).As<Value>().As<External>();
     auto external = (JavascriptExternal*)internalField->Value();
     auto enumerable = (System::Collections::IEnumerable^)external->GetObject();
     auto enumerator = enumerable->GetEnumerator();
@@ -427,17 +427,31 @@ void JavascriptExternal::IteratorNextCallback(const v8::FunctionCallbackInfo<Val
 {
     auto isolate = iArgs.GetIsolate();
 
-    auto internalField = Local<External>::Cast(iArgs.Holder()->GetInternalField(0));
+    auto internalField = iArgs.This()->GetInternalField(0).As<Value>().As<External>();
     auto external = (JavascriptExternal*)internalField->Value();
     auto enumerator = (System::Collections::IEnumerator^) external->GetObject();
-    auto done = !enumerator->MoveNext();
 
-    auto resultTemplate = ObjectTemplate::New(isolate);
-    auto result = resultTemplate->NewInstance(isolate->GetCurrentContext()).ToLocalChecked();
-    result->Set(isolate->GetCurrentContext(), String::NewFromUtf8(isolate, "done").ToLocalChecked(), JavascriptInterop::ConvertToV8(done));
-    if (!done)
-        result->Set(isolate->GetCurrentContext(), String::NewFromUtf8(isolate, "value").ToLocalChecked(), JavascriptInterop::ConvertToV8(enumerator->Current));
-    iArgs.GetReturnValue().Set(result);
+    try
+    {
+        // MoveNext might throw in which case we need to schedule a JS exception with the isolate otherwise the JS code
+        // can't catch that error and the script execution terminates immediately instead.
+        auto done = !enumerator->MoveNext();
+        auto resultTemplate = ObjectTemplate::New(isolate);
+        auto result = resultTemplate->NewInstance(isolate->GetCurrentContext()).ToLocalChecked();
+        result->Set(isolate->GetCurrentContext(), String::NewFromUtf8(isolate, "done").ToLocalChecked(), JavascriptInterop::ConvertToV8(done));
+        if (!done)
+            result->Set(isolate->GetCurrentContext(), String::NewFromUtf8(isolate, "value").ToLocalChecked(), JavascriptInterop::ConvertToV8(enumerator->Current));
+        iArgs.GetReturnValue().Set(result);
+    }
+    catch (System::Exception ^exception)
+    {
+        // If we catch a .NET exception we schedule it with the isolate and set the resulting object as the return value
+        // of the callback. This automatically causes the iterator protocol to be fulfilled correctly. We must set the
+        // JS exception object as the return value to get correct source and line information in addition to the
+        // stacktrace.
+        auto result = isolate->ThrowException(JavascriptInterop::ConvertToV8(exception));
+        iArgs.GetReturnValue().Set(result);
+    }
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
