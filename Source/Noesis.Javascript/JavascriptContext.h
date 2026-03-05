@@ -48,6 +48,7 @@ using namespace std;
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
 class JavascriptExternal;
+ref class JavascriptDebugger;  // Forward declaration (defined in JavascriptDebugger.h)
 
 [System::Flags]
 public enum class SetParameterOptions : int
@@ -237,10 +238,14 @@ internal:
 	//void SetStackLimit();
 
 	static JavascriptContext^ GetCurrent();
-	
+
 	static v8::Isolate *GetCurrentIsolate();
 
 	Local<v8::Object> GetGlobal();
+
+    // Accessors for debugger integration
+    v8::Isolate* GetIsolate() { return isolate; }
+    v8::Persistent<v8::Context>* GetContextPersistent() { return mContext; }
 
     v8::Locker *Enter([System::Runtime::InteropServices::Out] JavascriptContext^% old_context);
 
@@ -271,6 +276,9 @@ internal:
     System::Collections::Generic::Dictionary<int, WrappedJavascriptFunction>^ mFunctions;
 
     System::Collections::Generic::Dictionary<System::String^, WrappedMethod>^ mMethods;
+
+    // Attached debugger, if any. Set by JavascriptDebugger constructor.
+    JavascriptDebugger^ mDebugger;
 protected:
 	// By entering an isolate before using a context, we can have multiple
 	// contexts used simultaneously in different threads.
