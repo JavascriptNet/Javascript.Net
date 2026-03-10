@@ -53,10 +53,7 @@ static System::String^ StringViewToManagedString(const v8_inspector::StringView&
     if (view.is8Bit())
     {
         // V8 inspector 8-bit strings are UTF-8 encoded (CDP JSON is ASCII-safe)
-        cli::array<System::Byte>^ bytes = gcnew cli::array<System::Byte>((int)view.length());
-        pin_ptr<System::Byte> pinned = &bytes[0];
-        memcpy(pinned, view.characters8(), view.length());
-        return System::Text::Encoding::UTF8->GetString(bytes);
+        return System::Text::Encoding::UTF8->GetString((System::Byte*)view.characters8(), (int)view.length());
     }
     else
     {
@@ -216,10 +213,10 @@ struct InspectorImpl : v8_inspector::V8InspectorClient, v8_inspector::V8Inspecto
         {
             std::unique_lock<std::mutex> lock(queueMutex);
             cv.wait(lock, [this] {
-                return !pendingCommands.empty() || !waitingForDebugger.load();
+                return !pendingCommands.empty() || !waitingForDebugger.load() || disconnecting.load();
             });
 
-            if (!waitingForDebugger) break;
+            if (!waitingForDebugger || disconnecting) break;
 
             std::string cmd = std::move(pendingCommands.front());
             pendingCommands.pop_front();
@@ -336,6 +333,7 @@ struct InspectorImpl : v8_inspector::V8InspectorClient, v8_inspector::V8Inspecto
 private:
     void FireMessage(const v8_inspector::StringView& view)
     {
+        if (disconnecting) return;
         System::String^ msg = StringViewToManagedString(view);
         managedDebugger->OnMessageReceived(msg);
     }

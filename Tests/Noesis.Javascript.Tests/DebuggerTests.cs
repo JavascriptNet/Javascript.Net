@@ -242,6 +242,72 @@ namespace Noesis.Javascript.Tests
         }
 
         [TestMethod]
+        public async Task DisposingWhilePausedCompletesScriptAndSkipsRemainingBreakpoints()
+        {
+            // Verifies that disposing the debugger while paused at the first of two
+            // debugger statements allows the script to complete with the correct return
+            // value, and that the second debugger statement does not trigger another pause.
+            var debugger = new JavascriptDebugger(_context, false);
+
+            int pauseCount = 0;
+            var firstPausedTcs = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+            debugger.MessageReceived += (_, e) =>
+            {
+                var json = JsonDocument.Parse(e.Message);
+                if (json.RootElement.TryGetProperty("method", out var method) &&
+                    method.GetString() == "Debugger.paused")
+                {
+                    pauseCount++;
+                    firstPausedTcs.TrySetResult();
+                }
+            };
+
+            debugger.SendCommand("{\"id\":1,\"method\":\"Debugger.enable\"}");
+
+            // Script pauses at first debugger statement; second would pause again if
+            // the debugger were still connected.
+            var runTask = Task.Run(() => _context.Run("debugger; debugger; 99;"));
+
+            // Wait for first pause, then give the V8 thread time to enter runMessageLoopOnPause.
+            await firstPausedTcs.Task.WaitAsync(TimeSpan.FromSeconds(5));
+            Thread.Sleep(50);
+            debugger.IsPaused.Should().BeTrue();
+
+            // Dispose while paused - unblocks the V8 thread and disconnects the session.
+            debugger.Dispose();
+
+            // Script should complete with the correct return value.
+            var result = await runTask.WaitAsync(TimeSpan.FromSeconds(5));
+            result.Should().Be(99);
+
+            // Only the first debugger statement should have fired a pause event.
+            pauseCount.Should().Be(1, "second debugger statement should be skipped after dispose");
+            debugger.IsConnected.Should().BeFalse();
+        }
+
+        [TestMethod]
+        public async Task DisposingWhileWaitingForDebuggerAllowsScriptToComplete()
+        {
+            // Verifies that disposing the debugger while ProcessPending() is blocked
+            // in the waitingForDebugger loop (waitForDebugger=true, no
+            // Runtime.runIfWaitingForDebugger sent) unblocks the V8 thread and
+            // allows the script to complete with the correct return value.
+            var debugger = new JavascriptDebugger(_context, true);
+
+            var runTask = Task.Run(() => _context.Run("42;"));
+            Thread.Sleep(100);
+            debugger.IsPaused.Should().BeTrue("should be blocked waiting for debugger to attach");
+            runTask.IsCompleted.Should().BeFalse("script should not have started yet");
+
+            // Dispose without ever sending Runtime.runIfWaitingForDebugger.
+            debugger.Dispose();
+
+            var result = await runTask.WaitAsync(TimeSpan.FromSeconds(5));
+            result.Should().Be(42);
+            debugger.IsConnected.Should().BeFalse();
+        }
+
+        [TestMethod]
         public void SendCommandThrowsWhenDisposed()
         {
             var debugger = new JavascriptDebugger(_context, false);
