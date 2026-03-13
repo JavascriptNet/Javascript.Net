@@ -166,6 +166,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="JavascriptContext.h" />
+    <ClInclude Include="JavascriptDebugger.h" />
     <ClInclude Include="JavascriptException.h" />
     <ClInclude Include="JavascriptExternal.h" />
     <ClInclude Include="JavascriptFunction.h" />
@@ -176,6 +177,7 @@
   <ItemGroup>
     <ClCompile Include="AssemblyInfo.cpp" />
     <ClCompile Include="JavascriptContext.cpp" />
+    <ClCompile Include="JavascriptDebugger.cpp" />
     <ClCompile Include="JavascriptException.cpp" />
     <ClCompile Include="JavascriptExternal.cpp" />
     <ClCompile Include="JavascriptFunction.cpp" />
