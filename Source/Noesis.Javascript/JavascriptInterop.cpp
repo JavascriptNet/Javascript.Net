@@ -69,10 +69,15 @@ ConvertedObjects::ConvertedObjects()
 
 ConvertedObjects::~ConvertedObjects()
 {
-	// Delete gcroot pointers using C++ vector - no V8 operations needed.
+	// Free GCHandles using C++ vector - no V8 operations needed.
 	// This avoids calling ToLocalChecked() which clears pending exceptions in V8 12.x.
-	for (void* ptr : pointersToDelete) {
-		delete static_cast<gcroot<System::Object^>*>(ptr);
+	for (void* handlePtr : handlesToFree) {
+		if (handlePtr != nullptr) {
+			System::Runtime::InteropServices::GCHandle handle = 
+				System::Runtime::InteropServices::GCHandle::FromIntPtr(System::IntPtr(handlePtr));
+			if (handle.IsAllocated)
+				handle.Free();
+		}
 	}
 }
 
@@ -82,12 +87,13 @@ ConvertedObjects::AddConverted(v8::Local<v8::Object> o, System::Object^ converte
 	Isolate *isolate = JavascriptContext::GetCurrentIsolate();
 	Local<Context> context = isolate->GetCurrentContext();
 	
-	// Create gcroot pointer and track it for cleanup
-	gcroot<System::Object^>* ptr = new gcroot<System::Object^>(converted);
-	pointersToDelete.push_back(ptr);
+	// Create GCHandle to safely store managed object reference in native code
+	System::Runtime::InteropServices::GCHandle handle = System::Runtime::InteropServices::GCHandle::Alloc(converted, System::Runtime::InteropServices::GCHandleType::Normal);
+	void* handlePtr = System::Runtime::InteropServices::GCHandle::ToIntPtr(handle).ToPointer();
+	handlesToFree.push_back(handlePtr);
 	
 	// Store in V8 Map for lookup by object identity
-	Local<External> external = External::New(isolate, ptr);
+	Local<External> external = External::New(isolate, handlePtr);
 	objectToConversion->Set(context, o, external);
 }
 
@@ -101,8 +107,12 @@ ConvertedObjects::GetConverted(v8::Local<v8::Object> o)
 	if (!maybe_found.ToLocal(&found) || found->IsUndefined())
 		return nullptr;  // haven't seen this JavaScript object before
 	Local<External> external = Local<External>::Cast(found);
-	gcroot<System::Object^> *object_ptr = (gcroot<System::Object^> *)external->Value();
-	return *object_ptr;
+	// Convert void* back to IntPtr, then to GCHandle to access the managed object
+	System::IntPtr handlePtr = System::IntPtr(external->Value());
+	System::Runtime::InteropServices::GCHandle handle = System::Runtime::InteropServices::GCHandle::FromIntPtr(handlePtr);
+	if (!handle.IsAllocated)
+		return nullptr;
+	return handle.Target;
 }
 
 
